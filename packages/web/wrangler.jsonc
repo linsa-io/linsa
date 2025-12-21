@@ -1,0 +1,69 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "linsa-io",
+	"compatibility_date": "2025-09-02",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"main": "@tanstack/react-start/server-entry",
+	"observability": {
+		"enabled": true
+	},
+	/**
+	 * Smart Placement
+	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
+	 */
+	// "placement": { "mode": "smart" }
+	/**
+	 * Bindings
+	 * Bindings allow your Worker to interact with resources on the Cloudflare Developer Platform, including
+	 * databases, object storage, AI inference, real-time communication and more.
+	 * https://developers.cloudflare.com/workers/runtime-apis/bindings/
+	 */
+	/**
+	 * Environment Variables
+	 * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
+	 */
+	"vars": {
+		"APP_BASE_URL": "https://linsa.io"
+	},
+	/**
+	 * Note: Use secrets to store sensitive data.
+	 * https://developers.cloudflare.com/workers/configuration/secrets/
+	 */
+	/**
+	 * Static Assets
+	 * https://developers.cloudflare.com/workers/static-assets/binding/
+	 */
+	// "assets": { "directory": "./public/", "binding": "ASSETS" }
+	/**
+	 * Service Bindings (communicate between multiple Workers)
+	 * https://developers.cloudflare.com/workers/wrangler/configuration/#service-bindings
+	 */
+	//  TODO: add back later. need github ci for this
+	// "services": [
+	// 	{
+	// 		"binding": "WORKER_RPC",
+	// 		"service": "fullstack-monorepo-template-worker",
+	// 		"entrypoint": "WorkerRpc"
+	// 	}
+	// ]
+	/**
+	 * Hyperdrive (PostgreSQL connection pooling)
+	 * https://developers.cloudflare.com/hyperdrive/
+	 *
+	 * Create with: npx wrangler hyperdrive create prod-db --connection-string="postgresql://..."
+	 * Then replace the id below with the returned ID
+	 */
+	"hyperdrive": [
+		{
+			"binding": "HYPERDRIVE",
+			"id": "ab1f77b46587473ca6d42489678e34fd",
+			"localConnectionString": "postgresql://postgres:password@db.localtest.me:5433/electric"
+		}
+	]
+}

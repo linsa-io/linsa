@@ -1,0 +1,9 @@
+version = 1
+name = "stream-server"
+
+[host]
+dest = "/opt/stream-server"
+setup = "cargo build --release"
+run = "API_PORT=8081 /opt/stream-server/target/release/stream-server"
+port = 8081
+service = "stream-server"

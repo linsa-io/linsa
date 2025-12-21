@@ -1,0 +1,12 @@
+{
+  "projectName": "web",
+  "mode": "file-router",
+  "typescript": true,
+  "tailwind": true,
+  "packageManager": "npm",
+  "git": false,
+  "addOnOptions": {},
+  "version": 1,
+  "framework": "react-cra",
+  "chosenAddOns": ["start", "cloudflare"]
+}

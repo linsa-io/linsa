@@ -1,0 +1,6 @@
+# robots.txt for Linsa
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://linsa.io/sitemap.xml

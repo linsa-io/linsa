@@ -1,0 +1,27 @@
+{
+  "name": "@linsa/worker",
+  "version": "0.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.10.3",
+    "@cloudflare/workers-types": "^4.20251205.0",
+    "@types/node": "^18.0.0",
+    "vitest": "~3.0.9",
+    "wrangler": "^4.53.0"
+  },
+  "dependencies": {
+    "hono": "^4.10.4"
+  },
+  "scripts": {
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "test": "vitest",
+    "deploy": "wrangler deploy",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --write '**/*.{ts,js,cjs,json}'"
+  }
+}

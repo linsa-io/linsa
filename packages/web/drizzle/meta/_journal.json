@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1764686923088,
+      "tag": "0000_freezing_black_crow",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1764866473191,
+      "tag": "0001_loving_captain_midlands",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1765916542205,
+      "tag": "0002_uneven_the_renegades",
+      "breakpoints": true
+    }
+  ]
+}

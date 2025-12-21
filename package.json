@@ -1,0 +1,43 @@
+{
+  "name": "linsa",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.11.1",
+  "scripts": {
+    "dev:worker": "pnpm --filter @linsa/worker run dev",
+    "deploy:worker": "pnpm --filter @linsa/worker run deploy",
+    "test:worker": "pnpm --filter @linsa/worker run test",
+    "dev:web": "pnpm --filter @linsa/web run dev",
+    "deploy:web": "pnpm --filter @linsa/web run deploy",
+    "test:web": "pnpm --filter @linsa/web run test",
+    "dev": "pnpm dev:worker",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint && pnpm format:check",
+    "lint:fix": "pnpm -r lint:fix",
+    "format": "prettier --write '**/*.{ts,js,tsx,jsx,cjs,json,md}'",
+    "format:check": "prettier --check '**/*.{ts,js,cjs,json,md}'",
+    "deploy": "pnpm deploy:worker && pnpm deploy:web"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/pg": "^8.15.6",
+    "@typescript-eslint/eslint-plugin": "^8.46.4",
+    "@typescript-eslint/parser": "^8.46.4",
+    "eslint": "^9.39.1",
+    "globals": "^16.5.0",
+    "pg": "^8.16.3",
+    "postgres": "^3.4.7",
+    "tsx": "^4.21.0",
+    "typescript": "^5.5.2"
+  },
+  "dependencies": {
+    "prettier": "^3.6.2"
+  },
+  "prettier": {
+    "semi": false
+  },
+  "workspaces": [
+    "packages/*"
+  ]
+}

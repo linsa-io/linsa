@@ -1,0 +1,1489 @@
+version = 1
+name = "linsa"
+
+[deps]
+node = "node"
+pnpm = "pnpm"
+docker = "docker"
+
+[[tasks]]
+name = "setup"
+interactive = true
+command = """
+set -euo pipefail
+
+ROOT="$(pwd)"
+WEB_DIR="$ROOT/packages/web"
+ENV_FILE="$WEB_DIR/.env"
+EXAMPLE_FILE="$WEB_DIR/.env.example"
+
+echo "=== Linsa Setup ==="
+echo ""
+
+# 1. Create .env from template if needed
+if [ ! -f "$ENV_FILE" ]; then
+  cp "$EXAMPLE_FILE" "$ENV_FILE"
+  echo "✓ Created $ENV_FILE from template"
+else
+  echo "✓ $ENV_FILE exists"
+fi
+
+# 2. Generate secrets and set defaults
+node - <<'NODE'
+const fs = require("fs")
+const path = require("path")
+const crypto = require("crypto")
+
+const envPath = path.join("packages", "web", ".env")
+let text = fs.readFileSync(envPath, "utf8")
+
+const ensureKey = (key, value, shouldReplace = () => false) => {
+  const pattern = new RegExp(`^${key}=.*$`, "m")
+  if (pattern.test(text)) {
+    const current = text.match(pattern)[0].split("=")[1]
+    if (current.trim() === "" || shouldReplace(current.trim())) {
+      text = text.replace(pattern, `${key}=${value}`)
+      console.log(`  Set ${key}`)
+    }
+  } else {
+    text += `\n${key}=${value}\n`
+    console.log(`  Added ${key}`)
+  }
+}
+
+ensureKey(
+  "BETTER_AUTH_SECRET",
+  crypto.randomBytes(32).toString("hex"),
+  (current) => current === "your-strong-secret-at-least-32-chars"
+)
+ensureKey("APP_BASE_URL", "http://localhost:5613")
+
+fs.writeFileSync(envPath, text)
+NODE
+
+# 3. Install dependencies
+echo ""
+echo "Installing dependencies..."
+pnpm install
+
+# 4. Check DATABASE_URL
+echo ""
+DATABASE_URL=$(grep -E "^DATABASE_URL=" "$ENV_FILE" 2>/dev/null | cut -d'=' -f2- || true)
+
+if [ -z "$DATABASE_URL" ] || [ "$DATABASE_URL" = "" ] || [[ "$DATABASE_URL" == *"user:password"* ]]; then
+  echo "=== Database Setup ==="
+  echo ""
+  echo "You need a Neon Postgres database."
+  echo "Get your connection string from: https://console.neon.tech"
+  echo ""
+  read -p "Paste your Neon DATABASE_URL (or press Enter to skip): " NEW_DB_URL
+
+  if [ -n "$NEW_DB_URL" ]; then
+    # Update .env with the new DATABASE_URL
+    if grep -q "^DATABASE_URL=" "$ENV_FILE"; then
+      sed -i '' "s|^DATABASE_URL=.*|DATABASE_URL=$NEW_DB_URL|" "$ENV_FILE"
+    else
+      echo "DATABASE_URL=$NEW_DB_URL" >> "$ENV_FILE"
+    fi
+    DATABASE_URL="$NEW_DB_URL"
+    echo "✓ DATABASE_URL saved"
+  fi
+fi
+
+# 5. Push schema to database if DATABASE_URL is set
+if [ -n "$DATABASE_URL" ] && [ "$DATABASE_URL" != "" ] && [[ "$DATABASE_URL" != *"user:password"* ]]; then
+  echo ""
+  echo "Pushing schema to database..."
+  cd "$WEB_DIR"
+  pnpm drizzle-kit push --force 2>&1 | tail -5
+  echo "✓ Database schema ready"
+  cd "$ROOT"
+fi
+
+# 6. Summary
+echo ""
+echo "=== Setup Complete ==="
+echo ""
+
+# Check what's configured
+DB_SET=$(grep -E "^DATABASE_URL=.+" "$ENV_FILE" 2>/dev/null | grep -v "DATABASE_URL=$" | grep -v "user:password" | wc -l | tr -d ' ')
+AI_SET=$(grep -E "^OPENROUTER_API_KEY=.+" "$ENV_FILE" 2>/dev/null | grep -v "OPENROUTER_API_KEY=$" | wc -l | tr -d ' ')
+
+if [ "$DB_SET" = "1" ]; then
+  echo "✓ Database: Connected"
+else
+  echo "○ Database: Not configured (add DATABASE_URL to packages/web/.env)"
+fi
+
+if [ "$AI_SET" = "1" ]; then
+  echo "✓ AI Chat: Configured"
+else
+  echo "○ AI Chat: Not configured (add OPENROUTER_API_KEY for AI responses)"
+fi
+
+echo ""
+echo "Run 'f dev' to start the web server on http://localhost:5613"
+"""
+description = "Set up Linsa: create .env, install deps, push schema to Neon."
+dependencies = ["node", "pnpm"]
+shortcuts = ["s"]
+
+[[tasks]]
+name = "seed"
+command = """
+set -euo pipefail
+
+ROOT="$(pwd)"
+WEB_DIR="$ROOT/packages/web"
+ENV_FILE="$WEB_DIR/.env"
+
+if [ ! -f "$ENV_FILE" ]; then
+  echo "Missing $ENV_FILE. Run 'f setup' first."
+  exit 1
+fi
+
+set -a
+. "$ENV_FILE"
+set +a
+
+if [ -z "${DATABASE_URL:-}" ] || [[ "$DATABASE_URL" == "postgresql://user:password@host:5432/dbname" ]]; then
+  echo "DATABASE_URL is not set or still placeholder in $ENV_FILE"
+  exit 1
+fi
+
+pnpm --filter @linsa/web install --silent --ignore-scripts
+pnpm --filter @linsa/web run seed
+"""
+description = "Seed the database with demo user/chat data (requires DATABASE_URL set)."
+dependencies = ["node", "pnpm"]
+
+[[tasks]]
+name = "migrate-db"
+command = """
+set -euo pipefail
+
+ROOT="$(pwd)"
+WEB_DIR="$ROOT/packages/web"
+ENV_FILE="$WEB_DIR/.env"
+
+if [ ! -f "$ENV_FILE" ]; then
+  echo "Missing $ENV_FILE. Run 'f setup' first."
+  exit 1
+fi
+
+set -a
+. "$ENV_FILE"
+set +a
+
+if [ -z "${DATABASE_URL:-}" ] || [[ "$DATABASE_URL" == "postgresql://user:password@host:5432/dbname" ]]; then
+  echo "DATABASE_URL is not set (or still placeholder) in $ENV_FILE"
+  exit 1
+fi
+
+cd "$WEB_DIR"
+pnpm --filter @linsa/web install --silent --ignore-scripts
+
+# Use drizzle-kit push for local dev (syncs schema directly, no migration history)
+# This is safer for local dev as it handles existing tables gracefully
+echo "Pushing schema to database..."
+pnpm drizzle-kit push --force
+
+echo "✓ Database schema synced"
+"""
+description = "Sync Drizzle schema to local database (uses push for dev, handles existing tables)."
+dependencies = ["node", "pnpm"]
+shortcuts = ["migrate", "m"]
+
+[[tasks]]
+name = "fix-context-tables"
+command = """
+set -euo pipefail
+
+ROOT="$(pwd)"
+WEB_DIR="$ROOT/packages/web"
+ENV_FILE="$WEB_DIR/.env"
+
+if [ ! -f "$ENV_FILE" ]; then
+  echo "Missing $ENV_FILE. Run 'f setup' first."
+  exit 1
+fi
+
+set -a
+. "$ENV_FILE"
+set +a
+
+if [ -z "${DATABASE_URL:-}" ] || [[ "$DATABASE_URL" == "postgresql://user:password@host:5432/dbname" ]]; then
+  echo "DATABASE_URL is not set (or still placeholder) in $ENV_FILE"
+  exit 1
+fi
+
+cd "$WEB_DIR"
+echo "Ensuring context tables exist in the target database..."
+pnpm --filter @linsa/web install --silent --ignore-scripts
+DATABASE_URL="$DATABASE_URL" pnpm tsx scripts/push-schema.ts
+
+echo "✓ context_items and thread_context_items tables ensured"
+"""
+description = "Create/repair context_items and thread_context_items tables using push-schema."
+dependencies = ["node", "pnpm"]
+shortcuts = ["fctx"]
+
+[[tasks]]
+name = "dev"
+command = """
+# Kill any process on port 5613 before starting
+lsof -ti:5613 | xargs kill -9 2>/dev/null || true
+pnpm --filter @linsa/web run dev
+"""
+description = "Start the web dev server on port 5613."
+dependencies = ["node", "pnpm"]
+shortcuts = ["d"]
+
+[[tasks]]
+name = "deploy"
+command = """
+set -euo pipefail
+
+echo "=== Production Deployment ==="
+echo ""
+echo "This will deploy to Cloudflare Workers."
+echo "Make sure you have configured secrets first (see docs/production-setup.md)"
+echo ""
+
+# Check if wrangler is logged in
+if ! pnpm --filter @linsa/web exec wrangler whoami >/dev/null 2>&1; then
+  echo "Not logged in to Cloudflare. Running wrangler login..."
+  pnpm --filter @linsa/web exec wrangler login
+fi
+
+echo ""
+echo "Deploying worker..."
+pnpm deploy:worker
+
+echo ""
+echo "Deploying web..."
+pnpm deploy:web
+
+echo ""
+echo "=== Deployment Complete ==="
+"""
+description = "Deploy both worker and web to Cloudflare Workers."
+dependencies = ["node", "pnpm"]
+shortcuts = ["p"]
+
+[[tasks]]
+name = "deploy-setup"
+interactive = true
+command = """
+set -euo pipefail
+
+echo "=== Production Secrets Setup ==="
+echo ""
+echo "This will configure Cloudflare Workers secrets for production."
+echo "You'll need:"
+echo "  - Neon PostgreSQL DATABASE_URL"
+echo "  - BETTER_AUTH_SECRET (will generate if empty)"
+echo "  - OpenRouter API key (optional)"
+echo ""
+
+cd packages/web
+
+# Check if wrangler is logged in
+if ! pnpm exec wrangler whoami >/dev/null 2>&1; then
+  echo "Not logged in to Cloudflare. Running wrangler login..."
+  pnpm exec wrangler login
+fi
+
+echo ""
+read -p "Enter your Neon PostgreSQL DATABASE_URL: " DATABASE_URL
+if [ -n "$DATABASE_URL" ]; then
+  echo "$DATABASE_URL" | pnpm exec wrangler secret put DATABASE_URL
+  echo "✓ DATABASE_URL set"
+fi
+
+echo ""
+read -p "Enter BETTER_AUTH_SECRET (leave empty to generate): " BETTER_AUTH_SECRET
+if [ -z "$BETTER_AUTH_SECRET" ]; then
+  BETTER_AUTH_SECRET=$(openssl rand -hex 32)
+  echo "Generated: $BETTER_AUTH_SECRET"
+fi
+echo "$BETTER_AUTH_SECRET" | pnpm exec wrangler secret put BETTER_AUTH_SECRET
+echo "✓ BETTER_AUTH_SECRET set"
+
+echo ""
+read -p "Enter your production APP_BASE_URL (e.g., https://app.example.com): " APP_BASE_URL
+if [ -n "$APP_BASE_URL" ]; then
+  pnpm exec wrangler vars put APP_BASE_URL "$APP_BASE_URL"
+  echo "✓ APP_BASE_URL set"
+fi
+
+echo ""
+read -p "Enter ELECTRIC_URL: " ELECTRIC_URL
+if [ -n "$ELECTRIC_URL" ]; then
+  echo "$ELECTRIC_URL" | pnpm exec wrangler secret put ELECTRIC_URL
+  echo "✓ ELECTRIC_URL set"
+fi
+
+echo ""
+read -p "Enter ELECTRIC_SOURCE_ID (leave empty if not using Electric Cloud): " ELECTRIC_SOURCE_ID
+if [ -n "$ELECTRIC_SOURCE_ID" ]; then
+  echo "$ELECTRIC_SOURCE_ID" | pnpm exec wrangler secret put ELECTRIC_SOURCE_ID
+  echo "✓ ELECTRIC_SOURCE_ID set"
+fi
+
+echo ""
+read -p "Enter ELECTRIC_SOURCE_SECRET (leave empty if not using Electric Cloud): " ELECTRIC_SOURCE_SECRET
+if [ -n "$ELECTRIC_SOURCE_SECRET" ]; then
+  echo "$ELECTRIC_SOURCE_SECRET" | pnpm exec wrangler secret put ELECTRIC_SOURCE_SECRET
+  echo "✓ ELECTRIC_SOURCE_SECRET set"
+fi
+
+echo ""
+read -p "Enter OPENROUTER_API_KEY (leave empty to skip): " OPENROUTER_API_KEY
+if [ -n "$OPENROUTER_API_KEY" ]; then
+  echo "$OPENROUTER_API_KEY" | pnpm exec wrangler secret put OPENROUTER_API_KEY
+  echo "✓ OPENROUTER_API_KEY set"
+fi
+
+echo ""
+read -p "Enter RESEND_API_KEY (leave empty to skip): " RESEND_API_KEY
+if [ -n "$RESEND_API_KEY" ]; then
+  echo "$RESEND_API_KEY" | pnpm exec wrangler secret put RESEND_API_KEY
+  echo "✓ RESEND_API_KEY set"
+fi
+
+echo ""
+read -p "Enter RESEND_FROM_EMAIL (e.g., noreply@yourdomain.com): " RESEND_FROM_EMAIL
+if [ -n "$RESEND_FROM_EMAIL" ]; then
+  echo "$RESEND_FROM_EMAIL" | pnpm exec wrangler secret put RESEND_FROM_EMAIL
+  echo "✓ RESEND_FROM_EMAIL set"
+fi
+
+echo ""
+echo "=== Setup Complete ==="
+echo ""
+echo "Run 'f deploy' to deploy to production."
+"""
+description = "Interactive setup for Cloudflare Workers production secrets."
+dependencies = ["node", "pnpm"]
+shortcuts = ["ds"]
+
+[[tasks]]
+name = "local-services"
+command = """
+set -euo pipefail
+
+echo "Starting local services via docker-compose..."
+
+cd packages/web
+docker compose up -d
+
+# Wait for postgres to be healthy
+echo "Waiting for Postgres to be ready..."
+READY=0
+for i in $(seq 1 30); do
+  STATUS=$(docker inspect -f '{{.State.Health.Status}}' linsa-postgres 2>/dev/null || echo "unknown")
+  if [ "$STATUS" = "healthy" ]; then
+    READY=1
+    break
+  fi
+  sleep 1
+done
+
+if [ "$READY" -ne 1 ]; then
+  echo "⚠ Postgres not ready. Check 'docker logs linsa-postgres'"
+  exit 1
+fi
+
+# Create tables if they don't exist
+docker compose exec -T postgres psql -U postgres -d electric <<'SQL'
+-- Better-auth tables (camelCase columns)
+CREATE TABLE IF NOT EXISTS users (
+  id text PRIMARY KEY,
+  name text NOT NULL,
+  email text NOT NULL UNIQUE,
+  "emailVerified" boolean NOT NULL DEFAULT false,
+  image text,
+  "createdAt" timestamp NOT NULL DEFAULT now(),
+  "updatedAt" timestamp NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS sessions (
+  id text PRIMARY KEY,
+  "expiresAt" timestamp NOT NULL,
+  token text NOT NULL UNIQUE,
+  "createdAt" timestamp NOT NULL,
+  "updatedAt" timestamp NOT NULL,
+  "ipAddress" text,
+  "userAgent" text,
+  "userId" text NOT NULL REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS accounts (
+  id text PRIMARY KEY,
+  "accountId" text NOT NULL,
+  "providerId" text NOT NULL,
+  "userId" text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  "accessToken" text,
+  "refreshToken" text,
+  "idToken" text,
+  "accessTokenExpiresAt" timestamp,
+  "refreshTokenExpiresAt" timestamp,
+  scope text,
+  password text,
+  "createdAt" timestamp NOT NULL,
+  "updatedAt" timestamp NOT NULL
+);
+CREATE TABLE IF NOT EXISTS verifications (
+  id text PRIMARY KEY,
+  identifier text NOT NULL,
+  value text NOT NULL,
+  "expiresAt" timestamp NOT NULL,
+  "createdAt" timestamp DEFAULT now(),
+  "updatedAt" timestamp DEFAULT now()
+);
+-- App tables (snake_case for Electric sync)
+CREATE TABLE IF NOT EXISTS chat_threads (
+  id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  title text NOT NULL,
+  user_id text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  thread_id integer NOT NULL REFERENCES chat_threads(id) ON DELETE CASCADE,
+  role varchar(32) NOT NULL,
+  content text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+SQL
+echo "✓ Database tables ready"
+
+echo ""
+echo "Local services ready:"
+echo "  - Postgres: postgresql://postgres:password@db.localtest.me:5433/electric"
+echo "  - Neon HTTP Proxy: http://localhost:4444"
+echo "  - Electric: http://localhost:3100"
+echo ""
+echo "Run 'f dev' to start the web server."
+"""
+description = "Start local Postgres, Neon proxy, and Electric services for development."
+dependencies = ["docker"]
+shortcuts = ["ls"]
+
+[[tasks]]
+name = "stop-services"
+command = """
+echo "Stopping local services..."
+cd packages/web
+docker compose down
+echo "✓ Services stopped"
+"""
+description = "Stop local Postgres, Neon proxy, and Electric services."
+dependencies = ["docker"]
+shortcuts = ["ss"]
+
+[[tasks]]
+name = "reset-db"
+command = """
+set -euo pipefail
+
+echo "Resetting local database volumes (Postgres + Electric)..."
+cd packages/web
+docker compose down -v
+docker compose up -d
+
+echo ""
+echo "DB reset complete. Reapply schema with 'pnpm --filter @linsa/web run migrate' or run 'f reset-setup' to recreate + seed."
+"""
+description = "Drop docker-compose volumes and restart for a clean database."
+dependencies = ["docker"]
+shortcuts = ["rdb"]
+
+[[tasks]]
+name = "reset-setup"
+command = """
+set -euo pipefail
+
+ROOT="$(pwd)"
+WEB_DIR="$ROOT/packages/web"
+ENV_FILE="$WEB_DIR/.env"
+EXAMPLE_FILE="$WEB_DIR/.env.example"
+
+echo "⚙️  Resetting local stack (db + auth schema + seed)..."
+
+# Ensure env file exists
+if [ ! -f "$ENV_FILE" ]; then
+  if [ -f "$EXAMPLE_FILE" ]; then
+    cp "$EXAMPLE_FILE" "$ENV_FILE"
+    echo "Created $ENV_FILE from template."
+  else
+    echo "Missing $ENV_FILE and $EXAMPLE_FILE; run 'f setup' first."
+    exit 1
+  fi
+fi
+
+set -a
+. "$ENV_FILE"
+set +a
+
+if [ -z "${DATABASE_URL:-}" ]; then
+  echo "DATABASE_URL is not set in $ENV_FILE. Fix and rerun."
+  exit 1
+fi
+
+cd "$WEB_DIR"
+
+echo "⏹️  Stopping and clearing local services..."
+docker compose down -v
+
+echo "⏫  Starting clean services..."
+docker compose up -d
+
+echo "⌛ Waiting for Postgres to be ready..."
+READY=0
+for i in $(seq 1 90); do
+  STATUS=$(docker inspect -f '{{.State.Health.Status}}' linsa-postgres 2>/dev/null || echo "unknown")
+  if [ "$STATUS" = "healthy" ]; then
+    READY=1
+    break
+  fi
+  printf "."
+  sleep 1
+done
+echo ""
+if [ "$READY" -ne 1 ]; then
+  echo "Postgres did not become ready in time. Last status: $STATUS"
+  docker compose logs --tail=50 postgres || true
+  echo "You can also run: docker compose exec -T postgres pg_isready -U postgres -h localhost"
+  echo "Check container logs: docker compose logs postgres"
+  exit 1
+fi
+echo "✓ Postgres ready"
+
+echo "🔄 Recreating auth and app tables..."
+docker compose exec -T postgres psql -U postgres -d electric <<'SQL'
+DROP TABLE IF EXISTS chat_messages CASCADE;
+DROP TABLE IF EXISTS chat_threads CASCADE;
+DROP TABLE IF EXISTS verifications CASCADE;
+DROP TABLE IF EXISTS accounts CASCADE;
+DROP TABLE IF EXISTS sessions CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+
+CREATE TABLE users (
+  id text PRIMARY KEY,
+  name text NOT NULL,
+  email text NOT NULL UNIQUE,
+  "emailVerified" boolean NOT NULL DEFAULT false,
+  image text,
+  "createdAt" timestamp NOT NULL DEFAULT now(),
+  "updatedAt" timestamp NOT NULL DEFAULT now()
+);
+CREATE TABLE sessions (
+  id text PRIMARY KEY,
+  "expiresAt" timestamp NOT NULL,
+  token text NOT NULL UNIQUE,
+  "createdAt" timestamp NOT NULL,
+  "updatedAt" timestamp NOT NULL,
+  "ipAddress" text,
+  "userAgent" text,
+  "userId" text NOT NULL REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE TABLE accounts (
+  id text PRIMARY KEY,
+  "accountId" text NOT NULL,
+  "providerId" text NOT NULL,
+  "userId" text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  "accessToken" text,
+  "refreshToken" text,
+  "idToken" text,
+  "accessTokenExpiresAt" timestamp,
+  "refreshTokenExpiresAt" timestamp,
+  scope text,
+  password text,
+  "createdAt" timestamp NOT NULL,
+  "updatedAt" timestamp NOT NULL
+);
+CREATE TABLE verifications (
+  id text PRIMARY KEY,
+  identifier text NOT NULL,
+  value text NOT NULL,
+  "expiresAt" timestamp NOT NULL,
+  "createdAt" timestamp NOT NULL DEFAULT now(),
+  "updatedAt" timestamp NOT NULL DEFAULT now()
+);
+CREATE TABLE chat_threads (
+  id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  title text NOT NULL,
+  user_id text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE chat_messages (
+  id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  thread_id integer NOT NULL REFERENCES chat_threads(id) ON DELETE CASCADE,
+  role varchar(32) NOT NULL,
+  content text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+SQL
+
+echo "📦 Installing deps..."
+pnpm --filter @linsa/web install --silent --ignore-scripts
+
+echo "🌱 Seeding demo user and chat..."
+pnpm --filter @linsa/web run seed
+
+echo ""
+echo "✅ Reset complete. Start dev server with: f dev"
+"""
+description = "Hard reset local dev stack: recreate DB schema, reseed, and restart services."
+dependencies = ["docker", "node", "pnpm"]
+shortcuts = ["rs"]
+
+[[tasks]]
+name = "prep-deploy"
+command = """
+set -euo pipefail
+
+echo "=== Pre-Deployment Checklist ==="
+echo ""
+
+ERRORS=0
+WARNINGS=0
+
+# 1. Check for uncommitted changes
+echo "Checking git status..."
+if [ -n "$(git status --porcelain)" ]; then
+  echo "⚠️  Warning: You have uncommitted changes"
+  git status --short
+  WARNINGS=$((WARNINGS + 1))
+else
+  echo "✓ Working directory clean"
+fi
+
+# 2. Check TypeScript compilation (warning only - build may still work)
+echo ""
+echo "Checking TypeScript..."
+cd packages/web
+if pnpm tsc --noEmit 2>&1; then
+  echo "✓ TypeScript compiles without errors"
+else
+  echo "⚠️  TypeScript errors found (build may still work)"
+  WARNINGS=$((WARNINGS + 1))
+fi
+
+# 3. Check ESLint
+echo ""
+echo "Checking ESLint..."
+if pnpm lint 2>&1; then
+  echo "✓ No lint errors"
+else
+  echo "⚠️  Lint errors found (run 'pnpm lint:fix' to auto-fix)"
+  WARNINGS=$((WARNINGS + 1))
+fi
+
+# 4. Check if wrangler is logged in
+echo ""
+echo "Checking Cloudflare authentication..."
+if pnpm exec wrangler whoami >/dev/null 2>&1; then
+  ACCOUNT=$(pnpm exec wrangler whoami 2>&1 | grep -oE '[a-f0-9]{32}' | head -1 || echo "authenticated")
+  echo "✓ Logged into Cloudflare"
+else
+  echo "✗ Not logged into Cloudflare (run 'pnpm exec wrangler login')"
+  ERRORS=$((ERRORS + 1))
+fi
+
+# 5. Check required secrets are configured
+echo ""
+echo "Checking Cloudflare secrets..."
+SECRETS_OUTPUT=$(pnpm exec wrangler secret list 2>&1 || echo "")
+
+check_secret() {
+  if echo "$SECRETS_OUTPUT" | grep -q "$1"; then
+    echo "  ✓ $1 is set"
+  else
+    echo "  ✗ $1 is NOT set"
+    ERRORS=$((ERRORS + 1))
+  fi
+}
+
+check_secret "DATABASE_URL"
+check_secret "BETTER_AUTH_SECRET"
+check_secret "ELECTRIC_URL"
+
+# Optional secrets (warnings only)
+check_optional_secret() {
+  if echo "$SECRETS_OUTPUT" | grep -q "$1"; then
+    echo "  ✓ $1 is set"
+  else
+    echo "  ⚠️  $1 is not set (optional)"
+  fi
+}
+
+check_optional_secret "OPENROUTER_API_KEY"
+check_optional_secret "RESEND_API_KEY"
+
+# 6. Check build works
+echo ""
+echo "Testing build..."
+cd ..
+if pnpm --filter @linsa/web build 2>&1; then
+  echo "✓ Build successful"
+else
+  echo "✗ Build failed"
+  ERRORS=$((ERRORS + 1))
+fi
+
+# Summary
+echo ""
+echo "=== Summary ==="
+if [ $ERRORS -gt 0 ]; then
+  echo "✗ $ERRORS error(s) found - fix before deploying"
+  exit 1
+elif [ $WARNINGS -gt 0 ]; then
+  echo "⚠️  $WARNINGS warning(s) found - review before deploying"
+  echo ""
+  echo "Ready to deploy with warnings. Run 'f deploy' to proceed."
+else
+  echo "✓ All checks passed!"
+  echo ""
+  echo "Ready to deploy. Run 'f deploy' to proceed."
+fi
+"""
+description = "Pre-deployment checks: TypeScript, lint, secrets, and build verification."
+dependencies = ["node", "pnpm"]
+shortcuts = ["pd"]
+
+[[tasks]]
+name = "migrate-prod"
+interactive = true
+command = """
+set -euo pipefail
+
+echo "=== Production Database Migration ==="
+echo ""
+echo "⚠️  WARNING: This will modify the PRODUCTION database!"
+echo ""
+
+read -p "Enter your Neon DATABASE_URL: " PROD_DATABASE_URL
+if [ -z "$PROD_DATABASE_URL" ]; then
+  echo "No DATABASE_URL provided. Aborting."
+  exit 1
+fi
+
+# Validate URL format
+if [[ ! "$PROD_DATABASE_URL" =~ ^postgresql:// ]]; then
+  echo "Invalid DATABASE_URL format. Must start with 'postgresql://'"
+  exit 1
+fi
+
+echo ""
+read -p "Are you sure you want to migrate the production database? (yes/no): " CONFIRM
+if [ "$CONFIRM" != "yes" ]; then
+  echo "Aborted."
+  exit 1
+fi
+
+cd packages/web
+
+echo ""
+echo "Pushing schema to production database..."
+DATABASE_URL="$PROD_DATABASE_URL" pnpm drizzle-kit push --force
+
+echo ""
+echo "✓ Production database schema synced"
+echo ""
+echo "Note: If this is your first deploy, you may also need to:"
+echo "  1. Set up Electric sync for the new tables"
+echo "  2. Configure ELECTRIC_SOURCE_ID and ELECTRIC_SOURCE_SECRET"
+"""
+description = "Push Drizzle schema to production Neon database."
+dependencies = ["node", "pnpm"]
+shortcuts = ["mp"]
+
+[[tasks]]
+name = "prod-setup"
+interactive = true
+command = """
+set -euo pipefail
+
+echo "=== Full Production Setup ==="
+echo ""
+echo "This will:"
+echo "  1. Check Cloudflare authentication"
+echo "  2. Create Hyperdrive for database connection pooling"
+echo "  3. Set all required secrets (skipping already-set ones)"
+echo "  4. Migrate the production database"
+echo "  5. Verify everything is ready"
+echo ""
+
+cd packages/web
+
+# 1. Check/setup Cloudflare auth
+echo "Step 1: Cloudflare Authentication"
+if ! pnpm exec wrangler whoami >/dev/null 2>&1; then
+  echo "Not logged into Cloudflare. Logging in..."
+  pnpm exec wrangler login
+fi
+echo "✓ Authenticated with Cloudflare"
+
+# Get existing secrets to check what's already set
+echo ""
+echo "Checking existing secrets..."
+SECRETS_OUTPUT=$(pnpm exec wrangler secret list 2>&1 || echo "")
+
+is_secret_set() {
+  echo "$SECRETS_OUTPUT" | grep -q "$1"
+}
+
+# 2. Setup Hyperdrive
+echo ""
+echo "Step 2: Hyperdrive Setup"
+echo ""
+
+# Check if Hyperdrive ID is already configured in wrangler.jsonc
+CURRENT_HYPERDRIVE_ID=$(grep -o '"id": *"[^"]*"' wrangler.jsonc 2>/dev/null | grep -o '"[^"]*"$' | tr -d '"' | head -1 || echo "")
+
+if [ "$CURRENT_HYPERDRIVE_ID" = "YOUR_HYPERDRIVE_ID" ] || [ -z "$CURRENT_HYPERDRIVE_ID" ]; then
+  echo "Hyperdrive not configured yet."
+  echo ""
+  read -p "Enter your PostgreSQL DATABASE_URL for Hyperdrive: " DATABASE_URL
+  if [ -n "$DATABASE_URL" ]; then
+    echo ""
+    echo "Creating Hyperdrive config 'prod-db'..."
+    HYPERDRIVE_OUTPUT=$(pnpm exec wrangler hyperdrive create prod-db --connection-string="$DATABASE_URL" 2>&1 || echo "")
+
+    # Extract the ID from output
+    HYPERDRIVE_ID=$(echo "$HYPERDRIVE_OUTPUT" | grep -oE '[a-f0-9]{32}' | head -1 || echo "")
+
+    if [ -n "$HYPERDRIVE_ID" ]; then
+      echo "✓ Hyperdrive created with ID: $HYPERDRIVE_ID"
+      echo ""
+      echo "Updating wrangler.jsonc with Hyperdrive ID..."
+      sed -i '' "s/YOUR_HYPERDRIVE_ID/$HYPERDRIVE_ID/g" wrangler.jsonc
+      echo "✓ wrangler.jsonc updated"
+    else
+      # Hyperdrive might already exist, try to get the ID
+      echo "Hyperdrive may already exist. Listing existing configs..."
+      pnpm exec wrangler hyperdrive list 2>&1 || true
+      echo ""
+      read -p "Enter the Hyperdrive ID to use: " HYPERDRIVE_ID
+      if [ -n "$HYPERDRIVE_ID" ]; then
+        sed -i '' "s/YOUR_HYPERDRIVE_ID/$HYPERDRIVE_ID/g" wrangler.jsonc
+        echo "✓ wrangler.jsonc updated with ID: $HYPERDRIVE_ID"
+      fi
+    fi
+  else
+    echo "⚠️  DATABASE_URL not provided. Hyperdrive setup skipped."
+    echo "   You'll need to manually create Hyperdrive and update wrangler.jsonc"
+  fi
+else
+  echo "✓ Hyperdrive already configured with ID: $CURRENT_HYPERDRIVE_ID"
+fi
+
+# 3. Set secrets (skip if already set)
+echo ""
+echo "Step 3: Configure Secrets"
+echo ""
+
+# BETTER_AUTH_SECRET
+if is_secret_set "BETTER_AUTH_SECRET"; then
+  echo "✓ BETTER_AUTH_SECRET already set (skipping)"
+else
+  read -p "Enter BETTER_AUTH_SECRET (leave empty to generate): " BETTER_AUTH_SECRET
+  if [ -z "$BETTER_AUTH_SECRET" ]; then
+    BETTER_AUTH_SECRET=$(openssl rand -hex 32)
+    echo "Generated new secret"
+  fi
+  echo "$BETTER_AUTH_SECRET" | pnpm exec wrangler secret put BETTER_AUTH_SECRET
+  echo "✓ BETTER_AUTH_SECRET set"
+fi
+
+# ELECTRIC_URL
+echo ""
+if is_secret_set "ELECTRIC_URL"; then
+  echo "✓ ELECTRIC_URL already set (skipping)"
+else
+  read -p "Enter ELECTRIC_URL: " ELECTRIC_URL
+  if [ -n "$ELECTRIC_URL" ]; then
+    echo "$ELECTRIC_URL" | pnpm exec wrangler secret put ELECTRIC_URL
+    echo "✓ ELECTRIC_URL set"
+  else
+    echo "⚠️  ELECTRIC_URL skipped (required for real-time sync)"
+  fi
+fi
+
+# OPENROUTER_API_KEY
+echo ""
+if is_secret_set "OPENROUTER_API_KEY"; then
+  echo "✓ OPENROUTER_API_KEY already set (skipping)"
+else
+  read -p "Enter OPENROUTER_API_KEY (leave empty to skip): " OPENROUTER_API_KEY
+  if [ -n "$OPENROUTER_API_KEY" ]; then
+    echo "$OPENROUTER_API_KEY" | pnpm exec wrangler secret put OPENROUTER_API_KEY
+    echo "✓ OPENROUTER_API_KEY set"
+  else
+    echo "⚠️  OPENROUTER_API_KEY skipped (AI chat will use demo mode)"
+  fi
+fi
+
+# RESEND_API_KEY and RESEND_FROM_EMAIL
+echo ""
+if is_secret_set "RESEND_API_KEY"; then
+  echo "✓ RESEND_API_KEY already set (skipping)"
+else
+  read -p "Enter RESEND_API_KEY (leave empty to skip): " RESEND_API_KEY
+  if [ -n "$RESEND_API_KEY" ]; then
+    echo "$RESEND_API_KEY" | pnpm exec wrangler secret put RESEND_API_KEY
+    echo "✓ RESEND_API_KEY set"
+
+    if ! is_secret_set "RESEND_FROM_EMAIL"; then
+      read -p "Enter RESEND_FROM_EMAIL (e.g., noreply@yourdomain.com): " RESEND_FROM_EMAIL
+      if [ -n "$RESEND_FROM_EMAIL" ]; then
+        echo "$RESEND_FROM_EMAIL" | pnpm exec wrangler secret put RESEND_FROM_EMAIL
+        echo "✓ RESEND_FROM_EMAIL set"
+      fi
+    fi
+  else
+    echo "⚠️  RESEND_API_KEY skipped (OTP codes will only work in dev mode)"
+  fi
+fi
+
+# APP_BASE_URL
+echo ""
+if is_secret_set "APP_BASE_URL"; then
+  echo "✓ APP_BASE_URL already set (skipping)"
+else
+  read -p "Enter APP_BASE_URL (e.g., https://your-app.workers.dev): " APP_BASE_URL
+  if [ -n "$APP_BASE_URL" ]; then
+    pnpm exec wrangler vars set APP_BASE_URL "$APP_BASE_URL" 2>/dev/null || echo "$APP_BASE_URL" | pnpm exec wrangler secret put APP_BASE_URL
+    echo "✓ APP_BASE_URL set"
+  fi
+fi
+
+# 4. Migrate production database
+echo ""
+echo "Step 4: Database Migration"
+if [ -n "${DATABASE_URL:-}" ]; then
+  echo ""
+  read -p "Migrate production database now? (yes/no): " MIGRATE
+  if [ "$MIGRATE" = "yes" ]; then
+    echo "Pushing schema to production..."
+    DATABASE_URL="$DATABASE_URL" pnpm drizzle-kit push --force
+    echo "✓ Database schema synced"
+  else
+    echo "Skipped migration. Run 'f migrate-prod' later."
+  fi
+else
+  echo "Skipped - no DATABASE_URL available"
+  echo "Run 'f migrate-prod' to migrate after setting up Hyperdrive"
+fi
+
+# 5. Verify
+echo ""
+echo "Step 5: Verification"
+echo ""
+SECRETS_OUTPUT=$(pnpm exec wrangler secret list 2>&1 || echo "")
+
+check_secret() {
+  if echo "$SECRETS_OUTPUT" | grep -q "$1"; then
+    echo "  ✓ $1"
+  else
+    echo "  ✗ $1 (missing)"
+  fi
+}
+
+echo "Required:"
+check_secret "BETTER_AUTH_SECRET"
+check_secret "ELECTRIC_URL"
+
+echo ""
+echo "Optional:"
+check_secret "OPENROUTER_API_KEY"
+check_secret "RESEND_API_KEY"
+check_secret "RESEND_FROM_EMAIL"
+check_secret "APP_BASE_URL"
+
+echo ""
+echo "Hyperdrive:"
+CURRENT_ID=$(grep -o '"id": *"[^"]*"' wrangler.jsonc 2>/dev/null | grep -o '"[^"]*"$' | tr -d '"' | head -1 || echo "")
+if [ -n "$CURRENT_ID" ] && [ "$CURRENT_ID" != "YOUR_HYPERDRIVE_ID" ]; then
+  echo "  ✓ Configured with ID: $CURRENT_ID"
+else
+  echo "  ✗ Not configured (update wrangler.jsonc)"
+fi
+
+echo ""
+echo "=== Setup Complete ==="
+echo ""
+echo "Next: Run 'f prep-deploy' to verify, then 'f deploy' to deploy."
+"""
+description = "Complete production setup: Cloudflare auth, Hyperdrive, secrets, and database migration."
+dependencies = ["node", "pnpm"]
+shortcuts = ["ps", "prod"]
+
+[[tasks]]
+name = "db-gui"
+command = "open 'postgresql://postgres:password@localhost:5432/electric'"
+description = "Open local database in TablePlus or default Postgres GUI"
+shortcuts = ["gui"]
+
+[[tasks]]
+name = "db-gui-prod"
+command = """
+set -euo pipefail
+
+# Read from PROD_DATABASE_URL env var or .env file
+if [ -z "${PROD_DATABASE_URL:-}" ]; then
+  if [ -f packages/web/.env ]; then
+    PROD_DATABASE_URL=$(grep "^PROD_DATABASE_URL=" packages/web/.env | cut -d'=' -f2-)
+  fi
+fi
+
+if [ -z "${PROD_DATABASE_URL:-}" ]; then
+  echo "Error: PROD_DATABASE_URL not set. Add it to packages/web/.env"
+  exit 1
+fi
+
+echo "Opening production database in TablePlus..."
+open -a "TablePlus" "$PROD_DATABASE_URL"
+"""
+description = "Open production database in TablePlus"
+shortcuts = ["guip", "tp"]
+
+[[tasks]]
+name = "db-push"
+command = """
+set -euo pipefail
+
+ROOT="$(pwd)"
+ENV_FILE="$ROOT/packages/web/.env"
+
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  . "$ENV_FILE"
+  set +a
+fi
+
+PROD_URL="${PROD_DATABASE_URL:-}"
+
+if [ -z "$PROD_URL" ]; then
+  echo "❌ PROD_DATABASE_URL not set in packages/web/.env"
+  exit 1
+fi
+
+echo "⚠️  Pushing schema to production database..."
+
+cd packages/web
+DATABASE_URL="$PROD_URL" pnpm tsx scripts/push-schema.ts
+
+echo ""
+echo "✓ Schema push complete"
+"""
+description = "Push schema to production Neon database."
+dependencies = ["node", "pnpm"]
+shortcuts = ["dbp", "push"]
+
+[[tasks]]
+name = "db-connect"
+command = """
+set -euo pipefail
+
+ROOT="$(pwd)"
+ENV_FILE="$ROOT/packages/web/.env"
+
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  . "$ENV_FILE"
+  set +a
+fi
+
+PROD_URL="${PROD_DATABASE_URL:-}"
+
+if [ -z "$PROD_URL" ]; then
+  echo "❌ PROD_DATABASE_URL not set in packages/web/.env"
+  exit 1
+fi
+
+cd packages/web
+DATABASE_URL="$PROD_URL" pnpm tsx scripts/db-connect.ts
+"""
+description = "Test connection to production database and list tables."
+dependencies = ["node", "pnpm"]
+shortcuts = ["dbc", "connect"]
+
+[[tasks]]
+name = "db-query"
+command = """
+set -euo pipefail
+
+ROOT="$(pwd)"
+ENV_FILE="$ROOT/packages/web/.env"
+
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  . "$ENV_FILE"
+  set +a
+fi
+
+PROD_URL="${PROD_DATABASE_URL:-}"
+
+if [ -z "$PROD_URL" ]; then
+  echo "❌ PROD_DATABASE_URL not set in packages/web/.env"
+  exit 1
+fi
+
+cd packages/web
+DATABASE_URL="$PROD_URL" pnpm tsx scripts/db-query.ts "$@"
+"""
+description = "Interactive CRUD tool for production database."
+dependencies = ["node", "pnpm"]
+shortcuts = ["dbq", "query"]
+
+[[tasks]]
+name = "staging-secrets"
+interactive = true
+command = """
+set -euo pipefail
+
+cd packages/web
+
+WORKER="dev-linsa"
+
+echo "=== Set Staging Secrets (Worker: $WORKER -> staging.linsa.io) ==="
+echo ""
+
+# Get existing secrets
+SECRETS_OUTPUT=$(pnpm exec wrangler secret list --name="$WORKER" 2>&1 || echo "")
+
+is_secret_set() {
+  echo "$SECRETS_OUTPUT" | grep -q "$1"
+}
+
+set_secret() {
+  local NAME="$1"
+  local DEFAULT="$2"
+  local REQUIRED="$3"
+
+  echo ""
+  echo "$NAME:"
+  if is_secret_set "$NAME"; then
+    echo "  (already set)"
+    read -p "  Enter new value to update, or leave empty to keep: " VALUE
+  elif [ -n "$DEFAULT" ]; then
+    read -p "  Enter value [$DEFAULT]: " VALUE
+    VALUE="${VALUE:-$DEFAULT}"
+  else
+    read -p "  Enter value: " VALUE
+  fi
+
+  if [ -n "$VALUE" ]; then
+    echo "$VALUE" | pnpm exec wrangler secret put "$NAME" --name="$WORKER"
+    echo "  ✓ $NAME set"
+  elif [ "$REQUIRED" = "true" ] && ! is_secret_set "$NAME"; then
+    echo "  ✗ Skipped (REQUIRED - auth will not work!)"
+  else
+    echo "  ⚠ Skipped"
+  fi
+}
+
+echo "Setting secrets for Worker: $WORKER"
+echo ""
+
+# BETTER_AUTH_SECRET
+echo "BETTER_AUTH_SECRET (required):"
+if is_secret_set "BETTER_AUTH_SECRET"; then
+  echo "  (already set)"
+  read -p "  Enter new value to update, or leave empty to keep: " VALUE
+else
+  read -p "  Enter value (leave empty to generate): " VALUE
+  if [ -z "$VALUE" ]; then
+    VALUE=$(openssl rand -hex 32)
+    echo "  Generated: $VALUE"
+  fi
+fi
+if [ -n "$VALUE" ]; then
+  echo "$VALUE" | pnpm exec wrangler secret put BETTER_AUTH_SECRET --name="$WORKER"
+  echo "  ✓ BETTER_AUTH_SECRET set"
+fi
+
+# APP_BASE_URL
+set_secret "APP_BASE_URL" "https://staging.linsa.io" "true"
+
+# RESEND_API_KEY
+set_secret "RESEND_API_KEY" "" "true"
+
+# RESEND_FROM_EMAIL
+set_secret "RESEND_FROM_EMAIL" "noreply@linsa.io" "true"
+
+# ELECTRIC_URL
+set_secret "ELECTRIC_URL" "https://api.electric-sql.cloud" "false"
+
+# OPENROUTER_API_KEY
+set_secret "OPENROUTER_API_KEY" "" "false"
+
+echo ""
+echo "=== Done ==="
+echo "Secrets are set. Run 'pnpm deploy:web' or push to git to deploy."
+"""
+description = "Set secrets for staging Worker (dev-linsa -> staging.linsa.io)."
+dependencies = ["node", "pnpm"]
+shortcuts = ["staging"]
+
+[[tasks]]
+name = "staging-check"
+command = """
+set -euo pipefail
+
+cd packages/web
+
+WORKER="dev-linsa"
+
+echo "=== Staging Secrets Check (Worker: $WORKER) ==="
+echo ""
+
+SECRETS_OUTPUT=$(pnpm exec wrangler secret list --name="$WORKER" 2>&1 || echo "")
+
+check() {
+  if echo "$SECRETS_OUTPUT" | grep -q "$1"; then
+    echo "  ✓ $1"
+  else
+    echo "  ✗ $1 (MISSING)"
+  fi
+}
+
+echo "Required:"
+check "BETTER_AUTH_SECRET"
+check "APP_BASE_URL"
+
+echo ""
+echo "For email auth:"
+check "RESEND_API_KEY"
+check "RESEND_FROM_EMAIL"
+
+echo ""
+echo "Optional:"
+check "ELECTRIC_URL"
+check "OPENROUTER_API_KEY"
+
+echo ""
+echo "If secrets are missing, run: f staging-secrets"
+"""
+description = "Check which secrets are set for staging Worker."
+dependencies = ["node", "pnpm"]
+shortcuts = ["sc"]
+
+[[tasks]]
+name = "prod-check"
+command = """
+set -euo pipefail
+
+echo "=== Production Health Check ==="
+echo ""
+
+cd packages/web
+
+# 1. Check Cloudflare auth
+echo "1. Cloudflare Authentication"
+if pnpm exec wrangler whoami >/dev/null 2>&1; then
+  echo "   ✓ Logged in"
+else
+  echo "   ✗ Not logged in - run: pnpm exec wrangler login"
+  exit 1
+fi
+
+# 2. Check secrets
+echo ""
+echo "2. Cloudflare Secrets"
+SECRETS_OUTPUT=$(pnpm exec wrangler secret list 2>&1 || echo "")
+
+check_secret() {
+  if echo "$SECRETS_OUTPUT" | grep -q "$1"; then
+    echo "   ✓ $1"
+    return 0
+  else
+    echo "   ✗ $1 (MISSING)"
+    return 1
+  fi
+}
+
+MISSING=0
+check_secret "BETTER_AUTH_SECRET" || MISSING=1
+check_secret "RESEND_API_KEY" || MISSING=1
+check_secret "RESEND_FROM_EMAIL" || MISSING=1
+check_secret "APP_BASE_URL" || MISSING=1
+check_secret "ELECTRIC_URL" || MISSING=1
+
+if [ "$MISSING" -eq 1 ]; then
+  echo ""
+  echo "   To set missing secrets:"
+  echo "   pnpm exec wrangler secret put SECRET_NAME"
+fi
+
+# 3. Check Hyperdrive
+echo ""
+echo "3. Hyperdrive Config"
+HYPERDRIVE_ID=$(grep -o '"id": *"[^"]*"' wrangler.jsonc 2>/dev/null | head -1 | grep -o '"[^"]*"$' | tr -d '"' || echo "")
+if [ -n "$HYPERDRIVE_ID" ] && [ "$HYPERDRIVE_ID" != "YOUR_HYPERDRIVE_ID" ]; then
+  echo "   ✓ Configured: $HYPERDRIVE_ID"
+else
+  echo "   ✗ Not configured in wrangler.jsonc"
+fi
+
+# 4. Test deployment endpoint
+echo ""
+echo "4. Deployment Status"
+DEPLOY_URL=$(grep -E "APP_BASE_URL|workers.dev" wrangler.jsonc 2>/dev/null | head -1 || echo "")
+# Try to get the actual deployed URL
+WORKER_NAME=$(grep '"name"' wrangler.jsonc | head -1 | grep -o '"[^"]*"$' | tr -d '"' || echo "fullstack-monorepo-template-web")
+echo "   Worker: $WORKER_NAME"
+
+# 5. Tail logs instruction
+echo ""
+echo "5. Live Logs"
+echo "   To see real-time logs, run in another terminal:"
+echo "   pnpm --filter @linsa/web exec wrangler tail"
+
+# 6. Test auth endpoint
+echo ""
+echo "6. Testing Auth Endpoint"
+AUTH_URL="https://dev.linsa.io/api/auth/ok"
+echo "   Testing: $AUTH_URL"
+RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$AUTH_URL" 2>/dev/null || echo "failed")
+if [ "$RESPONSE" = "200" ]; then
+  echo "   ✓ Auth endpoint responding (HTTP $RESPONSE)"
+else
+  echo "   ⚠ Auth endpoint returned: $RESPONSE"
+fi
+
+echo ""
+echo "=== Summary ==="
+if [ "$MISSING" -eq 1 ]; then
+  echo "⚠ Some secrets are missing. Set them and redeploy."
+else
+  echo "✓ All secrets configured"
+  echo ""
+  echo "If emails still not working:"
+  echo "  1. Run 'pnpm --filter @linsa/web exec wrangler tail' in another terminal"
+  echo "  2. Try login again at https://dev.linsa.io/auth"
+  echo "  3. Check the logs for [auth] messages"
+fi
+"""
+description = "Verify production deployment: secrets, Hyperdrive, endpoints."
+dependencies = ["node", "pnpm"]
+shortcuts = ["pc", "check"]
+
+[[tasks]]
+name = "prod-logs"
+command = """
+cd packages/web
+echo "Starting live log tail for production worker..."
+echo "Try the login flow in browser to see logs."
+echo "Press Ctrl+C to stop."
+echo ""
+pnpm exec wrangler tail
+"""
+description = "Tail live logs from production Cloudflare worker."
+dependencies = ["node", "pnpm"]
+shortcuts = ["pl", "logs"]
+
+[[tasks]]
+name = "test-pg"
+command = """
+set -euo pipefail
+cd packages/web
+pnpm tsx tests/pg-check.ts
+"""
+description = "Test PostgreSQL connection with simple CRUD operations."
+dependencies = ["node", "pnpm"]
+shortcuts = ["tpg", "pg"]
+
+[[tasks]]
+name = "migrate-safe"
+interactive = true
+command = """
+set -euo pipefail
+
+ROOT="$(pwd)"
+WEB_DIR="$ROOT/packages/web"
+ENV_FILE="$WEB_DIR/.env"
+
+echo "=== Safe Production Migration ==="
+echo ""
+
+if [ ! -f "$ENV_FILE" ]; then
+  echo "Missing $ENV_FILE. Run 'f setup' first."
+  exit 1
+fi
+
+set -a
+. "$ENV_FILE"
+set +a
+
+PROD_URL="${PROD_DATABASE_URL:-}"
+
+if [ -z "$PROD_URL" ]; then
+  echo "PROD_DATABASE_URL not set in packages/web/.env"
+  echo ""
+  echo "Add your production database URL:"
+  echo "  PROD_DATABASE_URL=postgresql://user:pass@host/db?sslmode=require"
+  exit 1
+fi
+
+cd "$WEB_DIR"
+
+echo "1. Checking production database..."
+DATABASE_URL="$PROD_URL" pnpm tsx scripts/migrate-safe.ts check
+
+echo ""
+echo "=== Migration Options ==="
+echo ""
+echo "  a) Push Drizzle schema (app tables)"
+echo "  b) Fix auth tables (recreate with camelCase)"
+echo "  c) Both (recommended for fresh setup)"
+echo "  q) Quit"
+echo ""
+read -p "Choose option [a/b/c/q]: " CHOICE
+
+case "$CHOICE" in
+  a)
+    echo ""
+    echo "Pushing Drizzle schema to production..."
+    DATABASE_URL="$PROD_URL" pnpm drizzle-kit push --force
+    echo "Done"
+    ;;
+  b)
+    echo ""
+    echo "WARNING: This will DROP and recreate auth tables!"
+    echo "All existing users will be deleted!"
+    read -p "Type 'yes' to confirm: " CONFIRM
+    if [ "$CONFIRM" != "yes" ]; then
+      echo "Aborted."
+      exit 1
+    fi
+    DATABASE_URL="$PROD_URL" pnpm tsx scripts/migrate-safe.ts auth
+    ;;
+  c)
+    echo ""
+    echo "WARNING: This will DROP auth tables and push Drizzle schema!"
+    read -p "Type 'yes' to confirm: " CONFIRM
+    if [ "$CONFIRM" != "yes" ]; then
+      echo "Aborted."
+      exit 1
+    fi
+    DATABASE_URL="$PROD_URL" pnpm tsx scripts/migrate-safe.ts auth
+    echo ""
+    echo "Pushing Drizzle schema..."
+    DATABASE_URL="$PROD_URL" pnpm drizzle-kit push --force
+    echo "Done"
+    ;;
+  q|*)
+    echo "Aborted."
+    exit 0
+    ;;
+esac
+
+echo ""
+echo "=== Migration Complete ==="
+"""
+description = "Safe interactive migration for production database."
+dependencies = ["node", "pnpm"]
+shortcuts = ["ms", "safe"]

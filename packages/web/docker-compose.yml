@@ -1,0 +1,46 @@
+name: gen
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: gen-postgres
+    command: "-c wal_level=logical"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=electric
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  neon-proxy:
+    image: ghcr.io/timowilhelm/local-neon-http-proxy:main
+    container_name: gen-neon-proxy
+    environment:
+      - PG_CONNECTION_STRING=postgres://postgres:password@postgres:5432/electric
+    ports:
+      - "4444:4444"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  electric:
+    image: electricsql/electric:latest
+    container_name: gen-electric
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/electric
+      ELECTRIC_INSECURE: "true"
+    ports:
+      - "3100:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  db_data:

@@ -1,0 +1,29 @@
+[Unit]
+Description=Stream Server - SRT receiver with S3 upload
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/stream-server
+Restart=always
+RestartSec=5
+
+# Configuration via environment
+Environment=SRT_PORT=6000
+Environment=SEGMENT_DIR=/root/stream/segments
+Environment=SEGMENT_DURATION=60
+Environment=API_PORT=8080
+Environment=DELETE_AFTER_UPLOAD=true
+
+# S3 configuration (uncomment and set your bucket)
+# Environment=S3_BUCKET=your-bucket-name
+# Environment=S3_PREFIX=stream
+
+# AWS credentials (or use IAM role / ~/.aws/credentials)
+# Environment=AWS_ACCESS_KEY_ID=xxx
+# Environment=AWS_SECRET_ACCESS_KEY=xxx
+# Environment=AWS_REGION=us-east-1
+
+[Install]
+WantedBy=multi-user.target
