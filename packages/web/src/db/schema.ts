@@ -25,6 +25,8 @@ export const users = pgTable("users", {
     .$defaultFn(() => false)
     .notNull(),
   image: text("image"),
+  // Access tiers: 'free' | 'creator' | 'dev' - determines feature access
+  tier: varchar("tier", { length: 32 }).notNull().default("free"),
   createdAt: timestamp("createdAt")
     .$defaultFn(() => new Date())
     .notNull(),
@@ -260,6 +262,106 @@ export const streams = pgTable("streams", {
 
 export const selectStreamsSchema = createSelectSchema(streams)
 export type Stream = z.infer<typeof selectStreamsSchema>
+
+// =============================================================================
+// Stripe Billing
+// =============================================================================
+
+export const stripe_customers = pgTable("stripe_customers", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  user_id: text("user_id")
+    .notNull()
+    .unique()
+    .references(() => users.id, { onDelete: "cascade" }),
+  stripe_customer_id: text("stripe_customer_id").notNull().unique(),
+  created_at: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+})
+
+export const stripe_subscriptions = pgTable("stripe_subscriptions", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  user_id: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  stripe_subscription_id: text("stripe_subscription_id").notNull().unique(),
+  stripe_customer_id: text("stripe_customer_id").notNull(),
+  stripe_price_id: text("stripe_price_id").notNull(),
+  status: varchar("status", { length: 32 }).notNull(), // active, canceled, past_due, etc.
+  current_period_start: timestamp("current_period_start", { withTimezone: true }),
+  current_period_end: timestamp("current_period_end", { withTimezone: true }),
+  cancel_at_period_end: boolean("cancel_at_period_end").default(false),
+  created_at: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updated_at: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+})
+
+// Track storage usage per billing period
+export const storage_usage = pgTable("storage_usage", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  user_id: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  // Archive counts
+  archives_used: integer("archives_used").notNull().default(0),
+  archives_limit: integer("archives_limit").notNull().default(10), // 10 for paid
+  // Storage in bytes
+  storage_bytes_used: integer("storage_bytes_used").notNull().default(0),
+  storage_bytes_limit: integer("storage_bytes_limit").notNull().default(1073741824), // 1GB default
+  // Billing period
+  period_start: timestamp("period_start", { withTimezone: true }).notNull(),
+  period_end: timestamp("period_end", { withTimezone: true }).notNull(),
+  created_at: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updated_at: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+})
+
+// =============================================================================
+// Archives (paid video/image/text storage)
+// =============================================================================
+
+export const archives = pgTable("archives", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  user_id: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  type: varchar("type", { length: 32 }).notNull(), // 'video', 'image', 'text'
+  // Content storage
+  content_url: text("content_url"), // R2/S3 URL for video/image
+  content_text: text("content_text"), // For text type
+  thumbnail_url: text("thumbnail_url"),
+  // Metadata
+  file_size_bytes: integer("file_size_bytes").default(0),
+  duration_seconds: integer("duration_seconds"), // For video
+  mime_type: varchar("mime_type", { length: 128 }),
+  // Visibility
+  is_public: boolean("is_public").notNull().default(false),
+  // Timestamps
+  created_at: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updated_at: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+})
+
+export const selectArchiveSchema = createSelectSchema(archives)
+export type Archive = z.infer<typeof selectArchiveSchema>
+
+export const selectStripeCustomerSchema = createSelectSchema(stripe_customers)
+export const selectStripeSubscriptionSchema = createSelectSchema(stripe_subscriptions)
+export const selectStorageUsageSchema = createSelectSchema(storage_usage)
+export type StripeCustomer = z.infer<typeof selectStripeCustomerSchema>
+export type StripeSubscription = z.infer<typeof selectStripeSubscriptionSchema>
+export type StorageUsage = z.infer<typeof selectStorageUsageSchema>
 
 export const selectUsersSchema = createSelectSchema(users)
 export const selectChatThreadSchema = createSelectSchema(chat_threads)

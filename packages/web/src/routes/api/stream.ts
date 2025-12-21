@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm"
 import { getDb } from "@/db/connection"
 import { streams } from "@/db/schema"
 import { getAuth } from "@/lib/auth"
+import { resolveStreamPlayback } from "@/lib/stream/playback"
 
 const resolveDatabaseUrl = (request: Request) => {
   try {
@@ -42,7 +43,9 @@ const getStream = async ({ request }: { request: Request }) => {
       })
     }
 
-    return new Response(JSON.stringify(stream), {
+    const playback = resolveStreamPlayback({ hlsUrl: stream.hls_url })
+
+    return new Response(JSON.stringify({ ...stream, playback }), {
       status: 200,
       headers: { "content-type": "application/json" },
     })

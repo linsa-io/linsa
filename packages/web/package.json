@@ -20,6 +20,7 @@
   "dependencies": {
     "@ai-sdk/openai": "^2.0.79",
     "@ai-sdk/react": "^2.0.109",
+    "@cloudflare/stream-react": "^1.9.3",
     "@cloudflare/vite-plugin": "^1.17.0",
     "@electric-sql/client": "^1.2.0",
     "@flowglad/react": "0.15.0",
@@ -47,6 +48,7 @@
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "resend": "^6.5.2",
+    "stripe": "^20.1.0",
     "tailwindcss": "^4.1.17",
     "vite-tsconfig-paths": "^5.1.4",
     "zod": "^4.1.13"

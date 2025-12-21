@@ -4,6 +4,7 @@ import { getDb } from "@/db/connection"
 import { users, streams } from "@/db/schema"
 import { getAuth } from "@/lib/auth"
 import { randomUUID } from "crypto"
+import { resolveStreamPlayback } from "@/lib/stream/playback"
 
 const resolveDatabaseUrl = (request: Request) => {
   try {
@@ -48,6 +49,10 @@ const getProfile = async ({ request }: { request: Request }) => {
       where: eq(streams.user_id, user.id),
     })
 
+    const playback = stream
+      ? resolveStreamPlayback({ hlsUrl: stream.hls_url })
+      : null
+
     return new Response(
       JSON.stringify({
         id: user.id,
@@ -61,6 +66,7 @@ const getProfile = async ({ request }: { request: Request }) => {
               title: stream.title,
               is_live: stream.is_live,
               hls_url: stream.hls_url,
+              playback,
               stream_key: stream.stream_key,
             }
           : null,

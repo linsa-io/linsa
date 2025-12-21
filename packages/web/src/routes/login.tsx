@@ -7,22 +7,27 @@ export const Route = createFileRoute("/login")({
   ssr: false,
 })
 
-type Step = "email" | "otp"
+type Step = "email" | "otp" | "username"
 
 function AuthPage() {
   const [step, setStep] = useState<Step>("email")
   const emailInputRef = useRef<HTMLInputElement>(null)
   const otpInputRef = useRef<HTMLInputElement>(null)
+  const usernameInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (step === "email") {
       emailInputRef.current?.focus()
-    } else {
+    } else if (step === "otp") {
       otpInputRef.current?.focus()
+    } else if (step === "username") {
+      usernameInputRef.current?.focus()
     }
   }, [step])
+
   const [email, setEmail] = useState("")
   const [otp, setOtp] = useState("")
+  const [username, setUsername] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
 
@@ -60,7 +65,6 @@ function AuthPage() {
     setError("")
 
     try {
-      // Use signIn.emailOtp for sign-in type OTPs (not verifyEmail which is for email verification)
       const { error } = await authClient.signIn.emailOtp({
         email,
         otp,
@@ -69,11 +73,50 @@ function AuthPage() {
       if (error) {
         setError(error.message || "Invalid code")
       } else {
-        window.location.href = "/"
+        // Check if user has a username
+        const response = await fetch("/api/users/username")
+        const data = await response.json()
+
+        if (!data.username) {
+          // New user or user without username - show username setup
+          setStep("username")
+        } else {
+          // Existing user with username - go to home
+          window.location.href = "/"
+        }
       }
     } catch (err) {
       console.error("Verify OTP error:", err)
       setError("Failed to verify code")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleSetUsername = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!username.trim()) return
+
+    setIsLoading(true)
+    setError("")
+
+    try {
+      const response = await fetch("/api/users/username", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: username.toLowerCase().trim() }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || "Failed to set username")
+      } else {
+        window.location.href = "/"
+      }
+    } catch (err) {
+      console.error("Set username error:", err)
+      setError("Failed to set username")
     } finally {
       setIsLoading(false)
     }
@@ -93,7 +136,7 @@ function AuthPage() {
       if (error) {
         setError(error.message || "Failed to resend code")
       }
-    } catch (err) {
+    } catch {
       setError("Failed to resend code")
     } finally {
       setIsLoading(false)
@@ -101,9 +144,19 @@ function AuthPage() {
   }
 
   const handleBack = () => {
-    setStep("email")
-    setOtp("")
+    if (step === "otp") {
+      setStep("email")
+      setOtp("")
+    } else if (step === "username") {
+      // Can't go back from username step - they're already signed in
+      // Just skip for now
+      window.location.href = "/"
+    }
     setError("")
+  }
+
+  const handleSkipUsername = () => {
+    window.location.href = "/"
   }
 
   return (
@@ -111,16 +164,22 @@ function AuthPage() {
       <div className="max-w-sm w-full space-y-6">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-white">
-            {step === "email" ? "Sign in" : "Enter code"}
+            {step === "email"
+              ? "Sign in"
+              : step === "otp"
+                ? "Enter code"
+                : "Choose username"}
           </h1>
           <p className="mt-2 text-sm text-neutral-400">
             {step === "email"
               ? "Enter your email to receive a verification code"
-              : `We sent a 6-digit code to ${email}`}
+              : step === "otp"
+                ? `We sent a 6-digit code to ${email}`
+                : "Pick a unique username for your profile"}
           </p>
         </div>
 
-        {step === "email" ? (
+        {step === "email" && (
           <form onSubmit={handleSendOTP} className="space-y-4">
             <div>
               <label htmlFor="email" className="sr-only">
@@ -154,7 +213,9 @@ function AuthPage() {
               {isLoading ? "Sending..." : "Continue"}
             </button>
           </form>
-        ) : (
+        )}
+
+        {step === "otp" && (
           <form onSubmit={handleVerifyOTP} className="space-y-4">
             <div>
               <label htmlFor="otp" className="sr-only">
@@ -196,7 +257,7 @@ function AuthPage() {
                 onClick={handleBack}
                 className="text-neutral-400 hover:text-white transition-colors"
               >
-                ← Back
+                Back
               </button>
               <button
                 type="button"
@@ -207,6 +268,61 @@ function AuthPage() {
                 Resend code
               </button>
             </div>
+          </form>
+        )}
+
+        {step === "username" && (
+          <form onSubmit={handleSetUsername} className="space-y-4">
+            <div>
+              <label htmlFor="username" className="sr-only">
+                Username
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500">
+                  linsa.io/
+                </span>
+                <input
+                  ref={usernameInputRef}
+                  id="username"
+                  name="username"
+                  type="text"
+                  autoComplete="username"
+                  required
+                  maxLength={20}
+                  value={username}
+                  onChange={(e) =>
+                    setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))
+                  }
+                  className="w-full pl-[88px] pr-4 py-3 bg-[#18181b] border border-[#27272a] rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  placeholder="yourname"
+                />
+              </div>
+              <p className="mt-2 text-xs text-neutral-500">
+                3-20 characters, letters, numbers, underscores
+              </p>
+            </div>
+
+            {error && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+                <p className="text-sm text-red-400">{error}</p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isLoading || username.length < 3}
+              className="w-full py-3 px-4 bg-teal-600 text-white font-medium rounded-xl hover:bg-teal-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#050505] focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isLoading ? "Saving..." : "Continue"}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSkipUsername}
+              className="w-full py-2 text-sm text-neutral-400 hover:text-white transition-colors"
+            >
+              Skip for now
+            </button>
           </form>
         )}
       </div>

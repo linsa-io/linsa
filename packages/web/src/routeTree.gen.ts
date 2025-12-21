@@ -35,7 +35,10 @@ import { Route as ApiBrowserSessionsRouteImport } from './routes/api/browser-ses
 import { Route as DemoStartServerFuncsRouteImport } from './routes/demo/start.server-funcs'
 import { Route as DemoStartApiRequestRouteImport } from './routes/demo/start.api-request'
 import { Route as DemoApiNamesRouteImport } from './routes/demo/api.names'
+import { Route as ApiUsersUsernameRouteImport } from './routes/api/users.username'
 import { Route as ApiUsageEventsCreateRouteImport } from './routes/api/usage-events.create'
+import { Route as ApiStripeWebhooksRouteImport } from './routes/api/stripe/webhooks'
+import { Route as ApiStripeCheckoutRouteImport } from './routes/api/stripe/checkout'
 import { Route as ApiStreamsUsernameRouteImport } from './routes/api/streams.$username'
 import { Route as ApiFlowgladSplatRouteImport } from './routes/api/flowglad/$'
 import { Route as ApiChatMutationsRouteImport } from './routes/api/chat/mutations'
@@ -182,10 +185,25 @@ const DemoApiNamesRoute = DemoApiNamesRouteImport.update({
   path: '/demo/api/names',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiUsersUsernameRoute = ApiUsersUsernameRouteImport.update({
+  id: '/username',
+  path: '/username',
+  getParentRoute: () => ApiUsersRoute,
+} as any)
 const ApiUsageEventsCreateRoute = ApiUsageEventsCreateRouteImport.update({
   id: '/create',
   path: '/create',
   getParentRoute: () => ApiUsageEventsRoute,
+} as any)
+const ApiStripeWebhooksRoute = ApiStripeWebhooksRouteImport.update({
+  id: '/api/stripe/webhooks',
+  path: '/api/stripe/webhooks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStripeCheckoutRoute = ApiStripeCheckoutRouteImport.update({
+  id: '/api/stripe/checkout',
+  path: '/api/stripe/checkout',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiStreamsUsernameRoute = ApiStreamsUsernameRouteImport.update({
   id: '/api/streams/$username',
@@ -285,7 +303,7 @@ export interface FileRoutesByFullPath {
   '/api/profile': typeof ApiProfileRoute
   '/api/stream': typeof ApiStreamRoute
   '/api/usage-events': typeof ApiUsageEventsRouteWithChildren
-  '/api/users': typeof ApiUsersRoute
+  '/api/users': typeof ApiUsersRouteWithChildren
   '/canvas/$canvasId': typeof CanvasCanvasIdRoute
   '/i/1focus-demo': typeof I1focusDemoRoute
   '/canvas/': typeof CanvasIndexRoute
@@ -298,7 +316,10 @@ export interface FileRoutesByFullPath {
   '/api/chat/mutations': typeof ApiChatMutationsRoute
   '/api/flowglad/$': typeof ApiFlowgladSplatRoute
   '/api/streams/$username': typeof ApiStreamsUsernameRoute
+  '/api/stripe/checkout': typeof ApiStripeCheckoutRoute
+  '/api/stripe/webhooks': typeof ApiStripeWebhooksRoute
   '/api/usage-events/create': typeof ApiUsageEventsCreateRoute
+  '/api/users/username': typeof ApiUsersUsernameRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
@@ -328,7 +349,7 @@ export interface FileRoutesByTo {
   '/api/profile': typeof ApiProfileRoute
   '/api/stream': typeof ApiStreamRoute
   '/api/usage-events': typeof ApiUsageEventsRouteWithChildren
-  '/api/users': typeof ApiUsersRoute
+  '/api/users': typeof ApiUsersRouteWithChildren
   '/canvas/$canvasId': typeof CanvasCanvasIdRoute
   '/i/1focus-demo': typeof I1focusDemoRoute
   '/canvas': typeof CanvasIndexRoute
@@ -341,7 +362,10 @@ export interface FileRoutesByTo {
   '/api/chat/mutations': typeof ApiChatMutationsRoute
   '/api/flowglad/$': typeof ApiFlowgladSplatRoute
   '/api/streams/$username': typeof ApiStreamsUsernameRoute
+  '/api/stripe/checkout': typeof ApiStripeCheckoutRoute
+  '/api/stripe/webhooks': typeof ApiStripeWebhooksRoute
   '/api/usage-events/create': typeof ApiUsageEventsCreateRoute
+  '/api/users/username': typeof ApiUsersUsernameRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
@@ -373,7 +397,7 @@ export interface FileRoutesById {
   '/api/profile': typeof ApiProfileRoute
   '/api/stream': typeof ApiStreamRoute
   '/api/usage-events': typeof ApiUsageEventsRouteWithChildren
-  '/api/users': typeof ApiUsersRoute
+  '/api/users': typeof ApiUsersRouteWithChildren
   '/canvas/$canvasId': typeof CanvasCanvasIdRoute
   '/i/1focus-demo': typeof I1focusDemoRoute
   '/canvas/': typeof CanvasIndexRoute
@@ -386,7 +410,10 @@ export interface FileRoutesById {
   '/api/chat/mutations': typeof ApiChatMutationsRoute
   '/api/flowglad/$': typeof ApiFlowgladSplatRoute
   '/api/streams/$username': typeof ApiStreamsUsernameRoute
+  '/api/stripe/checkout': typeof ApiStripeCheckoutRoute
+  '/api/stripe/webhooks': typeof ApiStripeWebhooksRoute
   '/api/usage-events/create': typeof ApiUsageEventsCreateRoute
+  '/api/users/username': typeof ApiUsersUsernameRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
@@ -432,7 +459,10 @@ export interface FileRouteTypes {
     | '/api/chat/mutations'
     | '/api/flowglad/$'
     | '/api/streams/$username'
+    | '/api/stripe/checkout'
+    | '/api/stripe/webhooks'
     | '/api/usage-events/create'
+    | '/api/users/username'
     | '/demo/api/names'
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
@@ -475,7 +505,10 @@ export interface FileRouteTypes {
     | '/api/chat/mutations'
     | '/api/flowglad/$'
     | '/api/streams/$username'
+    | '/api/stripe/checkout'
+    | '/api/stripe/webhooks'
     | '/api/usage-events/create'
+    | '/api/users/username'
     | '/demo/api/names'
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
@@ -519,7 +552,10 @@ export interface FileRouteTypes {
     | '/api/chat/mutations'
     | '/api/flowglad/$'
     | '/api/streams/$username'
+    | '/api/stripe/checkout'
+    | '/api/stripe/webhooks'
     | '/api/usage-events/create'
+    | '/api/users/username'
     | '/demo/api/names'
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
@@ -551,7 +587,7 @@ export interface RootRouteChildren {
   ApiProfileRoute: typeof ApiProfileRoute
   ApiStreamRoute: typeof ApiStreamRoute
   ApiUsageEventsRoute: typeof ApiUsageEventsRouteWithChildren
-  ApiUsersRoute: typeof ApiUsersRoute
+  ApiUsersRoute: typeof ApiUsersRouteWithChildren
   I1focusDemoRoute: typeof I1focusDemoRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiChatAiRoute: typeof ApiChatAiRoute
@@ -559,6 +595,8 @@ export interface RootRouteChildren {
   ApiChatMutationsRoute: typeof ApiChatMutationsRoute
   ApiFlowgladSplatRoute: typeof ApiFlowgladSplatRoute
   ApiStreamsUsernameRoute: typeof ApiStreamsUsernameRoute
+  ApiStripeCheckoutRoute: typeof ApiStripeCheckoutRoute
+  ApiStripeWebhooksRoute: typeof ApiStripeWebhooksRoute
   DemoApiNamesRoute: typeof DemoApiNamesRoute
   DemoStartApiRequestRoute: typeof DemoStartApiRequestRoute
   DemoStartServerFuncsRoute: typeof DemoStartServerFuncsRoute
@@ -752,12 +790,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DemoApiNamesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/users/username': {
+      id: '/api/users/username'
+      path: '/username'
+      fullPath: '/api/users/username'
+      preLoaderRoute: typeof ApiUsersUsernameRouteImport
+      parentRoute: typeof ApiUsersRoute
+    }
     '/api/usage-events/create': {
       id: '/api/usage-events/create'
       path: '/create'
       fullPath: '/api/usage-events/create'
       preLoaderRoute: typeof ApiUsageEventsCreateRouteImport
       parentRoute: typeof ApiUsageEventsRoute
+    }
+    '/api/stripe/webhooks': {
+      id: '/api/stripe/webhooks'
+      path: '/api/stripe/webhooks'
+      fullPath: '/api/stripe/webhooks'
+      preLoaderRoute: typeof ApiStripeWebhooksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/stripe/checkout': {
+      id: '/api/stripe/checkout'
+      path: '/api/stripe/checkout'
+      fullPath: '/api/stripe/checkout'
+      preLoaderRoute: typeof ApiStripeCheckoutRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/streams/$username': {
       id: '/api/streams/$username'
@@ -943,6 +1002,18 @@ const ApiUsageEventsRouteWithChildren = ApiUsageEventsRoute._addFileChildren(
   ApiUsageEventsRouteChildren,
 )
 
+interface ApiUsersRouteChildren {
+  ApiUsersUsernameRoute: typeof ApiUsersUsernameRoute
+}
+
+const ApiUsersRouteChildren: ApiUsersRouteChildren = {
+  ApiUsersUsernameRoute: ApiUsersUsernameRoute,
+}
+
+const ApiUsersRouteWithChildren = ApiUsersRoute._addFileChildren(
+  ApiUsersRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   UsernameRoute: UsernameRoute,
@@ -963,7 +1034,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiProfileRoute: ApiProfileRoute,
   ApiStreamRoute: ApiStreamRoute,
   ApiUsageEventsRoute: ApiUsageEventsRouteWithChildren,
-  ApiUsersRoute: ApiUsersRoute,
+  ApiUsersRoute: ApiUsersRouteWithChildren,
   I1focusDemoRoute: I1focusDemoRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiChatAiRoute: ApiChatAiRoute,
@@ -971,6 +1042,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatMutationsRoute: ApiChatMutationsRoute,
   ApiFlowgladSplatRoute: ApiFlowgladSplatRoute,
   ApiStreamsUsernameRoute: ApiStreamsUsernameRoute,
+  ApiStripeCheckoutRoute: ApiStripeCheckoutRoute,
+  ApiStripeWebhooksRoute: ApiStripeWebhooksRoute,
   DemoApiNamesRoute: DemoApiNamesRoute,
   DemoStartApiRequestRoute: DemoStartApiRequestRoute,
   DemoStartServerFuncsRoute: DemoStartServerFuncsRoute,
