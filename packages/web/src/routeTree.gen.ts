@@ -56,6 +56,7 @@ import { Route as DemoStartSsrIndexRouteImport } from './routes/demo/start.ssr.i
 import { Route as DemoStartSsrSpaModeRouteImport } from './routes/demo/start.ssr.spa-mode'
 import { Route as DemoStartSsrFullSsrRouteImport } from './routes/demo/start.ssr.full-ssr'
 import { Route as DemoStartSsrDataOnlyRouteImport } from './routes/demo/start.ssr.data-only'
+import { Route as ApiStreamsUsernameViewersRouteImport } from './routes/api/streams.$username.viewers'
 import { Route as ApiCanvasImagesImageIdRouteImport } from './routes/api/canvas.images.$imageId'
 import { Route as ApiCanvasImagesImageIdGenerateRouteImport } from './routes/api/canvas.images.$imageId.generate'
 
@@ -295,6 +296,12 @@ const DemoStartSsrDataOnlyRoute = DemoStartSsrDataOnlyRouteImport.update({
   path: '/demo/start/ssr/data-only',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStreamsUsernameViewersRoute =
+  ApiStreamsUsernameViewersRouteImport.update({
+    id: '/viewers',
+    path: '/viewers',
+    getParentRoute: () => ApiStreamsUsernameRoute,
+  } as any)
 const ApiCanvasImagesImageIdRoute = ApiCanvasImagesImageIdRouteImport.update({
   id: '/$imageId',
   path: '/$imageId',
@@ -343,7 +350,7 @@ export interface FileRoutesByFullPath {
   '/api/chat/guest': typeof ApiChatGuestRoute
   '/api/chat/mutations': typeof ApiChatMutationsRoute
   '/api/flowglad/$': typeof ApiFlowgladSplatRoute
-  '/api/streams/$username': typeof ApiStreamsUsernameRoute
+  '/api/streams/$username': typeof ApiStreamsUsernameRouteWithChildren
   '/api/stripe/checkout': typeof ApiStripeCheckoutRoute
   '/api/stripe/webhooks': typeof ApiStripeWebhooksRoute
   '/api/usage-events/create': typeof ApiUsageEventsCreateRoute
@@ -352,6 +359,7 @@ export interface FileRoutesByFullPath {
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
   '/api/canvas/images/$imageId': typeof ApiCanvasImagesImageIdRouteWithChildren
+  '/api/streams/$username/viewers': typeof ApiStreamsUsernameViewersRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
   '/demo/start/ssr/spa-mode': typeof DemoStartSsrSpaModeRoute
@@ -393,7 +401,7 @@ export interface FileRoutesByTo {
   '/api/chat/guest': typeof ApiChatGuestRoute
   '/api/chat/mutations': typeof ApiChatMutationsRoute
   '/api/flowglad/$': typeof ApiFlowgladSplatRoute
-  '/api/streams/$username': typeof ApiStreamsUsernameRoute
+  '/api/streams/$username': typeof ApiStreamsUsernameRouteWithChildren
   '/api/stripe/checkout': typeof ApiStripeCheckoutRoute
   '/api/stripe/webhooks': typeof ApiStripeWebhooksRoute
   '/api/usage-events/create': typeof ApiUsageEventsCreateRoute
@@ -402,6 +410,7 @@ export interface FileRoutesByTo {
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
   '/api/canvas/images/$imageId': typeof ApiCanvasImagesImageIdRouteWithChildren
+  '/api/streams/$username/viewers': typeof ApiStreamsUsernameViewersRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
   '/demo/start/ssr/spa-mode': typeof DemoStartSsrSpaModeRoute
@@ -445,7 +454,7 @@ export interface FileRoutesById {
   '/api/chat/guest': typeof ApiChatGuestRoute
   '/api/chat/mutations': typeof ApiChatMutationsRoute
   '/api/flowglad/$': typeof ApiFlowgladSplatRoute
-  '/api/streams/$username': typeof ApiStreamsUsernameRoute
+  '/api/streams/$username': typeof ApiStreamsUsernameRouteWithChildren
   '/api/stripe/checkout': typeof ApiStripeCheckoutRoute
   '/api/stripe/webhooks': typeof ApiStripeWebhooksRoute
   '/api/usage-events/create': typeof ApiUsageEventsCreateRoute
@@ -454,6 +463,7 @@ export interface FileRoutesById {
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
   '/api/canvas/images/$imageId': typeof ApiCanvasImagesImageIdRouteWithChildren
+  '/api/streams/$username/viewers': typeof ApiStreamsUsernameViewersRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
   '/demo/start/ssr/spa-mode': typeof DemoStartSsrSpaModeRoute
@@ -507,6 +517,7 @@ export interface FileRouteTypes {
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
     | '/api/canvas/images/$imageId'
+    | '/api/streams/$username/viewers'
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
     | '/demo/start/ssr/spa-mode'
@@ -557,6 +568,7 @@ export interface FileRouteTypes {
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
     | '/api/canvas/images/$imageId'
+    | '/api/streams/$username/viewers'
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
     | '/demo/start/ssr/spa-mode'
@@ -608,6 +620,7 @@ export interface FileRouteTypes {
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
     | '/api/canvas/images/$imageId'
+    | '/api/streams/$username/viewers'
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
     | '/demo/start/ssr/spa-mode'
@@ -644,7 +657,7 @@ export interface RootRouteChildren {
   ApiChatGuestRoute: typeof ApiChatGuestRoute
   ApiChatMutationsRoute: typeof ApiChatMutationsRoute
   ApiFlowgladSplatRoute: typeof ApiFlowgladSplatRoute
-  ApiStreamsUsernameRoute: typeof ApiStreamsUsernameRoute
+  ApiStreamsUsernameRoute: typeof ApiStreamsUsernameRouteWithChildren
   ApiStripeCheckoutRoute: typeof ApiStripeCheckoutRoute
   ApiStripeWebhooksRoute: typeof ApiStripeWebhooksRoute
   DemoApiNamesRoute: typeof DemoApiNamesRoute
@@ -987,6 +1000,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DemoStartSsrDataOnlyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/streams/$username/viewers': {
+      id: '/api/streams/$username/viewers'
+      path: '/viewers'
+      fullPath: '/api/streams/$username/viewers'
+      preLoaderRoute: typeof ApiStreamsUsernameViewersRouteImport
+      parentRoute: typeof ApiStreamsUsernameRoute
+    }
     '/api/canvas/images/$imageId': {
       id: '/api/canvas/images/$imageId'
       path: '/$imageId'
@@ -1115,6 +1135,17 @@ const ApiUsersRouteWithChildren = ApiUsersRoute._addFileChildren(
   ApiUsersRouteChildren,
 )
 
+interface ApiStreamsUsernameRouteChildren {
+  ApiStreamsUsernameViewersRoute: typeof ApiStreamsUsernameViewersRoute
+}
+
+const ApiStreamsUsernameRouteChildren: ApiStreamsUsernameRouteChildren = {
+  ApiStreamsUsernameViewersRoute: ApiStreamsUsernameViewersRoute,
+}
+
+const ApiStreamsUsernameRouteWithChildren =
+  ApiStreamsUsernameRoute._addFileChildren(ApiStreamsUsernameRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   UsernameRoute: UsernameRoute,
@@ -1144,7 +1175,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatGuestRoute: ApiChatGuestRoute,
   ApiChatMutationsRoute: ApiChatMutationsRoute,
   ApiFlowgladSplatRoute: ApiFlowgladSplatRoute,
-  ApiStreamsUsernameRoute: ApiStreamsUsernameRoute,
+  ApiStreamsUsernameRoute: ApiStreamsUsernameRouteWithChildren,
   ApiStripeCheckoutRoute: ApiStripeCheckoutRoute,
   ApiStripeWebhooksRoute: ApiStripeWebhooksRoute,
   DemoApiNamesRoute: DemoApiNamesRoute,

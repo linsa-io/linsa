@@ -117,7 +117,7 @@ export function useStreamViewers(username: string): UseStreamViewersResult {
       const perSession = presenceFeed.perSession
       if (perSession) {
         for (const sessionId of Object.keys(perSession)) {
-          const entry = (perSession as Record<string, { value?: { lastActive: number } }>)[sessionId]
+          const entry = (presenceFeed.perSession as Record<string, { value?: { lastActive: number } }>)[sessionId]
           if (entry?.value) {
             const age = now - entry.value.lastActive
             if (age < PRESENCE_STALE_MS) {
@@ -138,6 +138,24 @@ export function useStreamViewers(username: string): UseStreamViewersResult {
 
     return () => clearInterval(interval)
   }, [presenceFeed?.$isLoaded, presenceFeed])
+
+  // Sync viewer count to database for external access
+  useEffect(() => {
+    if (viewerCount === 0) return
+
+    // Debounce the API call
+    const timeout = setTimeout(() => {
+      fetch(`/api/streams/${username}/viewers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ viewerCount }),
+      }).catch((err) => {
+        console.error("Failed to sync viewer count:", err)
+      })
+    }, 1000)
+
+    return () => clearTimeout(timeout)
+  }, [viewerCount, username])
 
   return {
     viewerCount,
