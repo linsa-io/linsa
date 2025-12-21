@@ -41,6 +41,8 @@
     "drizzle-zod": "^0.8.3",
     "framer-motion": "^12.23.25",
     "hls.js": "^1.6.15",
+    "jazz-react": "^0.14.28",
+    "jazz-tools": "^0.19.13",
     "lucide-react": "^0.556.0",
     "postgres": "^3.4.7",
     "react": "^19.2.1",

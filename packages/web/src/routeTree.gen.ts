@@ -18,11 +18,13 @@ import { Route as ChatRouteImport } from './routes/chat'
 import { Route as CanvasRouteImport } from './routes/canvas'
 import { Route as BlocksRouteImport } from './routes/blocks'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ArchiveRouteImport } from './routes/archive'
 import { Route as UsernameRouteImport } from './routes/$username'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CanvasIndexRouteImport } from './routes/canvas.index'
 import { Route as I1focusDemoRouteImport } from './routes/i.1focus-demo'
 import { Route as CanvasCanvasIdRouteImport } from './routes/canvas.$canvasId'
+import { Route as ArchiveArchiveIdRouteImport } from './routes/archive.$archiveId'
 import { Route as ApiUsersRouteImport } from './routes/api/users'
 import { Route as ApiUsageEventsRouteImport } from './routes/api/usage-events'
 import { Route as ApiStreamRouteImport } from './routes/api/stream'
@@ -32,6 +34,7 @@ import { Route as ApiChatThreadsRouteImport } from './routes/api/chat-threads'
 import { Route as ApiChatMessagesRouteImport } from './routes/api/chat-messages'
 import { Route as ApiCanvasRouteImport } from './routes/api/canvas'
 import { Route as ApiBrowserSessionsRouteImport } from './routes/api/browser-sessions'
+import { Route as ApiArchivesRouteImport } from './routes/api/archives'
 import { Route as DemoStartServerFuncsRouteImport } from './routes/demo/start.server-funcs'
 import { Route as DemoStartApiRequestRouteImport } from './routes/demo/start.api-request'
 import { Route as DemoApiNamesRouteImport } from './routes/demo/api.names'
@@ -48,6 +51,7 @@ import { Route as ApiCanvasImagesRouteImport } from './routes/api/canvas.images'
 import { Route as ApiCanvasCanvasIdRouteImport } from './routes/api/canvas.$canvasId'
 import { Route as ApiBrowserSessionsSessionIdRouteImport } from './routes/api/browser-sessions.$sessionId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiArchivesArchiveIdRouteImport } from './routes/api/archives.$archiveId'
 import { Route as DemoStartSsrIndexRouteImport } from './routes/demo/start.ssr.index'
 import { Route as DemoStartSsrSpaModeRouteImport } from './routes/demo/start.ssr.spa-mode'
 import { Route as DemoStartSsrFullSsrRouteImport } from './routes/demo/start.ssr.full-ssr'
@@ -100,6 +104,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ArchiveRoute = ArchiveRouteImport.update({
+  id: '/archive',
+  path: '/archive',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UsernameRoute = UsernameRouteImport.update({
   id: '/$username',
   path: '/$username',
@@ -124,6 +133,11 @@ const CanvasCanvasIdRoute = CanvasCanvasIdRouteImport.update({
   id: '/$canvasId',
   path: '/$canvasId',
   getParentRoute: () => CanvasRoute,
+} as any)
+const ArchiveArchiveIdRoute = ArchiveArchiveIdRouteImport.update({
+  id: '/$archiveId',
+  path: '/$archiveId',
+  getParentRoute: () => ArchiveRoute,
 } as any)
 const ApiUsersRoute = ApiUsersRouteImport.update({
   id: '/api/users',
@@ -168,6 +182,11 @@ const ApiCanvasRoute = ApiCanvasRouteImport.update({
 const ApiBrowserSessionsRoute = ApiBrowserSessionsRouteImport.update({
   id: '/api/browser-sessions',
   path: '/api/browser-sessions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiArchivesRoute = ApiArchivesRouteImport.update({
+  id: '/api/archives',
+  path: '/api/archives',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DemoStartServerFuncsRoute = DemoStartServerFuncsRouteImport.update({
@@ -251,6 +270,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiArchivesArchiveIdRoute = ApiArchivesArchiveIdRouteImport.update({
+  id: '/$archiveId',
+  path: '/$archiveId',
+  getParentRoute: () => ApiArchivesRoute,
+} as any)
 const DemoStartSsrIndexRoute = DemoStartSsrIndexRouteImport.update({
   id: '/demo/start/ssr/',
   path: '/demo/start/ssr/',
@@ -286,6 +310,7 @@ const ApiCanvasImagesImageIdGenerateRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$username': typeof UsernameRoute
+  '/archive': typeof ArchiveRouteWithChildren
   '/auth': typeof AuthRoute
   '/blocks': typeof BlocksRoute
   '/canvas': typeof CanvasRouteWithChildren
@@ -295,6 +320,7 @@ export interface FileRoutesByFullPath {
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
+  '/api/archives': typeof ApiArchivesRouteWithChildren
   '/api/browser-sessions': typeof ApiBrowserSessionsRouteWithChildren
   '/api/canvas': typeof ApiCanvasRouteWithChildren
   '/api/chat-messages': typeof ApiChatMessagesRoute
@@ -304,9 +330,11 @@ export interface FileRoutesByFullPath {
   '/api/stream': typeof ApiStreamRoute
   '/api/usage-events': typeof ApiUsageEventsRouteWithChildren
   '/api/users': typeof ApiUsersRouteWithChildren
+  '/archive/$archiveId': typeof ArchiveArchiveIdRoute
   '/canvas/$canvasId': typeof CanvasCanvasIdRoute
   '/i/1focus-demo': typeof I1focusDemoRoute
   '/canvas/': typeof CanvasIndexRoute
+  '/api/archives/$archiveId': typeof ApiArchivesArchiveIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/browser-sessions/$sessionId': typeof ApiBrowserSessionsSessionIdRoute
   '/api/canvas/$canvasId': typeof ApiCanvasCanvasIdRoute
@@ -333,6 +361,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$username': typeof UsernameRoute
+  '/archive': typeof ArchiveRouteWithChildren
   '/auth': typeof AuthRoute
   '/blocks': typeof BlocksRoute
   '/chat': typeof ChatRoute
@@ -341,6 +370,7 @@ export interface FileRoutesByTo {
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
+  '/api/archives': typeof ApiArchivesRouteWithChildren
   '/api/browser-sessions': typeof ApiBrowserSessionsRouteWithChildren
   '/api/canvas': typeof ApiCanvasRouteWithChildren
   '/api/chat-messages': typeof ApiChatMessagesRoute
@@ -350,9 +380,11 @@ export interface FileRoutesByTo {
   '/api/stream': typeof ApiStreamRoute
   '/api/usage-events': typeof ApiUsageEventsRouteWithChildren
   '/api/users': typeof ApiUsersRouteWithChildren
+  '/archive/$archiveId': typeof ArchiveArchiveIdRoute
   '/canvas/$canvasId': typeof CanvasCanvasIdRoute
   '/i/1focus-demo': typeof I1focusDemoRoute
   '/canvas': typeof CanvasIndexRoute
+  '/api/archives/$archiveId': typeof ApiArchivesArchiveIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/browser-sessions/$sessionId': typeof ApiBrowserSessionsSessionIdRoute
   '/api/canvas/$canvasId': typeof ApiCanvasCanvasIdRoute
@@ -380,6 +412,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$username': typeof UsernameRoute
+  '/archive': typeof ArchiveRouteWithChildren
   '/auth': typeof AuthRoute
   '/blocks': typeof BlocksRoute
   '/canvas': typeof CanvasRouteWithChildren
@@ -389,6 +422,7 @@ export interface FileRoutesById {
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
+  '/api/archives': typeof ApiArchivesRouteWithChildren
   '/api/browser-sessions': typeof ApiBrowserSessionsRouteWithChildren
   '/api/canvas': typeof ApiCanvasRouteWithChildren
   '/api/chat-messages': typeof ApiChatMessagesRoute
@@ -398,9 +432,11 @@ export interface FileRoutesById {
   '/api/stream': typeof ApiStreamRoute
   '/api/usage-events': typeof ApiUsageEventsRouteWithChildren
   '/api/users': typeof ApiUsersRouteWithChildren
+  '/archive/$archiveId': typeof ArchiveArchiveIdRoute
   '/canvas/$canvasId': typeof CanvasCanvasIdRoute
   '/i/1focus-demo': typeof I1focusDemoRoute
   '/canvas/': typeof CanvasIndexRoute
+  '/api/archives/$archiveId': typeof ApiArchivesArchiveIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/browser-sessions/$sessionId': typeof ApiBrowserSessionsSessionIdRoute
   '/api/canvas/$canvasId': typeof ApiCanvasCanvasIdRoute
@@ -429,6 +465,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$username'
+    | '/archive'
     | '/auth'
     | '/blocks'
     | '/canvas'
@@ -438,6 +475,7 @@ export interface FileRouteTypes {
     | '/sessions'
     | '/settings'
     | '/users'
+    | '/api/archives'
     | '/api/browser-sessions'
     | '/api/canvas'
     | '/api/chat-messages'
@@ -447,9 +485,11 @@ export interface FileRouteTypes {
     | '/api/stream'
     | '/api/usage-events'
     | '/api/users'
+    | '/archive/$archiveId'
     | '/canvas/$canvasId'
     | '/i/1focus-demo'
     | '/canvas/'
+    | '/api/archives/$archiveId'
     | '/api/auth/$'
     | '/api/browser-sessions/$sessionId'
     | '/api/canvas/$canvasId'
@@ -476,6 +516,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/$username'
+    | '/archive'
     | '/auth'
     | '/blocks'
     | '/chat'
@@ -484,6 +525,7 @@ export interface FileRouteTypes {
     | '/sessions'
     | '/settings'
     | '/users'
+    | '/api/archives'
     | '/api/browser-sessions'
     | '/api/canvas'
     | '/api/chat-messages'
@@ -493,9 +535,11 @@ export interface FileRouteTypes {
     | '/api/stream'
     | '/api/usage-events'
     | '/api/users'
+    | '/archive/$archiveId'
     | '/canvas/$canvasId'
     | '/i/1focus-demo'
     | '/canvas'
+    | '/api/archives/$archiveId'
     | '/api/auth/$'
     | '/api/browser-sessions/$sessionId'
     | '/api/canvas/$canvasId'
@@ -522,6 +566,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/$username'
+    | '/archive'
     | '/auth'
     | '/blocks'
     | '/canvas'
@@ -531,6 +576,7 @@ export interface FileRouteTypes {
     | '/sessions'
     | '/settings'
     | '/users'
+    | '/api/archives'
     | '/api/browser-sessions'
     | '/api/canvas'
     | '/api/chat-messages'
@@ -540,9 +586,11 @@ export interface FileRouteTypes {
     | '/api/stream'
     | '/api/usage-events'
     | '/api/users'
+    | '/archive/$archiveId'
     | '/canvas/$canvasId'
     | '/i/1focus-demo'
     | '/canvas/'
+    | '/api/archives/$archiveId'
     | '/api/auth/$'
     | '/api/browser-sessions/$sessionId'
     | '/api/canvas/$canvasId'
@@ -570,6 +618,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   UsernameRoute: typeof UsernameRoute
+  ArchiveRoute: typeof ArchiveRouteWithChildren
   AuthRoute: typeof AuthRoute
   BlocksRoute: typeof BlocksRoute
   CanvasRoute: typeof CanvasRouteWithChildren
@@ -579,6 +628,7 @@ export interface RootRouteChildren {
   SessionsRoute: typeof SessionsRoute
   SettingsRoute: typeof SettingsRoute
   UsersRoute: typeof UsersRoute
+  ApiArchivesRoute: typeof ApiArchivesRouteWithChildren
   ApiBrowserSessionsRoute: typeof ApiBrowserSessionsRouteWithChildren
   ApiCanvasRoute: typeof ApiCanvasRouteWithChildren
   ApiChatMessagesRoute: typeof ApiChatMessagesRoute
@@ -671,6 +721,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/archive': {
+      id: '/archive'
+      path: '/archive'
+      fullPath: '/archive'
+      preLoaderRoute: typeof ArchiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$username': {
       id: '/$username'
       path: '/$username'
@@ -705,6 +762,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/canvas/$canvasId'
       preLoaderRoute: typeof CanvasCanvasIdRouteImport
       parentRoute: typeof CanvasRoute
+    }
+    '/archive/$archiveId': {
+      id: '/archive/$archiveId'
+      path: '/$archiveId'
+      fullPath: '/archive/$archiveId'
+      preLoaderRoute: typeof ArchiveArchiveIdRouteImport
+      parentRoute: typeof ArchiveRoute
     }
     '/api/users': {
       id: '/api/users'
@@ -767,6 +831,13 @@ declare module '@tanstack/react-router' {
       path: '/api/browser-sessions'
       fullPath: '/api/browser-sessions'
       preLoaderRoute: typeof ApiBrowserSessionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/archives': {
+      id: '/api/archives'
+      path: '/api/archives'
+      fullPath: '/api/archives'
+      preLoaderRoute: typeof ApiArchivesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/demo/start/server-funcs': {
@@ -881,6 +952,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/archives/$archiveId': {
+      id: '/api/archives/$archiveId'
+      path: '/$archiveId'
+      fullPath: '/api/archives/$archiveId'
+      preLoaderRoute: typeof ApiArchivesArchiveIdRouteImport
+      parentRoute: typeof ApiArchivesRoute
+    }
     '/demo/start/ssr/': {
       id: '/demo/start/ssr/'
       path: '/demo/start/ssr'
@@ -926,6 +1004,17 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface ArchiveRouteChildren {
+  ArchiveArchiveIdRoute: typeof ArchiveArchiveIdRoute
+}
+
+const ArchiveRouteChildren: ArchiveRouteChildren = {
+  ArchiveArchiveIdRoute: ArchiveArchiveIdRoute,
+}
+
+const ArchiveRouteWithChildren =
+  ArchiveRoute._addFileChildren(ArchiveRouteChildren)
+
 interface CanvasRouteChildren {
   CanvasCanvasIdRoute: typeof CanvasCanvasIdRoute
   CanvasIndexRoute: typeof CanvasIndexRoute
@@ -938,6 +1027,18 @@ const CanvasRouteChildren: CanvasRouteChildren = {
 
 const CanvasRouteWithChildren =
   CanvasRoute._addFileChildren(CanvasRouteChildren)
+
+interface ApiArchivesRouteChildren {
+  ApiArchivesArchiveIdRoute: typeof ApiArchivesArchiveIdRoute
+}
+
+const ApiArchivesRouteChildren: ApiArchivesRouteChildren = {
+  ApiArchivesArchiveIdRoute: ApiArchivesArchiveIdRoute,
+}
+
+const ApiArchivesRouteWithChildren = ApiArchivesRoute._addFileChildren(
+  ApiArchivesRouteChildren,
+)
 
 interface ApiBrowserSessionsRouteChildren {
   ApiBrowserSessionsSessionIdRoute: typeof ApiBrowserSessionsSessionIdRoute
@@ -1017,6 +1118,7 @@ const ApiUsersRouteWithChildren = ApiUsersRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   UsernameRoute: UsernameRoute,
+  ArchiveRoute: ArchiveRouteWithChildren,
   AuthRoute: AuthRoute,
   BlocksRoute: BlocksRoute,
   CanvasRoute: CanvasRouteWithChildren,
@@ -1026,6 +1128,7 @@ const rootRouteChildren: RootRouteChildren = {
   SessionsRoute: SessionsRoute,
   SettingsRoute: SettingsRoute,
   UsersRoute: UsersRoute,
+  ApiArchivesRoute: ApiArchivesRouteWithChildren,
   ApiBrowserSessionsRoute: ApiBrowserSessionsRouteWithChildren,
   ApiCanvasRoute: ApiCanvasRouteWithChildren,
   ApiChatMessagesRoute: ApiChatMessagesRoute,
