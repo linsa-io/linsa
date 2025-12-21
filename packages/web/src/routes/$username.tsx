@@ -4,6 +4,8 @@ import { getStreamByUsername, type StreamPageData } from "@/lib/stream/db"
 import { VideoPlayer } from "@/components/VideoPlayer"
 import { CloudflareStreamPlayer } from "@/components/CloudflareStreamPlayer"
 import { resolveStreamPlayback } from "@/lib/stream/playback"
+import { JazzProvider } from "@/lib/jazz/provider"
+import { ViewerCount } from "@/components/ViewerCount"
 
 export const Route = createFileRoute("/$username")({
   ssr: false,
@@ -26,7 +28,7 @@ const NIKIV_DATA: StreamPageData = {
     id: "nikiv-stream",
     title: "Live Coding",
     description: "Building in public",
-    is_live: true,
+    is_live: false, // Set to true when actually streaming
     viewer_count: 0,
     hls_url: HLS_URL,
     playback: NIKIV_PLAYBACK,
@@ -149,54 +151,61 @@ function StreamPage() {
     playback?.type === "cloudflare" || (playback?.type === "hls" && streamReady)
 
   return (
-    <div className="h-screen w-screen bg-black">
-      {stream?.is_live && playback && showPlayer ? (
-        playback.type === "cloudflare" ? (
-          <div className="relative h-full w-full">
-            <CloudflareStreamPlayer
-              uid={playback.uid}
-              customerCode={playback.customerCode}
-              muted={false}
-              onReady={() => setStreamReady(true)}
-            />
-            {!streamReady && (
-              <div className="absolute inset-0 flex items-center justify-center text-white">
-                <div className="text-center">
-                  <div className="animate-pulse text-4xl">🔴</div>
-                  <p className="mt-4 text-xl text-neutral-400">
-                    Connecting to stream...
-                  </p>
+    <JazzProvider>
+      <div className="h-screen w-screen bg-black">
+        {/* Viewer count overlay */}
+        <div className="absolute top-4 right-4 z-10 rounded-lg bg-black/50 px-3 py-2 backdrop-blur-sm">
+          <ViewerCount username={username} />
+        </div>
+
+        {stream?.is_live && playback && showPlayer ? (
+          playback.type === "cloudflare" ? (
+            <div className="relative h-full w-full">
+              <CloudflareStreamPlayer
+                uid={playback.uid}
+                customerCode={playback.customerCode}
+                muted={false}
+                onReady={() => setStreamReady(true)}
+              />
+              {!streamReady && (
+                <div className="absolute inset-0 flex items-center justify-center text-white">
+                  <div className="text-center">
+                    <div className="animate-pulse text-4xl">🔴</div>
+                    <p className="mt-4 text-xl text-neutral-400">
+                      Connecting to stream...
+                    </p>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+          ) : (
+            <VideoPlayer src={playback.url} muted={false} />
+          )
+        ) : stream?.is_live && playback ? (
+          <div className="flex h-full w-full items-center justify-center text-white">
+            <div className="text-center">
+              <div className="animate-pulse text-4xl">🔴</div>
+              <p className="mt-4 text-xl text-neutral-400">
+                Connecting to stream...
+              </p>
+            </div>
           </div>
         ) : (
-          <VideoPlayer src={playback.url} muted={false} />
-        )
-      ) : stream?.is_live && playback ? (
-        <div className="flex h-full w-full items-center justify-center text-white">
-          <div className="text-center">
-            <div className="animate-pulse text-4xl">🔴</div>
-            <p className="mt-4 text-xl text-neutral-400">
-              Connecting to stream...
-            </p>
+          <div className="flex h-full w-full items-center justify-center text-white">
+            <div className="text-center">
+              <p className="text-2xl font-medium">Streaming soon</p>
+              <a
+                href="https://nikiv.dev"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 inline-block text-lg text-neutral-400 underline hover:text-white transition-colors"
+              >
+                nikiv.dev
+              </a>
+            </div>
           </div>
-        </div>
-      ) : (
-        <div className="flex h-full w-full items-center justify-center text-white">
-          <div className="text-center">
-            <p className="text-2xl font-medium">Streaming soon</p>
-            <a
-              href="https://nikiv.dev"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 inline-block text-lg text-neutral-400 underline hover:text-white transition-colors"
-            >
-              nikiv.dev
-            </a>
-          </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </JazzProvider>
   )
 }
