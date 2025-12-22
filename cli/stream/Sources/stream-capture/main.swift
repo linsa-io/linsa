@@ -173,8 +173,9 @@ actor ZeroCPUCapturer: NSObject, SCStreamDelegate, SCStreamOutput {
         config.width = normalizedSize.width
         config.height = normalizedSize.height
 
-        // 30 FPS for streaming
-        config.minimumFrameInterval = CMTime(value: 1, timescale: 30)
+        let targetFrameRate: Int32 = 60
+        // 60 FPS for streaming
+        config.minimumFrameInterval = CMTime(value: 1, timescale: targetFrameRate)
 
         // Queue depth for smooth delivery (like OBS)
         config.queueDepth = 8
@@ -210,7 +211,7 @@ actor ZeroCPUCapturer: NSObject, SCStreamDelegate, SCStreamOutput {
 
         // Start capture
         try await stream?.startCapture()
-        print("Capture started: \(config.width)x\(config.height) @ 30fps")
+        print("Capture started: \(config.width)x\(config.height) @ \(targetFrameRate)fps")
     }
 
     func stopCapture() async {
@@ -329,10 +330,19 @@ class HardwareEncoder {
         }
 
         // Configure for streaming
+        let targetFrameRate: Int32 = 60
+        let keyframeInterval = Int(targetFrameRate) * 2
+        let bitrate = HardwareEncoder.recommendedBitrate(
+            width: width,
+            height: height,
+            frameRate: Int(targetFrameRate)
+        )
         VTSessionSetProperty(session, key: kVTCompressionPropertyKey_RealTime, value: kCFBooleanTrue)
         VTSessionSetProperty(session, key: kVTCompressionPropertyKey_ProfileLevel, value: kVTProfileLevel_H264_High_AutoLevel)
-        VTSessionSetProperty(session, key: kVTCompressionPropertyKey_AverageBitRate, value: 4_500_000 as CFNumber) // 4.5 Mbps
-        VTSessionSetProperty(session, key: kVTCompressionPropertyKey_MaxKeyFrameInterval, value: 60 as CFNumber) // Keyframe every 2s @ 30fps
+        VTSessionSetProperty(session, key: kVTCompressionPropertyKey_ExpectedFrameRate, value: targetFrameRate as CFNumber)
+        VTSessionSetProperty(session, key: kVTCompressionPropertyKey_AverageBitRate, value: bitrate as CFNumber)
+        VTSessionSetProperty(session, key: kVTCompressionPropertyKey_MaxKeyFrameInterval, value: keyframeInterval as CFNumber)
+        VTSessionSetProperty(session, key: kVTCompressionPropertyKey_MaxKeyFrameIntervalDuration, value: 2 as CFNumber)
         VTSessionSetProperty(session, key: kVTCompressionPropertyKey_AllowFrameReordering, value: kCFBooleanFalse) // No B-frames for low latency
 
         VTCompressionSessionPrepareToEncodeFrames(session)
@@ -372,6 +382,19 @@ class HardwareEncoder {
             let data = Data(bytes: dataPointer, count: length)
             onEncodedData(data)
         }
+    }
+
+    private static func recommendedBitrate(width: Int, height: Int, frameRate: Int) -> Int {
+        let baseWidth = 2560
+        let baseHeight = 1440
+        let baseFrameRate = 60
+        let baseBitrate = 30_000_000
+
+        let pixels = max(1, width) * max(1, height)
+        let basePixels = baseWidth * baseHeight
+        let fpsScale = Double(max(frameRate, 1)) / Double(baseFrameRate)
+        let raw = Double(baseBitrate) * (Double(pixels) / Double(basePixels)) * fpsScale
+        return min(max(Int(raw.rounded()), 12_000_000), 80_000_000)
     }
 
     deinit {

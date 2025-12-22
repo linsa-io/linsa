@@ -21,9 +21,9 @@ if [ -z "$STREAM_KEY" ]; then
   exit 1
 fi
 
-exec ffmpeg -f avfoundation -capture_cursor 1 -framerate 30 -i "2:1" \
-  -c:v h264_videotoolbox -b:v 4500k -maxrate 4500k -bufsize 9000k \
+exec ffmpeg -f avfoundation -capture_cursor 1 -framerate 60 -i "2:1" \
+  -c:v h264_videotoolbox -b:v 30000k -maxrate 45000k -bufsize 90000k \
   -profile:v high -pix_fmt yuv420p \
-  -g 60 -keyint_min 60 \
-  -c:a aac -b:a 128k -ar 48000 -ac 2 \
+  -g 120 -keyint_min 120 \
+  -c:a aac -b:a 256k -ar 48000 -ac 2 \
   -f flv "${RTMPS_URL}${STREAM_KEY}"

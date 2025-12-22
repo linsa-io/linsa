@@ -112,9 +112,9 @@ pub async fn start_hls(
         "-c:a",
         "aac",
         "-b:a",
-        "128k",
+        "256k",
         "-ar",
-        "44100",
+        "48000",
         // HLS output settings
         "-f",
         "hls",
@@ -183,9 +183,9 @@ pub async fn start_youtube(
         "-c:a",
         "aac",
         "-b:a",
-        "128k",
+        "256k",
         "-ar",
-        "44100",
+        "48000",
         // FLV container for RTMP
         "-f",
         "flv",
@@ -268,9 +268,9 @@ pub async fn start_youtube_with_filter(
         "-c:a".to_string(),
         "aac".to_string(),
         "-b:a".to_string(),
-        "128k".to_string(),
+        "256k".to_string(),
         "-ar".to_string(),
-        "44100".to_string(),
+        "48000".to_string(),
     ]);
 
     // Output
