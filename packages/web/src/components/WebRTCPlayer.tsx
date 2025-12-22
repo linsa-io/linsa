@@ -5,6 +5,76 @@ type WebRTCPlayerProps = {
   autoPlay?: boolean
   muted?: boolean
   onReady?: () => void
+  onError?: (message: string) => void
+}
+
+const splitHeaderParts = (value: string) => {
+  const parts: string[] = []
+  let current = ""
+  let inQuotes = false
+  for (const char of value) {
+    if (char === "\"") {
+      inQuotes = !inQuotes
+    }
+    if (char === "," && !inQuotes) {
+      if (current.trim()) {
+        parts.push(current.trim())
+      }
+      current = ""
+      continue
+    }
+    current += char
+  }
+  if (current.trim()) {
+    parts.push(current.trim())
+  }
+  return parts
+}
+
+const stripQuotes = (value: string) => {
+  if (value.startsWith("\"") && value.endsWith("\"")) {
+    return value.slice(1, -1)
+  }
+  return value
+}
+
+const parseIceServersFromLinkHeader = (header: string | null): RTCIceServer[] => {
+  if (!header) return []
+  const servers: RTCIceServer[] = []
+
+  for (const part of splitHeaderParts(header)) {
+    const urlMatch = part.match(/<([^>]+)>/)
+    if (!urlMatch) continue
+
+    const url = urlMatch[1].trim()
+    const params = part.split(";").map((item) => item.trim())
+    let rel = ""
+    let username = ""
+    let credential = ""
+    let credentialType = ""
+
+    for (const param of params.slice(1)) {
+      const [key, ...rest] = param.split("=")
+      if (!key) continue
+      const value = stripQuotes(rest.join("=").trim())
+      if (key === "rel") rel = value
+      if (key === "username") username = value
+      if (key === "credential") credential = value
+      if (key === "credential-type") credentialType = value
+    }
+
+    if (!rel.includes("ice-server")) continue
+
+    const server: RTCIceServer = { urls: url }
+    if (username) server.username = username
+    if (credential) server.credential = credential
+    if (credentialType) {
+      server.credentialType = credentialType as RTCIceCredentialType
+    }
+    servers.push(server)
+  }
+
+  return servers
 }
 
 export function WebRTCPlayer({
@@ -12,6 +82,7 @@ export function WebRTCPlayer({
   autoPlay = true,
   muted = false,
   onReady,
+  onError,
 }: WebRTCPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [error, setError] = useState<string | null>(null)
@@ -21,7 +92,8 @@ export function WebRTCPlayer({
     const video = videoRef.current
     if (!video || !src) return
 
-    let pc: RTCPeerConnection | null = new RTCPeerConnection()
+    let pc: RTCPeerConnection | null = null
+    let sessionUrl: string | null = null
     const abortController = new AbortController()
     readyRef.current = false
 
@@ -31,8 +103,17 @@ export function WebRTCPlayer({
       onReady?.()
     }
 
+    const reportError = (message: string) => {
+      if (abortController.signal.aborted) return
+      setError(message)
+      onError?.(message)
+    }
+
     const cleanup = () => {
       abortController.abort()
+      if (sessionUrl) {
+        fetch(sessionUrl, { method: "DELETE" }).catch(() => {})
+      }
       if (pc) {
         pc.ontrack = null
         pc.onconnectionstatechange = null
@@ -63,10 +144,27 @@ export function WebRTCPlayer({
         pc.addEventListener("icegatheringstatechange", onStateChange)
       })
 
+    const getIceServers = async () => {
+      try {
+        const response = await fetch(src, {
+          method: "OPTIONS",
+          signal: abortController.signal,
+        })
+        if (!response.ok) {
+          return []
+        }
+        return parseIceServersFromLinkHeader(response.headers.get("Link"))
+      } catch {
+        return []
+      }
+    }
+
     const start = async () => {
       try {
-        if (!pc) return
         setError(null)
+
+        const iceServers = await getIceServers()
+        pc = new RTCPeerConnection(iceServers.length ? { iceServers } : undefined)
 
         pc.addTransceiver("video", { direction: "recvonly" })
         pc.addTransceiver("audio", { direction: "recvonly" })
@@ -86,6 +184,15 @@ export function WebRTCPlayer({
         pc.onconnectionstatechange = () => {
           if (pc?.connectionState === "connected") {
             markReady()
+          } else if (pc?.connectionState === "failed") {
+            reportError("WebRTC connection failed")
+          }
+        }
+
+        pc.oniceconnectionstatechange = () => {
+          if (!pc) return
+          if (pc.iceConnectionState === "failed") {
+            reportError("WebRTC ICE failed")
           }
         }
 
@@ -116,11 +223,16 @@ export function WebRTCPlayer({
           throw new Error("Empty WebRTC answer")
         }
 
+        const locationHeader = response.headers.get("Location")
+        if (locationHeader) {
+          sessionUrl = new URL(locationHeader, src).toString()
+        }
+
         await pc.setRemoteDescription({ type: "answer", sdp: answerSdp })
       } catch (err) {
         if (!abortController.signal.aborted) {
           const message = err instanceof Error ? err.message : "WebRTC failed"
-          setError(message)
+          reportError(message)
         }
       }
     }
@@ -128,7 +240,7 @@ export function WebRTCPlayer({
     start()
 
     return cleanup
-  }, [autoPlay, muted, onReady, src])
+  }, [autoPlay, muted, onError, onReady, src])
 
   if (error) {
     return (

@@ -45,6 +45,7 @@ function StreamPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [streamReady, setStreamReady] = useState(false)
+  const [webRtcFailed, setWebRtcFailed] = useState(false)
 
   useEffect(() => {
     let isActive = true
@@ -68,19 +69,19 @@ function StreamPage() {
         setError(next)
       }
     }
+    const setWebRtcFailedSafe = (next: boolean) => {
+      if (isActive) {
+        setWebRtcFailed(next)
+      }
+    }
 
     setReadySafe(false)
+    setWebRtcFailedSafe(false)
 
     // Special handling for nikiv - hardcoded stream
     if (username === "nikiv") {
       setDataSafe(NIKIV_DATA)
       setLoadingSafe(false)
-
-      if (NIKIV_PLAYBACK?.type === "hls") {
-        fetch(NIKIV_PLAYBACK.url)
-          .then((res) => setReadySafe(res.ok))
-          .catch(() => setReadySafe(false))
-      }
 
       return () => {
         isActive = false
@@ -93,14 +94,6 @@ function StreamPage() {
       try {
         const result = await getStreamByUsername(username)
         setDataSafe(result)
-
-        const playback = result?.stream?.playback
-        if (playback?.type === "hls") {
-          const res = await fetch(playback.url)
-          setReadySafe(res.ok)
-        } else {
-          setReadySafe(false)
-        }
       } catch (err) {
         setErrorSafe("Failed to load stream")
         console.error(err)
@@ -114,6 +107,45 @@ function StreamPage() {
       isActive = false
     }
   }, [username])
+
+  const stream = data?.stream ?? null
+  const playback = stream?.playback ?? null
+  const fallbackPlayback = stream?.hls_url
+    ? resolveStreamPlayback({ hlsUrl: stream.hls_url, webrtcUrl: null })
+    : null
+  const activePlayback =
+    playback?.type === "webrtc" && webRtcFailed
+      ? fallbackPlayback ?? playback
+      : playback
+
+  useEffect(() => {
+    let isActive = true
+    if (!activePlayback || activePlayback.type !== "hls") {
+      return () => {
+        isActive = false
+      }
+    }
+
+    setStreamReady(false)
+    fetch(activePlayback.url)
+      .then((res) => {
+        if (isActive) {
+          setStreamReady(res.ok)
+        }
+      })
+      .catch(() => {
+        if (isActive) {
+          setStreamReady(false)
+        }
+      })
+
+    return () => {
+      isActive = false
+    }
+  }, [
+    activePlayback?.type,
+    activePlayback?.type === "hls" ? activePlayback.url : null,
+  ])
 
   if (loading) {
     return (
@@ -147,12 +179,11 @@ function StreamPage() {
     )
   }
 
-  const { user, stream } = data
-  const playback = stream?.playback
+  const { user } = data
   const showPlayer =
-    playback?.type === "cloudflare" ||
-    playback?.type === "webrtc" ||
-    (playback?.type === "hls" && streamReady)
+    activePlayback?.type === "cloudflare" ||
+    activePlayback?.type === "webrtc" ||
+    (activePlayback?.type === "hls" && streamReady)
 
   return (
     <JazzProvider>
@@ -162,13 +193,17 @@ function StreamPage() {
           <ViewerCount username={username} />
         </div>
 
-        {stream?.is_live && playback && showPlayer ? (
-          playback.type === "webrtc" ? (
+        {stream?.is_live && activePlayback && showPlayer ? (
+          activePlayback.type === "webrtc" ? (
             <div className="relative h-full w-full">
               <WebRTCPlayer
-                src={playback.url}
+                src={activePlayback.url}
                 muted={false}
                 onReady={() => setStreamReady(true)}
+                onError={() => {
+                  setWebRtcFailed(true)
+                  setStreamReady(!fallbackPlayback)
+                }}
               />
               {!streamReady && (
                 <div className="absolute inset-0 flex items-center justify-center text-white">
@@ -181,11 +216,11 @@ function StreamPage() {
                 </div>
               )}
             </div>
-          ) : playback.type === "cloudflare" ? (
+          ) : activePlayback.type === "cloudflare" ? (
             <div className="relative h-full w-full">
               <CloudflareStreamPlayer
-                uid={playback.uid}
-                customerCode={playback.customerCode}
+                uid={activePlayback.uid}
+                customerCode={activePlayback.customerCode}
                 muted={false}
                 onReady={() => setStreamReady(true)}
               />
@@ -201,9 +236,9 @@ function StreamPage() {
               )}
             </div>
           ) : (
-            <VideoPlayer src={playback.url} muted={false} />
+            <VideoPlayer src={activePlayback.url} muted={false} />
           )
-        ) : stream?.is_live && playback ? (
+        ) : stream?.is_live && activePlayback ? (
           <div className="flex h-full w-full items-center justify-center text-white">
             <div className="text-center">
               <div className="animate-pulse text-4xl">🔴</div>
