@@ -249,6 +249,7 @@ export const streams = pgTable("streams", {
   stream_key: text("stream_key").notNull().unique(), // secret key for streaming
   // Stream endpoints (set by Linux server)
   hls_url: text("hls_url"), // HLS playback URL
+  webrtc_url: text("webrtc_url"), // WebRTC playback URL
   thumbnail_url: text("thumbnail_url"),
   started_at: timestamp("started_at", { withTimezone: true }),
   ended_at: timestamp("ended_at", { withTimezone: true }),

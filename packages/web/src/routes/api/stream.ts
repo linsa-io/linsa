@@ -43,7 +43,10 @@ const getStream = async ({ request }: { request: Request }) => {
       })
     }
 
-    const playback = resolveStreamPlayback({ hlsUrl: stream.hls_url })
+    const playback = resolveStreamPlayback({
+      hlsUrl: stream.hls_url,
+      webrtcUrl: stream.webrtc_url,
+    })
 
     return new Response(JSON.stringify({ ...stream, playback }), {
       status: 200,
@@ -72,10 +75,11 @@ const updateStream = async ({ request }: { request: Request }) => {
 
   try {
     const body = await request.json()
-    const { title, description, hls_url, is_live } = body as {
+    const { title, description, hls_url, webrtc_url, is_live } = body as {
       title?: string
       description?: string
       hls_url?: string
+      webrtc_url?: string
       is_live?: boolean
     }
 
@@ -96,6 +100,7 @@ const updateStream = async ({ request }: { request: Request }) => {
     if (title !== undefined) updates.title = title
     if (description !== undefined) updates.description = description
     if (hls_url !== undefined) updates.hls_url = hls_url
+    if (webrtc_url !== undefined) updates.webrtc_url = webrtc_url
     if (is_live !== undefined) {
       updates.is_live = is_live
       if (is_live && !stream.started_at) {

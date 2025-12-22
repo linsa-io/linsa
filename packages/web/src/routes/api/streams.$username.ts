@@ -60,7 +60,10 @@ const serve = async ({
     })
 
     const playback = stream
-      ? resolveStreamPlayback({ hlsUrl: stream.hls_url })
+      ? resolveStreamPlayback({
+          hlsUrl: stream.hls_url,
+          webrtcUrl: stream.webrtc_url,
+        })
       : null
 
     const data = {
@@ -78,6 +81,7 @@ const serve = async ({
             is_live: stream.is_live,
             viewer_count: stream.viewer_count,
             hls_url: stream.hls_url,
+            webrtc_url: stream.webrtc_url,
             playback,
             thumbnail_url: stream.thumbnail_url,
             started_at: stream.started_at?.toISOString() ?? null,

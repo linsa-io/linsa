@@ -5,19 +5,26 @@ export type CloudflareStreamRef = {
 
 export type StreamPlayback =
   | { type: "cloudflare"; uid: string; customerCode?: string }
+  | { type: "webrtc"; url: string }
   | { type: "hls"; url: string }
 
 type PlaybackInput = {
   hlsUrl?: string | null
+  webrtcUrl?: string | null
   cloudflareUid?: string | null
   cloudflareCustomerCode?: string | null
 }
 
 export function resolveStreamPlayback({
   hlsUrl,
+  webrtcUrl,
   cloudflareUid,
   cloudflareCustomerCode,
 }: PlaybackInput): StreamPlayback | null {
+  if (webrtcUrl) {
+    return { type: "webrtc", url: webrtcUrl }
+  }
+
   if (cloudflareUid) {
     return {
       type: "cloudflare",

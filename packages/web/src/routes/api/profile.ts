@@ -50,7 +50,10 @@ const getProfile = async ({ request }: { request: Request }) => {
     })
 
     const playback = stream
-      ? resolveStreamPlayback({ hlsUrl: stream.hls_url })
+      ? resolveStreamPlayback({
+          hlsUrl: stream.hls_url,
+          webrtcUrl: stream.webrtc_url,
+        })
       : null
 
     return new Response(
@@ -66,6 +69,7 @@ const getProfile = async ({ request }: { request: Request }) => {
               title: stream.title,
               is_live: stream.is_live,
               hls_url: stream.hls_url,
+              webrtc_url: stream.webrtc_url,
               playback,
               stream_key: stream.stream_key,
             }

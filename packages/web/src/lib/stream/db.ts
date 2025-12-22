@@ -14,6 +14,7 @@ export type StreamPageData = {
     is_live: boolean
     viewer_count: number
     hls_url: string | null
+    webrtc_url: string | null
     playback: StreamPlayback | null
     thumbnail_url: string | null
     started_at: string | null
