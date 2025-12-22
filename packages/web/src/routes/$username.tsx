@@ -193,20 +193,17 @@ function StreamPage() {
         ) : (
           <div className="flex h-full w-full items-center justify-center text-white">
             <div className="text-center">
-              {username === "nikiv" ? (
-                <a
-                  href="https://nikiv.dev"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-4xl font-medium text-white hover:text-neutral-300 transition-colors"
-                >
-                  nikiv.dev
-                </a>
-              ) : (
-                <p className="text-2xl font-medium text-neutral-400">
-                  Not streaming
-                </p>
-              )}
+              <p className="text-2xl font-medium text-neutral-400 mb-6">
+                stream soon
+              </p>
+              <a
+                href={username === "nikiv" ? "https://nikiv.dev" : "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-4xl font-medium text-white hover:text-neutral-300 transition-colors"
+              >
+                {username === "nikiv" ? "nikiv.dev" : `@${username}`}
+              </a>
             </div>
           </div>
         )}
