@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { getStreamByUsername, type StreamPageData } from "@/lib/stream/db"
 import { VideoPlayer } from "@/components/VideoPlayer"
 import { CloudflareStreamPlayer } from "@/components/CloudflareStreamPlayer"
+import { WebRTCPlayer } from "@/components/WebRTCPlayer"
 import { resolveStreamPlayback } from "@/lib/stream/playback"
 import { JazzProvider } from "@/lib/jazz/provider"
 import { ViewerCount } from "@/components/ViewerCount"
@@ -14,7 +15,7 @@ export const Route = createFileRoute("/$username")({
 
 // Cloudflare Stream HLS URL
 const HLS_URL = "https://customer-xctsztqzu046isdc.cloudflarestream.com/bb7858eafc85de6c92963f3817477b5d/manifest/video.m3u8"
-const NIKIV_PLAYBACK = resolveStreamPlayback({ hlsUrl: HLS_URL })
+const NIKIV_PLAYBACK = resolveStreamPlayback({ hlsUrl: HLS_URL, webrtcUrl: null })
 
 // Hardcoded user for nikiv
 const NIKIV_DATA: StreamPageData = {
@@ -31,6 +32,7 @@ const NIKIV_DATA: StreamPageData = {
     is_live: false, // Set to true when actually streaming
     viewer_count: 0,
     hls_url: HLS_URL,
+    webrtc_url: null,
     playback: NIKIV_PLAYBACK,
     thumbnail_url: null,
     started_at: null,
@@ -148,7 +150,9 @@ function StreamPage() {
   const { user, stream } = data
   const playback = stream?.playback
   const showPlayer =
-    playback?.type === "cloudflare" || (playback?.type === "hls" && streamReady)
+    playback?.type === "cloudflare" ||
+    playback?.type === "webrtc" ||
+    (playback?.type === "hls" && streamReady)
 
   return (
     <JazzProvider>
@@ -159,7 +163,25 @@ function StreamPage() {
         </div>
 
         {stream?.is_live && playback && showPlayer ? (
-          playback.type === "cloudflare" ? (
+          playback.type === "webrtc" ? (
+            <div className="relative h-full w-full">
+              <WebRTCPlayer
+                src={playback.url}
+                muted={false}
+                onReady={() => setStreamReady(true)}
+              />
+              {!streamReady && (
+                <div className="absolute inset-0 flex items-center justify-center text-white">
+                  <div className="text-center">
+                    <div className="animate-pulse text-4xl">🔴</div>
+                    <p className="mt-4 text-xl text-neutral-400">
+                      Connecting to stream...
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : playback.type === "cloudflare" ? (
             <div className="relative h-full w-full">
               <CloudflareStreamPlayer
                 uid={playback.uid}
