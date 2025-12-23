@@ -241,8 +241,10 @@ function StreamPage() {
   const nowPlayingArtists = nowPlayingTrack?.artists.length
     ? nowPlayingTrack.artists.join(", ")
     : null
-  const nowPlayingEmbedUrl = nowPlayingTrack?.id
-    ? `https://open.spotify.com/embed/${nowPlayingTrack.type}/${nowPlayingTrack.id}?utm_source=linsa&theme=0`
+  const nowPlayingText = nowPlayingTrack
+    ? nowPlayingArtists
+      ? `${nowPlayingArtists} — ${nowPlayingTrack.title}`
+      : nowPlayingTrack.title
     : null
 
   return (
@@ -318,74 +320,31 @@ function StreamPage() {
                 <p className="mt-6 text-3xl font-semibold">
                   Not live right now
                 </p>
-
-                <div className="mt-8 w-full rounded-2xl border border-white/10 bg-neutral-900/60 p-6 shadow-[0_0_40px_rgba(0,0,0,0.45)]">
-                  <p className="text-xs uppercase tracking-[0.3em] text-neutral-400">
-                    {nowPlaying?.isPlaying ? "Currently playing" : "Spotify"}
-                  </p>
-
+                <div className="mt-6 text-lg text-neutral-300">
                   {nowPlayingLoading ? (
-                    <p className="mt-4 text-neutral-400">Checking Spotify...</p>
+                    <span>Checking Spotify...</span>
                   ) : nowPlaying?.isPlaying && nowPlayingTrack ? (
-                    <div className="mt-4 flex flex-col gap-4">
-                      <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:text-left">
-                        {nowPlayingTrack.imageUrl ? (
-                          <img
-                            src={nowPlayingTrack.imageUrl}
-                            alt="Spotify cover art"
-                            className="h-20 w-20 rounded-lg object-cover"
-                          />
-                        ) : (
-                          <div className="h-20 w-20 rounded-lg bg-neutral-800" />
-                        )}
-                        <div>
-                          <p className="text-2xl font-semibold">
-                            {nowPlayingTrack.title}
-                          </p>
-                          {nowPlayingArtists ? (
-                            <p className="text-neutral-400">
-                              {nowPlayingArtists}
-                            </p>
-                          ) : null}
-                          {nowPlayingTrack.album ? (
-                            <p className="text-sm text-neutral-500">
-                              {nowPlayingTrack.album}
-                            </p>
-                          ) : null}
-                        </div>
-                      </div>
-
-                      {nowPlayingEmbedUrl ? (
-                        <iframe
-                          src={nowPlayingEmbedUrl}
-                          title="Spotify player"
-                          width="100%"
-                          height="152"
-                          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                          loading="lazy"
-                          className="rounded-xl border border-white/10"
-                        />
-                      ) : null}
-
+                    <span>
+                      Currently playing{" "}
                       {nowPlayingTrack.url ? (
                         <a
                           href={nowPlayingTrack.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-sm uppercase tracking-[0.2em] text-neutral-300 hover:text-white transition-colors"
+                          className="text-white hover:text-neutral-300 transition-colors"
                         >
-                          Open in Spotify
+                          {nowPlayingText ?? "Spotify"}
                         </a>
-                      ) : null}
-                    </div>
+                      ) : (
+                        <span className="text-white">
+                          {nowPlayingText ?? "Spotify"}
+                        </span>
+                      )}
+                    </span>
                   ) : nowPlayingError ? (
-                    <p className="mt-4 text-neutral-400">
-                      Spotify status unavailable right now.
-                    </p>
+                    <span>Spotify status unavailable right now.</span>
                   ) : (
-                    <p className="mt-4 text-neutral-400">
-                      Not playing anything right now.
-                    </p>
+                    <span>Not playing anything right now.</span>
                   )}
                 </div>
 
