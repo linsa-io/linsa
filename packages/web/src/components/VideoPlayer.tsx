@@ -79,6 +79,39 @@ export function VideoPlayer({
     }
   }, [src, autoPlay])
 
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    const doc = document as Document & {
+      webkitFullscreenElement?: Element | null
+    }
+    const videoEl = video as HTMLVideoElement & {
+      webkitDisplayingFullscreen?: boolean
+    }
+
+    const updateFullscreenState = () => {
+      const isDocFullscreen = !!doc.fullscreenElement || !!doc.webkitFullscreenElement
+      const isVideoFullscreen = !!videoEl.webkitDisplayingFullscreen
+      setIsFullscreen(isDocFullscreen || isVideoFullscreen)
+    }
+
+    const onWebkitBegin = () => setIsFullscreen(true)
+    const onWebkitEnd = () => setIsFullscreen(false)
+
+    document.addEventListener("fullscreenchange", updateFullscreenState)
+    document.addEventListener("webkitfullscreenchange", updateFullscreenState)
+    video.addEventListener("webkitbeginfullscreen", onWebkitBegin as EventListener)
+    video.addEventListener("webkitendfullscreen", onWebkitEnd as EventListener)
+
+    return () => {
+      document.removeEventListener("fullscreenchange", updateFullscreenState)
+      document.removeEventListener("webkitfullscreenchange", updateFullscreenState)
+      video.removeEventListener("webkitbeginfullscreen", onWebkitBegin as EventListener)
+      video.removeEventListener("webkitendfullscreen", onWebkitEnd as EventListener)
+    }
+  }, [])
+
   const handlePlayPause = () => {
     const video = videoRef.current
     if (!video) return
@@ -119,11 +152,46 @@ export function VideoPlayer({
     const video = videoRef.current
     if (!video) return
 
-    if (document.fullscreenElement) {
-      await document.exitFullscreen()
+    const doc = document as Document & {
+      webkitFullscreenElement?: Element | null
+      webkitExitFullscreen?: () => void
+    }
+    const videoEl = video as HTMLVideoElement & {
+      webkitEnterFullscreen?: () => void
+      webkitExitFullscreen?: () => void
+      webkitRequestFullscreen?: () => Promise<void> | void
+      webkitDisplayingFullscreen?: boolean
+    }
+
+    const isDocFullscreen = !!doc.fullscreenElement || !!doc.webkitFullscreenElement
+    const isVideoFullscreen = !!videoEl.webkitDisplayingFullscreen
+
+    if (isDocFullscreen) {
+      if (document.exitFullscreen) {
+        await document.exitFullscreen()
+      } else if (doc.webkitExitFullscreen) {
+        doc.webkitExitFullscreen()
+      }
       setIsFullscreen(false)
-    } else {
+      return
+    }
+
+    if (isVideoFullscreen) {
+      if (videoEl.webkitExitFullscreen) {
+        videoEl.webkitExitFullscreen()
+      }
+      setIsFullscreen(false)
+      return
+    }
+
+    if (video.requestFullscreen) {
       await video.requestFullscreen()
+      setIsFullscreen(true)
+    } else if (videoEl.webkitRequestFullscreen) {
+      await videoEl.webkitRequestFullscreen()
+      setIsFullscreen(true)
+    } else if (videoEl.webkitEnterFullscreen) {
+      videoEl.webkitEnterFullscreen()
       setIsFullscreen(true)
     }
   }
