@@ -19,9 +19,18 @@ export function VideoPlayer({
   const [isMuted, setIsMuted] = useState(muted)
   const [volume, setVolume] = useState(1)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isSoftFullscreen, setIsSoftFullscreen] = useState(false)
   const [showControls, setShowControls] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const hideControlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const softFullscreenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const clearSoftFullscreenTimeout = () => {
+    if (softFullscreenTimeoutRef.current) {
+      clearTimeout(softFullscreenTimeoutRef.current)
+      softFullscreenTimeoutRef.current = null
+    }
+  }
 
   useEffect(() => {
     const video = videoRef.current
@@ -81,6 +90,21 @@ export function VideoPlayer({
   }, [src, autoPlay])
 
   useEffect(() => {
+    return () => {
+      clearSoftFullscreenTimeout()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isSoftFullscreen || typeof document === "undefined") return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [isSoftFullscreen])
+
+  useEffect(() => {
     const video = videoRef.current
     if (!video) return
 
@@ -94,11 +118,25 @@ export function VideoPlayer({
     const updateFullscreenState = () => {
       const isDocFullscreen = !!doc.fullscreenElement || !!doc.webkitFullscreenElement
       const isVideoFullscreen = !!videoEl.webkitDisplayingFullscreen
-      setIsFullscreen(isDocFullscreen || isVideoFullscreen)
+      const isNowFullscreen = isDocFullscreen || isVideoFullscreen
+      setIsFullscreen(isNowFullscreen)
+      if (isNowFullscreen) {
+        clearSoftFullscreenTimeout()
+        setIsSoftFullscreen(false)
+      }
     }
 
-    const onWebkitBegin = () => setIsFullscreen(true)
-    const onWebkitEnd = () => setIsFullscreen(false)
+    const onWebkitBegin = () => {
+      clearSoftFullscreenTimeout()
+      video.controls = true
+      setIsFullscreen(true)
+      setIsSoftFullscreen(false)
+    }
+    const onWebkitEnd = () => {
+      video.controls = false
+      setIsFullscreen(false)
+      setIsSoftFullscreen(false)
+    }
 
     document.addEventListener("fullscreenchange", updateFullscreenState)
     document.addEventListener("webkitfullscreenchange", updateFullscreenState)
@@ -153,6 +191,7 @@ export function VideoPlayer({
     const video = videoRef.current
     const container = containerRef.current
     if (!video || !container) return
+    clearSoftFullscreenTimeout()
 
     const doc = document as Document & {
       webkitFullscreenElement?: Element | null
@@ -193,11 +232,33 @@ export function VideoPlayer({
       return
     }
 
+    if (isSoftFullscreen) {
+      setIsSoftFullscreen(false)
+      return
+    }
+
+    const scheduleSoftFullscreenFallback = () => {
+      softFullscreenTimeoutRef.current = setTimeout(() => {
+        const isDocFullscreenNow = !!doc.fullscreenElement || !!doc.webkitFullscreenElement
+        const isVideoFullscreenNow = !!videoEl.webkitDisplayingFullscreen
+        if (!isDocFullscreenNow && !isVideoFullscreenNow) {
+          video.controls = false
+          setIsSoftFullscreen(true)
+        }
+      }, 400)
+    }
+
     if (isAppleMobile && videoEl.webkitEnterFullscreen) {
       try {
+        video.controls = true
+        if (video.paused) {
+          video.play().then(() => setIsPlaying(true)).catch(() => {})
+        }
         videoEl.webkitEnterFullscreen()
+        scheduleSoftFullscreenFallback()
         return
       } catch {
+        video.controls = false
         // Fall back to other fullscreen methods.
       }
     }
@@ -220,6 +281,8 @@ export function VideoPlayer({
           setIsFullscreen(true)
           return
         }
+        setIsSoftFullscreen(true)
+        return
       }
     } catch {
       // Fall through to video fullscreen methods.
@@ -235,9 +298,12 @@ export function VideoPlayer({
       } else if (videoEl.webkitEnterFullscreen) {
         videoEl.webkitEnterFullscreen()
         setIsFullscreen(true)
+        scheduleSoftFullscreenFallback()
+      } else {
+        setIsSoftFullscreen(true)
       }
     } catch {
-      // Ignore fullscreen errors to avoid breaking playback.
+      setIsSoftFullscreen(true)
     }
   }
 
@@ -251,6 +317,8 @@ export function VideoPlayer({
     }, 3000)
   }
 
+  const isFullscreenActive = isFullscreen || isSoftFullscreen
+
   if (error) {
     return (
       <div className="flex h-full w-full items-center justify-center bg-neutral-900 text-neutral-400">
@@ -262,7 +330,9 @@ export function VideoPlayer({
   return (
     <div
       ref={containerRef}
-      className="group relative h-full w-full bg-black"
+      className={`group bg-black ${
+        isSoftFullscreen ? "fixed inset-0 z-50 h-screen w-screen" : "relative h-full w-full"
+      }`}
       onMouseMove={handleMouseMove}
       onMouseLeave={() => isPlaying && setShowControls(false)}
     >
@@ -344,7 +414,7 @@ export function VideoPlayer({
             onClick={handleFullscreen}
             className="text-white transition-transform hover:scale-110"
           >
-            {isFullscreen ? (
+            {isFullscreenActive ? (
               <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z" />
               </svg>

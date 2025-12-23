@@ -120,11 +120,7 @@ function StreamPage() {
   const stream = data?.stream ?? null
   const playback = stream?.playback ?? null
   const fallbackPlayback = stream?.hls_url
-    ? resolveStreamPlayback({
-        hlsUrl: stream.hls_url,
-        webrtcUrl: null,
-        preferWebRtc: false,
-      })
+    ? { type: "hls", url: stream.hls_url }
     : null
   const activePlayback =
     playback?.type === "webrtc" && webRtcFailed
