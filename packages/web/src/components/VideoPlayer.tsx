@@ -170,6 +170,10 @@ export function VideoPlayer({
 
     const isDocFullscreen = !!doc.fullscreenElement || !!doc.webkitFullscreenElement
     const isVideoFullscreen = !!videoEl.webkitDisplayingFullscreen
+    const isAppleMobile =
+      typeof navigator !== "undefined" &&
+      (/iP(ad|hone|od)/.test(navigator.userAgent) ||
+        (navigator.userAgent.includes("Mac") && navigator.maxTouchPoints > 1))
 
     if (isDocFullscreen) {
       if (document.exitFullscreen) {
@@ -189,6 +193,15 @@ export function VideoPlayer({
       return
     }
 
+    if (isAppleMobile && videoEl.webkitEnterFullscreen) {
+      try {
+        videoEl.webkitEnterFullscreen()
+        return
+      } catch {
+        // Fall back to other fullscreen methods.
+      }
+    }
+
     const requestContainerFullscreen = async () => {
       if (containerEl.requestFullscreen) {
         await containerEl.requestFullscreen()
@@ -203,8 +216,10 @@ export function VideoPlayer({
 
     try {
       if (await requestContainerFullscreen()) {
-        setIsFullscreen(true)
-        return
+        if (!!doc.fullscreenElement || !!doc.webkitFullscreenElement) {
+          setIsFullscreen(true)
+          return
+        }
       }
     } catch {
       // Fall through to video fullscreen methods.

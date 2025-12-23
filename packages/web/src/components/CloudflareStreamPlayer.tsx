@@ -42,6 +42,9 @@ export function CloudflareStreamPlayer({
       if (!iframe.hasAttribute("allowfullscreen")) {
         iframe.setAttribute("allowfullscreen", "")
       }
+      if (!iframe.hasAttribute("webkitallowfullscreen")) {
+        iframe.setAttribute("webkitallowfullscreen", "")
+      }
       return true
     }
 
