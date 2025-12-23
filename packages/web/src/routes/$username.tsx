@@ -50,6 +50,7 @@ function StreamPage() {
   const [error, setError] = useState<string | null>(null)
   const [streamReady, setStreamReady] = useState(false)
   const [webRtcFailed, setWebRtcFailed] = useState(false)
+  const [hlsLive, setHlsLive] = useState<boolean | null>(null)
   const [nowPlaying, setNowPlaying] = useState<SpotifyNowPlayingResponse | null>(
     null,
   )
@@ -127,6 +128,15 @@ function StreamPage() {
       ? fallbackPlayback ?? playback
       : playback
 
+  const isHlsPlaylistLive = (manifest: string) => {
+    const upper = manifest.toUpperCase()
+    const hasEndlist = upper.includes("#EXT-X-ENDLIST")
+    const isVod = upper.includes("#EXT-X-PLAYLIST-TYPE:VOD")
+    const hasSegments =
+      upper.includes("#EXTINF") || upper.includes("#EXT-X-PART")
+    return !hasEndlist && !isVod && hasSegments
+  }
+
   useEffect(() => {
     let isActive = true
     if (!activePlayback || activePlayback.type !== "hls") {
@@ -136,15 +146,26 @@ function StreamPage() {
     }
 
     setStreamReady(false)
+    setHlsLive(null)
     fetch(activePlayback.url)
-      .then((res) => {
+      .then(async (res) => {
         if (isActive) {
-          setStreamReady(res.ok)
+          if (!res.ok) {
+            setStreamReady(false)
+            setHlsLive(false)
+            return
+          }
+          const manifest = await res.text()
+          if (!isActive) return
+          const live = isHlsPlaylistLive(manifest)
+          setStreamReady(live)
+          setHlsLive(live)
         }
       })
       .catch(() => {
         if (isActive) {
           setStreamReady(false)
+          setHlsLive(false)
         }
       })
 
@@ -156,7 +177,41 @@ function StreamPage() {
     activePlayback?.type === "hls" ? activePlayback.url : null,
   ])
 
-  const shouldFetchSpotify = username === "nikiv" && !stream?.is_live
+  useEffect(() => {
+    let isActive = true
+    if (!stream?.hls_url || activePlayback?.type === "hls") {
+      return () => {
+        isActive = false
+      }
+    }
+
+    setHlsLive(null)
+    fetch(stream.hls_url)
+      .then(async (res) => {
+        if (!isActive) return
+        if (!res.ok) {
+          setHlsLive(false)
+          return
+        }
+        const manifest = await res.text()
+        if (!isActive) return
+        setHlsLive(isHlsPlaylistLive(manifest))
+      })
+      .catch(() => {
+        if (isActive) {
+          setHlsLive(false)
+        }
+      })
+
+    return () => {
+      isActive = false
+    }
+  }, [activePlayback?.type, stream?.hls_url])
+
+  const isActuallyLive =
+    Boolean(stream?.is_live) &&
+    (activePlayback?.type !== "hls" || hlsLive !== false)
+  const shouldFetchSpotify = username === "nikiv" && !isActuallyLive
 
   useEffect(() => {
     if (!shouldFetchSpotify) {
@@ -251,7 +306,7 @@ function StreamPage() {
           <ViewerCount username={username} />
         </div>
 
-        {stream?.is_live && activePlayback && showPlayer ? (
+        {isActuallyLive && activePlayback && showPlayer ? (
           activePlayback.type === "webrtc" ? (
             <div className="relative h-full w-full">
               <WebRTCPlayer
@@ -296,7 +351,7 @@ function StreamPage() {
           ) : (
             <VideoPlayer src={activePlayback.url} muted={false} />
           )
-        ) : stream?.is_live && activePlayback ? (
+        ) : isActuallyLive && activePlayback ? (
           <div className="flex h-full w-full items-center justify-center text-white">
             <div className="text-center">
               <div className="animate-pulse text-4xl">🔴</div>
