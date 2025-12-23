@@ -22,7 +22,7 @@ if [ -z "$STREAM_KEY" ]; then
 fi
 
 exec ffmpeg -f avfoundation -capture_cursor 1 -framerate 60 -i "2:1" \
-  -c:v h264_videotoolbox -b:v 30000k -maxrate 45000k -bufsize 90000k \
+  -c:v h264_videotoolbox -b:v 50000k -maxrate 100000k -bufsize 200000k \
   -profile:v high -pix_fmt yuv420p \
   -g 120 -keyint_min 120 \
   -c:a aac -b:a 256k -ar 48000 -ac 2 \

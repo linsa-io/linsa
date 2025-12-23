@@ -2,7 +2,11 @@ import { createFileRoute } from "@tanstack/react-router"
 import { eq } from "drizzle-orm"
 import { getDb } from "@/db/connection"
 import { users, streams } from "@/db/schema"
-import { resolveStreamPlayback } from "@/lib/stream/playback"
+import {
+  resolveCloudflareStreamRef,
+  resolveStreamPlayback,
+  resolveWebRtcUrl,
+} from "@/lib/stream/playback"
 
 const resolveDatabaseUrl = (request: Request) => {
   try {
@@ -59,6 +63,12 @@ const serve = async ({
       where: eq(streams.user_id, user.id),
     })
 
+    const cloudflare = stream
+      ? resolveCloudflareStreamRef({ hlsUrl: stream.hls_url })
+      : null
+    const webRtcUrl = stream
+      ? resolveWebRtcUrl({ webrtcUrl: stream.webrtc_url, cloudflare })
+      : null
     const playback = stream
       ? resolveStreamPlayback({
           hlsUrl: stream.hls_url,
@@ -81,7 +91,7 @@ const serve = async ({
             is_live: stream.is_live,
             viewer_count: stream.viewer_count,
             hls_url: stream.hls_url,
-            webrtc_url: stream.webrtc_url,
+            webrtc_url: webRtcUrl,
             playback,
             thumbnail_url: stream.thumbnail_url,
             started_at: stream.started_at?.toISOString() ?? null,

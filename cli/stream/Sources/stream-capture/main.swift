@@ -388,13 +388,13 @@ class HardwareEncoder {
         let baseWidth = 2560
         let baseHeight = 1440
         let baseFrameRate = 60
-        let baseBitrate = 30_000_000
+        let baseBitrate = 50_000_000
 
         let pixels = max(1, width) * max(1, height)
         let basePixels = baseWidth * baseHeight
         let fpsScale = Double(max(frameRate, 1)) / Double(baseFrameRate)
         let raw = Double(baseBitrate) * (Double(pixels) / Double(basePixels)) * fpsScale
-        return min(max(Int(raw.rounded()), 12_000_000), 80_000_000)
+        return min(max(Int(raw.rounded()), 12_000_000), 120_000_000)
     }
 
     deinit {

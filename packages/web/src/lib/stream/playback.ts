@@ -13,6 +13,7 @@ type PlaybackInput = {
   webrtcUrl?: string | null
   cloudflareUid?: string | null
   cloudflareCustomerCode?: string | null
+  preferWebRtc?: boolean
 }
 
 export function resolveStreamPlayback({
@@ -20,30 +21,35 @@ export function resolveStreamPlayback({
   webrtcUrl,
   cloudflareUid,
   cloudflareCustomerCode,
+  preferWebRtc = true,
 }: PlaybackInput): StreamPlayback | null {
-  if (webrtcUrl) {
-    return { type: "webrtc", url: webrtcUrl }
+  const cloudflare = resolveCloudflareStreamRef({
+    hlsUrl,
+    cloudflareUid,
+    cloudflareCustomerCode,
+  })
+
+  const resolvedWebRtcUrl = preferWebRtc
+    ? resolveWebRtcUrl({
+        webrtcUrl,
+        cloudflare,
+      })
+    : null
+
+  if (resolvedWebRtcUrl) {
+    return { type: "webrtc", url: resolvedWebRtcUrl }
   }
 
-  if (cloudflareUid) {
-    return {
-      type: "cloudflare",
-      uid: cloudflareUid,
-      customerCode: cloudflareCustomerCode ?? undefined,
-    }
-  }
-
-  if (!hlsUrl) {
-    return null
-  }
-
-  const cloudflare = parseCloudflareStreamUrl(hlsUrl)
   if (cloudflare) {
     return {
       type: "cloudflare",
       uid: cloudflare.uid,
       customerCode: cloudflare.customerCode,
     }
+  }
+
+  if (!hlsUrl) {
+    return null
   }
 
   return { type: "hls", url: hlsUrl }
@@ -81,4 +87,56 @@ export function parseCloudflareStreamUrl(url: string): CloudflareStreamRef | nul
   const customerCode = customerMatch?.[1]
 
   return { uid, customerCode }
+}
+
+type CloudflareResolveInput = {
+  hlsUrl?: string | null
+  cloudflareUid?: string | null
+  cloudflareCustomerCode?: string | null
+}
+
+export function resolveCloudflareStreamRef({
+  hlsUrl,
+  cloudflareUid,
+  cloudflareCustomerCode,
+}: CloudflareResolveInput): CloudflareStreamRef | null {
+  if (cloudflareUid) {
+    return {
+      uid: cloudflareUid,
+      customerCode: cloudflareCustomerCode ?? undefined,
+    }
+  }
+
+  if (!hlsUrl) {
+    return null
+  }
+
+  return parseCloudflareStreamUrl(hlsUrl)
+}
+
+export function buildCloudflareWhepUrl(ref: CloudflareStreamRef): string {
+  if (ref.customerCode) {
+    return `https://customer-${ref.customerCode}.cloudflarestream.com/${ref.uid}/whep`
+  }
+  return `https://videodelivery.net/${ref.uid}/whep`
+}
+
+type WebRtcResolveInput = {
+  webrtcUrl?: string | null
+  cloudflare: CloudflareStreamRef | null
+}
+
+export function resolveWebRtcUrl({
+  webrtcUrl,
+  cloudflare,
+}: WebRtcResolveInput): string | null {
+  if (webrtcUrl) {
+    return webrtcUrl
+  }
+
+  if (!cloudflare) {
+    return null
+  }
+
+  return buildCloudflareWhepUrl(cloudflare)
 }

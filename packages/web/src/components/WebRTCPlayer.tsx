@@ -209,6 +209,7 @@ export function WebRTCPlayer({
           method: "POST",
           headers: {
             "content-type": "application/sdp",
+            accept: "application/sdp",
           },
           body: localSdp,
           signal: abortController.signal,

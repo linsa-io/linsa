@@ -3,7 +3,11 @@ import { eq } from "drizzle-orm"
 import { getDb } from "@/db/connection"
 import { streams } from "@/db/schema"
 import { getAuth } from "@/lib/auth"
-import { resolveStreamPlayback } from "@/lib/stream/playback"
+import {
+  resolveCloudflareStreamRef,
+  resolveStreamPlayback,
+  resolveWebRtcUrl,
+} from "@/lib/stream/playback"
 
 const resolveDatabaseUrl = (request: Request) => {
   try {
@@ -43,15 +47,23 @@ const getStream = async ({ request }: { request: Request }) => {
       })
     }
 
+    const cloudflare = resolveCloudflareStreamRef({ hlsUrl: stream.hls_url })
+    const webRtcUrl = resolveWebRtcUrl({
+      webrtcUrl: stream.webrtc_url,
+      cloudflare,
+    })
     const playback = resolveStreamPlayback({
       hlsUrl: stream.hls_url,
       webrtcUrl: stream.webrtc_url,
     })
 
-    return new Response(JSON.stringify({ ...stream, playback }), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    })
+    return new Response(
+      JSON.stringify({ ...stream, webrtc_url: webRtcUrl, playback }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }
+    )
   } catch (error) {
     console.error("Stream GET error:", error)
     return new Response(JSON.stringify({ error: "Internal server error" }), {

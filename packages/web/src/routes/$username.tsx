@@ -111,7 +111,11 @@ function StreamPage() {
   const stream = data?.stream ?? null
   const playback = stream?.playback ?? null
   const fallbackPlayback = stream?.hls_url
-    ? resolveStreamPlayback({ hlsUrl: stream.hls_url, webrtcUrl: null })
+    ? resolveStreamPlayback({
+        hlsUrl: stream.hls_url,
+        webrtcUrl: null,
+        preferWebRtc: false,
+      })
     : null
   const activePlayback =
     playback?.type === "webrtc" && webRtcFailed
@@ -179,7 +183,6 @@ function StreamPage() {
     )
   }
 
-  const { user } = data
   const showPlayer =
     activePlayback?.type === "cloudflare" ||
     activePlayback?.type === "webrtc" ||
