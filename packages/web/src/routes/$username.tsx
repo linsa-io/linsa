@@ -7,6 +7,10 @@ import { WebRTCPlayer } from "@/components/WebRTCPlayer"
 import { resolveStreamPlayback } from "@/lib/stream/playback"
 import { JazzProvider } from "@/lib/jazz/provider"
 import { ViewerCount } from "@/components/ViewerCount"
+import {
+  getSpotifyNowPlaying,
+  type SpotifyNowPlayingResponse,
+} from "@/lib/spotify/now-playing"
 
 export const Route = createFileRoute("/$username")({
   ssr: false,
@@ -46,6 +50,11 @@ function StreamPage() {
   const [error, setError] = useState<string | null>(null)
   const [streamReady, setStreamReady] = useState(false)
   const [webRtcFailed, setWebRtcFailed] = useState(false)
+  const [nowPlaying, setNowPlaying] = useState<SpotifyNowPlayingResponse | null>(
+    null,
+  )
+  const [nowPlayingLoading, setNowPlayingLoading] = useState(false)
+  const [nowPlayingError, setNowPlayingError] = useState(false)
 
   useEffect(() => {
     let isActive = true
@@ -151,6 +160,47 @@ function StreamPage() {
     activePlayback?.type === "hls" ? activePlayback.url : null,
   ])
 
+  const shouldFetchSpotify = username === "nikiv" && !stream?.is_live
+
+  useEffect(() => {
+    if (!shouldFetchSpotify) {
+      setNowPlaying(null)
+      setNowPlayingLoading(false)
+      setNowPlayingError(false)
+      return
+    }
+
+    let isActive = true
+
+    const fetchNowPlaying = async (showLoading: boolean) => {
+      if (showLoading) {
+        setNowPlayingLoading(true)
+      }
+      try {
+        const response = await getSpotifyNowPlaying()
+        if (!isActive) return
+        setNowPlaying(response)
+        setNowPlayingError(false)
+      } catch (err) {
+        if (!isActive) return
+        console.error("Failed to load Spotify now playing", err)
+        setNowPlayingError(true)
+      } finally {
+        if (isActive && showLoading) {
+          setNowPlayingLoading(false)
+        }
+      }
+    }
+
+    fetchNowPlaying(true)
+    const interval = setInterval(() => fetchNowPlaying(false), 30000)
+
+    return () => {
+      isActive = false
+      clearInterval(interval)
+    }
+  }, [shouldFetchSpotify])
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-black text-white">
@@ -187,6 +237,13 @@ function StreamPage() {
     activePlayback?.type === "cloudflare" ||
     activePlayback?.type === "webrtc" ||
     (activePlayback?.type === "hls" && streamReady)
+  const nowPlayingTrack = nowPlaying?.track ?? null
+  const nowPlayingArtists = nowPlayingTrack?.artists.length
+    ? nowPlayingTrack.artists.join(", ")
+    : null
+  const nowPlayingEmbedUrl = nowPlayingTrack?.id
+    ? `https://open.spotify.com/embed/${nowPlayingTrack.type}/${nowPlayingTrack.id}?utm_source=linsa&theme=0`
+    : null
 
   return (
     <JazzProvider>
@@ -252,19 +309,110 @@ function StreamPage() {
           </div>
         ) : (
           <div className="flex h-full w-full items-center justify-center text-white">
-            <div className="text-center">
-              <p className="text-2xl font-medium text-neutral-400 mb-6">
-                stream soon
-              </p>
-              <a
-                href={username === "nikiv" ? "https://nikiv.dev" : "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-4xl font-medium text-white hover:text-neutral-300 transition-colors"
-              >
-                {username === "nikiv" ? "nikiv.dev" : `@${username}`}
-              </a>
-            </div>
+            {shouldFetchSpotify ? (
+              <div className="mx-auto flex w-full max-w-2xl flex-col items-center px-6 text-center">
+                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.35em] text-neutral-400">
+                  <span className="h-2 w-2 rounded-full bg-neutral-500" />
+                  Offline
+                </div>
+                <p className="mt-6 text-3xl font-semibold">
+                  Not live right now
+                </p>
+
+                <div className="mt-8 w-full rounded-2xl border border-white/10 bg-neutral-900/60 p-6 shadow-[0_0_40px_rgba(0,0,0,0.45)]">
+                  <p className="text-xs uppercase tracking-[0.3em] text-neutral-400">
+                    {nowPlaying?.isPlaying ? "Currently playing" : "Spotify"}
+                  </p>
+
+                  {nowPlayingLoading ? (
+                    <p className="mt-4 text-neutral-400">Checking Spotify...</p>
+                  ) : nowPlaying?.isPlaying && nowPlayingTrack ? (
+                    <div className="mt-4 flex flex-col gap-4">
+                      <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:text-left">
+                        {nowPlayingTrack.imageUrl ? (
+                          <img
+                            src={nowPlayingTrack.imageUrl}
+                            alt="Spotify cover art"
+                            className="h-20 w-20 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <div className="h-20 w-20 rounded-lg bg-neutral-800" />
+                        )}
+                        <div>
+                          <p className="text-2xl font-semibold">
+                            {nowPlayingTrack.title}
+                          </p>
+                          {nowPlayingArtists ? (
+                            <p className="text-neutral-400">
+                              {nowPlayingArtists}
+                            </p>
+                          ) : null}
+                          {nowPlayingTrack.album ? (
+                            <p className="text-sm text-neutral-500">
+                              {nowPlayingTrack.album}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      {nowPlayingEmbedUrl ? (
+                        <iframe
+                          src={nowPlayingEmbedUrl}
+                          title="Spotify player"
+                          width="100%"
+                          height="152"
+                          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                          loading="lazy"
+                          className="rounded-xl border border-white/10"
+                        />
+                      ) : null}
+
+                      {nowPlayingTrack.url ? (
+                        <a
+                          href={nowPlayingTrack.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm uppercase tracking-[0.2em] text-neutral-300 hover:text-white transition-colors"
+                        >
+                          Open in Spotify
+                        </a>
+                      ) : null}
+                    </div>
+                  ) : nowPlayingError ? (
+                    <p className="mt-4 text-neutral-400">
+                      Spotify status unavailable right now.
+                    </p>
+                  ) : (
+                    <p className="mt-4 text-neutral-400">
+                      Not playing anything right now.
+                    </p>
+                  )}
+                </div>
+
+                <a
+                  href="https://nikiv.dev"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-8 text-3xl font-medium text-white hover:text-neutral-300 transition-colors"
+                >
+                  nikiv.dev
+                </a>
+              </div>
+            ) : (
+              <div className="text-center">
+                <p className="text-2xl font-medium text-neutral-400 mb-6">
+                  stream soon
+                </p>
+                <a
+                  href={username === "nikiv" ? "https://nikiv.dev" : "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-4xl font-medium text-white hover:text-neutral-300 transition-colors"
+                >
+                  {username === "nikiv" ? "nikiv.dev" : `@${username}`}
+                </a>
+              </div>
+            )}
           </div>
         )}
       </div>

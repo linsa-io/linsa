@@ -12,6 +12,7 @@ export function VideoPlayer({
   autoPlay = true,
   muted = false,
 }: VideoPlayerProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const hlsRef = useRef<Hls | null>(null)
   const [isPlaying, setIsPlaying] = useState(autoPlay)
@@ -150,7 +151,8 @@ export function VideoPlayer({
 
   const handleFullscreen = async () => {
     const video = videoRef.current
-    if (!video) return
+    const container = containerRef.current
+    if (!video || !container) return
 
     const doc = document as Document & {
       webkitFullscreenElement?: Element | null
@@ -161,6 +163,9 @@ export function VideoPlayer({
       webkitExitFullscreen?: () => void
       webkitRequestFullscreen?: () => Promise<void> | void
       webkitDisplayingFullscreen?: boolean
+    }
+    const containerEl = container as HTMLElement & {
+      webkitRequestFullscreen?: () => Promise<void> | void
     }
 
     const isDocFullscreen = !!doc.fullscreenElement || !!doc.webkitFullscreenElement
@@ -184,15 +189,40 @@ export function VideoPlayer({
       return
     }
 
-    if (video.requestFullscreen) {
-      await video.requestFullscreen()
-      setIsFullscreen(true)
-    } else if (videoEl.webkitRequestFullscreen) {
-      await videoEl.webkitRequestFullscreen()
-      setIsFullscreen(true)
-    } else if (videoEl.webkitEnterFullscreen) {
-      videoEl.webkitEnterFullscreen()
-      setIsFullscreen(true)
+    const requestContainerFullscreen = async () => {
+      if (containerEl.requestFullscreen) {
+        await containerEl.requestFullscreen()
+        return true
+      }
+      if (containerEl.webkitRequestFullscreen) {
+        await containerEl.webkitRequestFullscreen()
+        return true
+      }
+      return false
+    }
+
+    try {
+      if (await requestContainerFullscreen()) {
+        setIsFullscreen(true)
+        return
+      }
+    } catch {
+      // Fall through to video fullscreen methods.
+    }
+
+    try {
+      if (video.requestFullscreen) {
+        await video.requestFullscreen()
+        setIsFullscreen(true)
+      } else if (videoEl.webkitRequestFullscreen) {
+        await videoEl.webkitRequestFullscreen()
+        setIsFullscreen(true)
+      } else if (videoEl.webkitEnterFullscreen) {
+        videoEl.webkitEnterFullscreen()
+        setIsFullscreen(true)
+      }
+    } catch {
+      // Ignore fullscreen errors to avoid breaking playback.
     }
   }
 
@@ -216,6 +246,7 @@ export function VideoPlayer({
 
   return (
     <div
+      ref={containerRef}
       className="group relative h-full w-full bg-black"
       onMouseMove={handleMouseMove}
       onMouseLeave={() => isPlaying && setShowControls(false)}

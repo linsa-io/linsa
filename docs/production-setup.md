@@ -38,6 +38,7 @@ wrangler secret put ELECTRIC_URL        # e.g., https://your-electric-host/v1/sh
 wrangler secret put ELECTRIC_SOURCE_ID      # only if Electric Cloud auth is on
 wrangler secret put ELECTRIC_SOURCE_SECRET  # only if Electric Cloud auth is on
 wrangler secret put OPENROUTER_API_KEY      # optional, for real AI replies
+wrangler secret put JAZZ_SPOTIFY_STATE_ID   # optional, for Spotify now playing
 ```
 - Set non-secret vars:
 ```bash
@@ -79,6 +80,7 @@ f deploy
 | `APP_BASE_URL` | Yes | Production origin for cookies/CORS (e.g., https://app.example.com) |
 | `OPENROUTER_API_KEY` | No | Enables real AI responses |
 | `OPENROUTER_MODEL` | No | AI model id (default: `anthropic/claude-sonnet-4`) |
+| `JAZZ_SPOTIFY_STATE_ID` | No | Jazz Spotify state id (from `x/server`) for now playing proxy |
 
 ## Troubleshooting
 - Auth: `APP_BASE_URL` must match your deployed origin; rotate `BETTER_AUTH_SECRET` only when you intend to invalidate sessions.
