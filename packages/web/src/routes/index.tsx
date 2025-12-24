@@ -25,14 +25,25 @@ function LandingPage() {
         <p className="mt-4 text-xl text-white/80 drop-shadow-lg">
           Save anything privately. Share it.
         </p>
-        <a
-          href="https://x.com/linsa_io"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-6 text-sm text-white/60 transition-colors hover:text-white"
-        >
-          @linsa_io
-        </a>
+        <div className="mt-6 flex items-center gap-4">
+          <a
+            href="https://x.com/linsa_io"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-white/60 transition-colors hover:text-white"
+          >
+            @linsa_io
+          </a>
+          <span className="text-white/30">·</span>
+          <a
+            href="https://github.com/linsa-io/linsa"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-white/60 transition-colors hover:text-white"
+          >
+            Open Source
+          </a>
+        </div>
       </div>
 
       {/* Gallery Section */}
