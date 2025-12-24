@@ -11,6 +11,7 @@ import {
   getSpotifyNowPlaying,
   type SpotifyNowPlayingResponse,
 } from "@/lib/spotify/now-playing"
+import { getStreamStatus } from "@/lib/stream/status"
 
 export const Route = createFileRoute("/$username")({
   ssr: false,
@@ -56,6 +57,7 @@ function StreamPage() {
   )
   const [nowPlayingLoading, setNowPlayingLoading] = useState(false)
   const [nowPlayingError, setNowPlayingError] = useState(false)
+  const [streamLive, setStreamLive] = useState(false)
 
   useEffect(() => {
     let isActive = true
@@ -115,6 +117,33 @@ function StreamPage() {
 
     return () => {
       isActive = false
+    }
+  }, [username])
+
+  // Poll stream status for nikiv from nikiv.dev/api/stream-status
+  useEffect(() => {
+    if (username !== "nikiv") {
+      return
+    }
+
+    let isActive = true
+
+    const fetchStatus = async () => {
+      const status = await getStreamStatus()
+      if (isActive) {
+        setStreamLive(status.isLive)
+      }
+    }
+
+    // Fetch immediately
+    fetchStatus()
+
+    // Poll every 10 seconds
+    const interval = setInterval(fetchStatus, 10000)
+
+    return () => {
+      isActive = false
+      clearInterval(interval)
     }
   }, [username])
 
@@ -208,9 +237,11 @@ function StreamPage() {
     }
   }, [activePlayback?.type, stream?.hls_url])
 
+  // For nikiv, use streamLive from the polled API status
+  // For other users, use stream?.is_live from the database
+  const isLiveStatus = username === "nikiv" ? streamLive : Boolean(stream?.is_live)
   const isActuallyLive =
-    Boolean(stream?.is_live) &&
-    (activePlayback?.type !== "hls" || hlsLive !== false)
+    isLiveStatus && (activePlayback?.type !== "hls" || hlsLive !== false)
   const shouldFetchSpotify = username === "nikiv" && !isActuallyLive
 
   useEffect(() => {

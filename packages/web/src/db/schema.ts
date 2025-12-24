@@ -265,6 +265,39 @@ export const selectStreamsSchema = createSelectSchema(streams)
 export type Stream = z.infer<typeof selectStreamsSchema>
 
 // =============================================================================
+// Stream Replays (saved live streams, stored in Jazz)
+// =============================================================================
+
+export const stream_replays = pgTable("stream_replays", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  stream_id: uuid("stream_id")
+    .notNull()
+    .references(() => streams.id, { onDelete: "cascade" }),
+  user_id: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull().default("Stream Replay"),
+  description: text("description"),
+  status: varchar("status", { length: 32 }).notNull().default("processing"),
+  jazz_replay_id: text("jazz_replay_id"),
+  playback_url: text("playback_url"),
+  thumbnail_url: text("thumbnail_url"),
+  duration_seconds: integer("duration_seconds"),
+  started_at: timestamp("started_at", { withTimezone: true }),
+  ended_at: timestamp("ended_at", { withTimezone: true }),
+  is_public: boolean("is_public").notNull().default(false),
+  created_at: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updated_at: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+})
+
+export const selectStreamReplaySchema = createSelectSchema(stream_replays)
+export type StreamReplay = z.infer<typeof selectStreamReplaySchema>
+
+// =============================================================================
 // Stripe Billing
 // =============================================================================
 
