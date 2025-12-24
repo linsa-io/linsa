@@ -81,6 +81,50 @@ Returns a greeting message.
 }
 ```
 
+## Admin API (write access)
+
+These endpoints write directly to Postgres for pragmatic data ingestion.
+
+Authentication:
+- If `ADMIN_API_KEY` is set, include `Authorization: Bearer <ADMIN_API_KEY>`.
+- If `ADMIN_API_KEY` is not set, requests are allowed (useful for local dev).
+
+### Canvas
+
+- `POST /api/v1/admin/canvas`
+- `PATCH /api/v1/admin/canvas/:canvasId`
+- `POST /api/v1/admin/canvas/:canvasId/images`
+- `PATCH /api/v1/admin/canvas/images/:imageId`
+- `DELETE /api/v1/admin/canvas/images/:imageId`
+
+### Chat
+
+- `POST /api/v1/admin/chat/threads`
+- `PATCH /api/v1/admin/chat/threads/:threadId`
+- `POST /api/v1/admin/chat/messages`
+
+### Context Items
+
+- `POST /api/v1/admin/context-items`
+- `PATCH /api/v1/admin/context-items/:itemId`
+- `POST /api/v1/admin/context-items/:itemId/link`
+- `DELETE /api/v1/admin/context-items/:itemId`
+
+### Browser Sessions
+
+- `POST /api/v1/admin/browser-sessions`
+- `PATCH /api/v1/admin/browser-sessions/:sessionId`
+- `DELETE /api/v1/admin/browser-sessions/:sessionId`
+
+### Example (create chat thread)
+
+```bash
+curl -X POST "http://localhost:8787/api/v1/admin/chat/threads" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ADMIN_API_KEY" \
+  -d '{"title":"Research notes","userId":"user_123"}'
+```
+
 ## RPC Methods
 
 The `WorkerRpc` class provides the following methods for service bindings:
@@ -164,6 +208,11 @@ pnpm dev
 ```
 
 The worker will be available at http://localhost:8787
+
+### Database configuration
+
+Set `DATABASE_URL` locally or configure the `HYPERDRIVE` binding in `wrangler.jsonc`.
+In production, use `wrangler secret put ADMIN_API_KEY` to secure the admin endpoints.
 
 ### Run Tests
 

@@ -13,7 +13,11 @@
     "wrangler": "^4.53.0"
   },
   "dependencies": {
-    "hono": "^4.10.4"
+    "drizzle-orm": "^0.45.0",
+    "drizzle-zod": "^0.8.3",
+    "hono": "^4.10.4",
+    "postgres": "^3.4.7",
+    "zod": "^4.1.13"
   },
   "scripts": {
     "dev": "wrangler dev",

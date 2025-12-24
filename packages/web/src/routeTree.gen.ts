@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsersRouteImport } from './routes/users'
+import { Route as UrlsRouteImport } from './routes/urls'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SessionsRouteImport } from './routes/sessions'
 import { Route as MarketplaceRouteImport } from './routes/marketplace'
@@ -27,6 +28,7 @@ import { Route as CanvasCanvasIdRouteImport } from './routes/canvas.$canvasId'
 import { Route as ArchiveArchiveIdRouteImport } from './routes/archive.$archiveId'
 import { Route as ApiUsersRouteImport } from './routes/api/users'
 import { Route as ApiUsageEventsRouteImport } from './routes/api/usage-events'
+import { Route as ApiStreamReplaysRouteImport } from './routes/api/stream-replays'
 import { Route as ApiStreamRouteImport } from './routes/api/stream'
 import { Route as ApiProfileRouteImport } from './routes/api/profile'
 import { Route as ApiContextItemsRouteImport } from './routes/api/context-items'
@@ -43,6 +45,8 @@ import { Route as ApiUsageEventsCreateRouteImport } from './routes/api/usage-eve
 import { Route as ApiStripeWebhooksRouteImport } from './routes/api/stripe/webhooks'
 import { Route as ApiStripeCheckoutRouteImport } from './routes/api/stripe/checkout'
 import { Route as ApiStreamsUsernameRouteImport } from './routes/api/streams.$username'
+import { Route as ApiStreamReplaysReplayIdRouteImport } from './routes/api/stream-replays.$replayId'
+import { Route as ApiSpotifyNowPlayingRouteImport } from './routes/api/spotify.now-playing'
 import { Route as ApiFlowgladSplatRouteImport } from './routes/api/flowglad/$'
 import { Route as ApiChatMutationsRouteImport } from './routes/api/chat/mutations'
 import { Route as ApiChatGuestRouteImport } from './routes/api/chat/guest'
@@ -57,12 +61,18 @@ import { Route as DemoStartSsrSpaModeRouteImport } from './routes/demo/start.ssr
 import { Route as DemoStartSsrFullSsrRouteImport } from './routes/demo/start.ssr.full-ssr'
 import { Route as DemoStartSsrDataOnlyRouteImport } from './routes/demo/start.ssr.data-only'
 import { Route as ApiStreamsUsernameViewersRouteImport } from './routes/api/streams.$username.viewers'
+import { Route as ApiStreamsUsernameReplaysRouteImport } from './routes/api/streams.$username.replays'
 import { Route as ApiCanvasImagesImageIdRouteImport } from './routes/api/canvas.images.$imageId'
 import { Route as ApiCanvasImagesImageIdGenerateRouteImport } from './routes/api/canvas.images.$imageId.generate'
 
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
   path: '/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UrlsRoute = UrlsRouteImport.update({
+  id: '/urls',
+  path: '/urls',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -150,6 +160,11 @@ const ApiUsageEventsRoute = ApiUsageEventsRouteImport.update({
   path: '/api/usage-events',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStreamReplaysRoute = ApiStreamReplaysRouteImport.update({
+  id: '/api/stream-replays',
+  path: '/api/stream-replays',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiStreamRoute = ApiStreamRouteImport.update({
   id: '/api/stream',
   path: '/api/stream',
@@ -230,6 +245,17 @@ const ApiStreamsUsernameRoute = ApiStreamsUsernameRouteImport.update({
   path: '/api/streams/$username',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStreamReplaysReplayIdRoute =
+  ApiStreamReplaysReplayIdRouteImport.update({
+    id: '/$replayId',
+    path: '/$replayId',
+    getParentRoute: () => ApiStreamReplaysRoute,
+  } as any)
+const ApiSpotifyNowPlayingRoute = ApiSpotifyNowPlayingRouteImport.update({
+  id: '/api/spotify/now-playing',
+  path: '/api/spotify/now-playing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiFlowgladSplatRoute = ApiFlowgladSplatRouteImport.update({
   id: '/api/flowglad/$',
   path: '/api/flowglad/$',
@@ -302,6 +328,12 @@ const ApiStreamsUsernameViewersRoute =
     path: '/viewers',
     getParentRoute: () => ApiStreamsUsernameRoute,
   } as any)
+const ApiStreamsUsernameReplaysRoute =
+  ApiStreamsUsernameReplaysRouteImport.update({
+    id: '/replays',
+    path: '/replays',
+    getParentRoute: () => ApiStreamsUsernameRoute,
+  } as any)
 const ApiCanvasImagesImageIdRoute = ApiCanvasImagesImageIdRouteImport.update({
   id: '/$imageId',
   path: '/$imageId',
@@ -326,6 +358,7 @@ export interface FileRoutesByFullPath {
   '/marketplace': typeof MarketplaceRoute
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
+  '/urls': typeof UrlsRoute
   '/users': typeof UsersRoute
   '/api/archives': typeof ApiArchivesRouteWithChildren
   '/api/browser-sessions': typeof ApiBrowserSessionsRouteWithChildren
@@ -335,6 +368,7 @@ export interface FileRoutesByFullPath {
   '/api/context-items': typeof ApiContextItemsRoute
   '/api/profile': typeof ApiProfileRoute
   '/api/stream': typeof ApiStreamRoute
+  '/api/stream-replays': typeof ApiStreamReplaysRouteWithChildren
   '/api/usage-events': typeof ApiUsageEventsRouteWithChildren
   '/api/users': typeof ApiUsersRouteWithChildren
   '/archive/$archiveId': typeof ArchiveArchiveIdRoute
@@ -350,6 +384,8 @@ export interface FileRoutesByFullPath {
   '/api/chat/guest': typeof ApiChatGuestRoute
   '/api/chat/mutations': typeof ApiChatMutationsRoute
   '/api/flowglad/$': typeof ApiFlowgladSplatRoute
+  '/api/spotify/now-playing': typeof ApiSpotifyNowPlayingRoute
+  '/api/stream-replays/$replayId': typeof ApiStreamReplaysReplayIdRoute
   '/api/streams/$username': typeof ApiStreamsUsernameRouteWithChildren
   '/api/stripe/checkout': typeof ApiStripeCheckoutRoute
   '/api/stripe/webhooks': typeof ApiStripeWebhooksRoute
@@ -359,6 +395,7 @@ export interface FileRoutesByFullPath {
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
   '/api/canvas/images/$imageId': typeof ApiCanvasImagesImageIdRouteWithChildren
+  '/api/streams/$username/replays': typeof ApiStreamsUsernameReplaysRoute
   '/api/streams/$username/viewers': typeof ApiStreamsUsernameViewersRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
@@ -377,6 +414,7 @@ export interface FileRoutesByTo {
   '/marketplace': typeof MarketplaceRoute
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
+  '/urls': typeof UrlsRoute
   '/users': typeof UsersRoute
   '/api/archives': typeof ApiArchivesRouteWithChildren
   '/api/browser-sessions': typeof ApiBrowserSessionsRouteWithChildren
@@ -386,6 +424,7 @@ export interface FileRoutesByTo {
   '/api/context-items': typeof ApiContextItemsRoute
   '/api/profile': typeof ApiProfileRoute
   '/api/stream': typeof ApiStreamRoute
+  '/api/stream-replays': typeof ApiStreamReplaysRouteWithChildren
   '/api/usage-events': typeof ApiUsageEventsRouteWithChildren
   '/api/users': typeof ApiUsersRouteWithChildren
   '/archive/$archiveId': typeof ArchiveArchiveIdRoute
@@ -401,6 +440,8 @@ export interface FileRoutesByTo {
   '/api/chat/guest': typeof ApiChatGuestRoute
   '/api/chat/mutations': typeof ApiChatMutationsRoute
   '/api/flowglad/$': typeof ApiFlowgladSplatRoute
+  '/api/spotify/now-playing': typeof ApiSpotifyNowPlayingRoute
+  '/api/stream-replays/$replayId': typeof ApiStreamReplaysReplayIdRoute
   '/api/streams/$username': typeof ApiStreamsUsernameRouteWithChildren
   '/api/stripe/checkout': typeof ApiStripeCheckoutRoute
   '/api/stripe/webhooks': typeof ApiStripeWebhooksRoute
@@ -410,6 +451,7 @@ export interface FileRoutesByTo {
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
   '/api/canvas/images/$imageId': typeof ApiCanvasImagesImageIdRouteWithChildren
+  '/api/streams/$username/replays': typeof ApiStreamsUsernameReplaysRoute
   '/api/streams/$username/viewers': typeof ApiStreamsUsernameViewersRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
@@ -430,6 +472,7 @@ export interface FileRoutesById {
   '/marketplace': typeof MarketplaceRoute
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
+  '/urls': typeof UrlsRoute
   '/users': typeof UsersRoute
   '/api/archives': typeof ApiArchivesRouteWithChildren
   '/api/browser-sessions': typeof ApiBrowserSessionsRouteWithChildren
@@ -439,6 +482,7 @@ export interface FileRoutesById {
   '/api/context-items': typeof ApiContextItemsRoute
   '/api/profile': typeof ApiProfileRoute
   '/api/stream': typeof ApiStreamRoute
+  '/api/stream-replays': typeof ApiStreamReplaysRouteWithChildren
   '/api/usage-events': typeof ApiUsageEventsRouteWithChildren
   '/api/users': typeof ApiUsersRouteWithChildren
   '/archive/$archiveId': typeof ArchiveArchiveIdRoute
@@ -454,6 +498,8 @@ export interface FileRoutesById {
   '/api/chat/guest': typeof ApiChatGuestRoute
   '/api/chat/mutations': typeof ApiChatMutationsRoute
   '/api/flowglad/$': typeof ApiFlowgladSplatRoute
+  '/api/spotify/now-playing': typeof ApiSpotifyNowPlayingRoute
+  '/api/stream-replays/$replayId': typeof ApiStreamReplaysReplayIdRoute
   '/api/streams/$username': typeof ApiStreamsUsernameRouteWithChildren
   '/api/stripe/checkout': typeof ApiStripeCheckoutRoute
   '/api/stripe/webhooks': typeof ApiStripeWebhooksRoute
@@ -463,6 +509,7 @@ export interface FileRoutesById {
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
   '/api/canvas/images/$imageId': typeof ApiCanvasImagesImageIdRouteWithChildren
+  '/api/streams/$username/replays': typeof ApiStreamsUsernameReplaysRoute
   '/api/streams/$username/viewers': typeof ApiStreamsUsernameViewersRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
@@ -484,6 +531,7 @@ export interface FileRouteTypes {
     | '/marketplace'
     | '/sessions'
     | '/settings'
+    | '/urls'
     | '/users'
     | '/api/archives'
     | '/api/browser-sessions'
@@ -493,6 +541,7 @@ export interface FileRouteTypes {
     | '/api/context-items'
     | '/api/profile'
     | '/api/stream'
+    | '/api/stream-replays'
     | '/api/usage-events'
     | '/api/users'
     | '/archive/$archiveId'
@@ -508,6 +557,8 @@ export interface FileRouteTypes {
     | '/api/chat/guest'
     | '/api/chat/mutations'
     | '/api/flowglad/$'
+    | '/api/spotify/now-playing'
+    | '/api/stream-replays/$replayId'
     | '/api/streams/$username'
     | '/api/stripe/checkout'
     | '/api/stripe/webhooks'
@@ -517,6 +568,7 @@ export interface FileRouteTypes {
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
     | '/api/canvas/images/$imageId'
+    | '/api/streams/$username/replays'
     | '/api/streams/$username/viewers'
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
@@ -535,6 +587,7 @@ export interface FileRouteTypes {
     | '/marketplace'
     | '/sessions'
     | '/settings'
+    | '/urls'
     | '/users'
     | '/api/archives'
     | '/api/browser-sessions'
@@ -544,6 +597,7 @@ export interface FileRouteTypes {
     | '/api/context-items'
     | '/api/profile'
     | '/api/stream'
+    | '/api/stream-replays'
     | '/api/usage-events'
     | '/api/users'
     | '/archive/$archiveId'
@@ -559,6 +613,8 @@ export interface FileRouteTypes {
     | '/api/chat/guest'
     | '/api/chat/mutations'
     | '/api/flowglad/$'
+    | '/api/spotify/now-playing'
+    | '/api/stream-replays/$replayId'
     | '/api/streams/$username'
     | '/api/stripe/checkout'
     | '/api/stripe/webhooks'
@@ -568,6 +624,7 @@ export interface FileRouteTypes {
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
     | '/api/canvas/images/$imageId'
+    | '/api/streams/$username/replays'
     | '/api/streams/$username/viewers'
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
@@ -587,6 +644,7 @@ export interface FileRouteTypes {
     | '/marketplace'
     | '/sessions'
     | '/settings'
+    | '/urls'
     | '/users'
     | '/api/archives'
     | '/api/browser-sessions'
@@ -596,6 +654,7 @@ export interface FileRouteTypes {
     | '/api/context-items'
     | '/api/profile'
     | '/api/stream'
+    | '/api/stream-replays'
     | '/api/usage-events'
     | '/api/users'
     | '/archive/$archiveId'
@@ -611,6 +670,8 @@ export interface FileRouteTypes {
     | '/api/chat/guest'
     | '/api/chat/mutations'
     | '/api/flowglad/$'
+    | '/api/spotify/now-playing'
+    | '/api/stream-replays/$replayId'
     | '/api/streams/$username'
     | '/api/stripe/checkout'
     | '/api/stripe/webhooks'
@@ -620,6 +681,7 @@ export interface FileRouteTypes {
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
     | '/api/canvas/images/$imageId'
+    | '/api/streams/$username/replays'
     | '/api/streams/$username/viewers'
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
@@ -640,6 +702,7 @@ export interface RootRouteChildren {
   MarketplaceRoute: typeof MarketplaceRoute
   SessionsRoute: typeof SessionsRoute
   SettingsRoute: typeof SettingsRoute
+  UrlsRoute: typeof UrlsRoute
   UsersRoute: typeof UsersRoute
   ApiArchivesRoute: typeof ApiArchivesRouteWithChildren
   ApiBrowserSessionsRoute: typeof ApiBrowserSessionsRouteWithChildren
@@ -649,6 +712,7 @@ export interface RootRouteChildren {
   ApiContextItemsRoute: typeof ApiContextItemsRoute
   ApiProfileRoute: typeof ApiProfileRoute
   ApiStreamRoute: typeof ApiStreamRoute
+  ApiStreamReplaysRoute: typeof ApiStreamReplaysRouteWithChildren
   ApiUsageEventsRoute: typeof ApiUsageEventsRouteWithChildren
   ApiUsersRoute: typeof ApiUsersRouteWithChildren
   I1focusDemoRoute: typeof I1focusDemoRoute
@@ -657,6 +721,7 @@ export interface RootRouteChildren {
   ApiChatGuestRoute: typeof ApiChatGuestRoute
   ApiChatMutationsRoute: typeof ApiChatMutationsRoute
   ApiFlowgladSplatRoute: typeof ApiFlowgladSplatRoute
+  ApiSpotifyNowPlayingRoute: typeof ApiSpotifyNowPlayingRoute
   ApiStreamsUsernameRoute: typeof ApiStreamsUsernameRouteWithChildren
   ApiStripeCheckoutRoute: typeof ApiStripeCheckoutRoute
   ApiStripeWebhooksRoute: typeof ApiStripeWebhooksRoute
@@ -676,6 +741,13 @@ declare module '@tanstack/react-router' {
       path: '/users'
       fullPath: '/users'
       preLoaderRoute: typeof UsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/urls': {
+      id: '/urls'
+      path: '/urls'
+      fullPath: '/urls'
+      preLoaderRoute: typeof UrlsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -797,6 +869,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiUsageEventsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/stream-replays': {
+      id: '/api/stream-replays'
+      path: '/api/stream-replays'
+      fullPath: '/api/stream-replays'
+      preLoaderRoute: typeof ApiStreamReplaysRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/stream': {
       id: '/api/stream'
       path: '/api/stream'
@@ -909,6 +988,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiStreamsUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/stream-replays/$replayId': {
+      id: '/api/stream-replays/$replayId'
+      path: '/$replayId'
+      fullPath: '/api/stream-replays/$replayId'
+      preLoaderRoute: typeof ApiStreamReplaysReplayIdRouteImport
+      parentRoute: typeof ApiStreamReplaysRoute
+    }
+    '/api/spotify/now-playing': {
+      id: '/api/spotify/now-playing'
+      path: '/api/spotify/now-playing'
+      fullPath: '/api/spotify/now-playing'
+      preLoaderRoute: typeof ApiSpotifyNowPlayingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/flowglad/$': {
       id: '/api/flowglad/$'
       path: '/api/flowglad/$'
@@ -1005,6 +1098,13 @@ declare module '@tanstack/react-router' {
       path: '/viewers'
       fullPath: '/api/streams/$username/viewers'
       preLoaderRoute: typeof ApiStreamsUsernameViewersRouteImport
+      parentRoute: typeof ApiStreamsUsernameRoute
+    }
+    '/api/streams/$username/replays': {
+      id: '/api/streams/$username/replays'
+      path: '/replays'
+      fullPath: '/api/streams/$username/replays'
+      preLoaderRoute: typeof ApiStreamsUsernameReplaysRouteImport
       parentRoute: typeof ApiStreamsUsernameRoute
     }
     '/api/canvas/images/$imageId': {
@@ -1111,6 +1211,17 @@ const ApiCanvasRouteWithChildren = ApiCanvasRoute._addFileChildren(
   ApiCanvasRouteChildren,
 )
 
+interface ApiStreamReplaysRouteChildren {
+  ApiStreamReplaysReplayIdRoute: typeof ApiStreamReplaysReplayIdRoute
+}
+
+const ApiStreamReplaysRouteChildren: ApiStreamReplaysRouteChildren = {
+  ApiStreamReplaysReplayIdRoute: ApiStreamReplaysReplayIdRoute,
+}
+
+const ApiStreamReplaysRouteWithChildren =
+  ApiStreamReplaysRoute._addFileChildren(ApiStreamReplaysRouteChildren)
+
 interface ApiUsageEventsRouteChildren {
   ApiUsageEventsCreateRoute: typeof ApiUsageEventsCreateRoute
 }
@@ -1136,10 +1247,12 @@ const ApiUsersRouteWithChildren = ApiUsersRoute._addFileChildren(
 )
 
 interface ApiStreamsUsernameRouteChildren {
+  ApiStreamsUsernameReplaysRoute: typeof ApiStreamsUsernameReplaysRoute
   ApiStreamsUsernameViewersRoute: typeof ApiStreamsUsernameViewersRoute
 }
 
 const ApiStreamsUsernameRouteChildren: ApiStreamsUsernameRouteChildren = {
+  ApiStreamsUsernameReplaysRoute: ApiStreamsUsernameReplaysRoute,
   ApiStreamsUsernameViewersRoute: ApiStreamsUsernameViewersRoute,
 }
 
@@ -1158,6 +1271,7 @@ const rootRouteChildren: RootRouteChildren = {
   MarketplaceRoute: MarketplaceRoute,
   SessionsRoute: SessionsRoute,
   SettingsRoute: SettingsRoute,
+  UrlsRoute: UrlsRoute,
   UsersRoute: UsersRoute,
   ApiArchivesRoute: ApiArchivesRouteWithChildren,
   ApiBrowserSessionsRoute: ApiBrowserSessionsRouteWithChildren,
@@ -1167,6 +1281,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiContextItemsRoute: ApiContextItemsRoute,
   ApiProfileRoute: ApiProfileRoute,
   ApiStreamRoute: ApiStreamRoute,
+  ApiStreamReplaysRoute: ApiStreamReplaysRouteWithChildren,
   ApiUsageEventsRoute: ApiUsageEventsRouteWithChildren,
   ApiUsersRoute: ApiUsersRouteWithChildren,
   I1focusDemoRoute: I1focusDemoRoute,
@@ -1175,6 +1290,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatGuestRoute: ApiChatGuestRoute,
   ApiChatMutationsRoute: ApiChatMutationsRoute,
   ApiFlowgladSplatRoute: ApiFlowgladSplatRoute,
+  ApiSpotifyNowPlayingRoute: ApiSpotifyNowPlayingRoute,
   ApiStreamsUsernameRoute: ApiStreamsUsernameRouteWithChildren,
   ApiStripeCheckoutRoute: ApiStripeCheckoutRoute,
   ApiStripeWebhooksRoute: ApiStripeWebhooksRoute,

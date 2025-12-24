@@ -16,10 +16,35 @@ export type Presence = z.infer<typeof Presence>
 export const PresenceFeed = co.feed(Presence)
 
 /**
+ * Paid comment entry - a message attached to a verified payment
+ */
+export const PaidComment = z.object({
+  message: z.string(),
+  sender: z.string().nullable(),
+  usdAmount: z.number(),
+  solAmount: z.number(),
+  signature: z.string(),
+  createdAt: z.number(),
+})
+export type PaidComment = z.infer<typeof PaidComment>
+
+/**
+ * Feed of paid comment entries
+ */
+export const PaidCommentFeed = co.feed(PaidComment)
+
+/**
  * Container for a stream's presence feed - enables upsertUnique
  */
 export const StreamPresenceContainer = co.map({
   presenceFeed: PresenceFeed,
+})
+
+/**
+ * Container for a stream's paid comment feed - enables upsertUnique
+ */
+export const StreamPaidCommentsContainer = co.map({
+  commentFeed: PaidCommentFeed,
 })
 
 /**
@@ -34,11 +59,28 @@ export const ViewerProfile = co
   })
 
 /**
+ * A saved URL entry
+ */
+export const SavedUrl = z.object({
+  url: z.string(),
+  title: z.string().nullable(),
+  createdAt: z.number(),
+})
+export type SavedUrl = z.infer<typeof SavedUrl>
+
+/**
+ * List of saved URLs
+ */
+export const SavedUrlList = co.list(SavedUrl)
+
+/**
  * Viewer account root - stores any viewer-specific data
  */
 export const ViewerRoot = co.map({
   /** Placeholder field */
   version: z.number(),
+  /** User's saved URLs */
+  savedUrls: SavedUrlList,
 })
 
 /**
@@ -58,6 +100,7 @@ export const ViewerAccount = co
     if (!account.$jazz.has("root")) {
       account.$jazz.set("root", {
         version: 1,
+        savedUrls: SavedUrlList.create([]),
       })
     }
   })

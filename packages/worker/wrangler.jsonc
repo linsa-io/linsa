@@ -7,6 +7,9 @@
 	"name": "fullstack-monorepo-template-worker",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-09-06",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
 	/**
 	 * Bindings
 	 * Bindings allow your Worker to interact with resources on the Cloudflare Developer Platform, including
@@ -32,4 +35,15 @@
 	 * https://developers.cloudflare.com/workers/wrangler/configuration/#service-bindings
 	 */
 	// "services": [{ "binding": "MY_SERVICE", "service": "my-service" }]
+	/**
+	 * Hyperdrive (PostgreSQL connection pooling)
+	 * https://developers.cloudflare.com/hyperdrive/
+	 */
+	"hyperdrive": [
+		{
+			"binding": "HYPERDRIVE",
+			"id": "ab1f77b46587473ca6d42489678e34fd",
+			"localConnectionString": "postgresql://postgres:password@db.localtest.me:5433/electric"
+		}
+	]
 }

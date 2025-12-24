@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import { getStreamByUsername, type StreamPageData } from "@/lib/stream/db"
 import { VideoPlayer } from "@/components/VideoPlayer"
@@ -21,6 +21,7 @@ export const Route = createFileRoute("/$username")({
 // Cloudflare Stream HLS URL
 const HLS_URL = "https://customer-xctsztqzu046isdc.cloudflarestream.com/bb7858eafc85de6c92963f3817477b5d/manifest/video.m3u8"
 const NIKIV_PLAYBACK = resolveStreamPlayback({ hlsUrl: HLS_URL, webrtcUrl: null })
+const READY_PULSE_MS = 1200
 
 // Hardcoded user for nikiv
 const NIKIV_DATA: StreamPageData = {
@@ -58,6 +59,8 @@ function StreamPage() {
   const [nowPlayingLoading, setNowPlayingLoading] = useState(false)
   const [nowPlayingError, setNowPlayingError] = useState(false)
   const [streamLive, setStreamLive] = useState(false)
+  const [showReadyPulse, setShowReadyPulse] = useState(false)
+  const readyPulseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     let isActive = true
@@ -146,6 +149,31 @@ function StreamPage() {
       clearInterval(interval)
     }
   }, [username])
+
+  useEffect(() => {
+    if (readyPulseTimeoutRef.current) {
+      clearTimeout(readyPulseTimeoutRef.current)
+      readyPulseTimeoutRef.current = null
+    }
+
+    if (!streamReady) {
+      setShowReadyPulse(false)
+      return
+    }
+
+    setShowReadyPulse(true)
+    readyPulseTimeoutRef.current = setTimeout(() => {
+      setShowReadyPulse(false)
+      readyPulseTimeoutRef.current = null
+    }, READY_PULSE_MS)
+
+    return () => {
+      if (readyPulseTimeoutRef.current) {
+        clearTimeout(readyPulseTimeoutRef.current)
+        readyPulseTimeoutRef.current = null
+      }
+    }
+  }, [streamReady])
 
   const stream = data?.stream ?? null
   const playback = stream?.playback ?? null
@@ -350,13 +378,13 @@ function StreamPage() {
                 }}
               />
               {!streamReady && (
-                <div className="absolute inset-0 flex items-center justify-center text-white">
-                  <div className="text-center">
-                    <div className="animate-pulse text-4xl">🔴</div>
-                    <p className="mt-4 text-xl text-neutral-400">
-                      Connecting to stream...
-                    </p>
-                  </div>
+                <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-black/70">
+                  <div className="animate-pulse text-4xl">🟡</div>
+                </div>
+              )}
+              {showReadyPulse && (
+                <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
+                  <div className="animate-pulse text-4xl">🔴</div>
                 </div>
               )}
             </div>
@@ -369,27 +397,29 @@ function StreamPage() {
                 onReady={() => setStreamReady(true)}
               />
               {!streamReady && (
-                <div className="absolute inset-0 flex items-center justify-center text-white">
-                  <div className="text-center">
-                    <div className="animate-pulse text-4xl">🔴</div>
-                    <p className="mt-4 text-xl text-neutral-400">
-                      Connecting to stream...
-                    </p>
-                  </div>
+                <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-black/70">
+                  <div className="animate-pulse text-4xl">🟡</div>
+                </div>
+              )}
+              {showReadyPulse && (
+                <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
+                  <div className="animate-pulse text-4xl">🔴</div>
                 </div>
               )}
             </div>
           ) : (
-            <VideoPlayer src={activePlayback.url} muted={false} />
+            <div className="relative h-full w-full">
+              <VideoPlayer src={activePlayback.url} muted={false} />
+              {showReadyPulse && (
+                <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
+                  <div className="animate-pulse text-4xl">🔴</div>
+                </div>
+              )}
+            </div>
           )
         ) : isActuallyLive && activePlayback ? (
           <div className="flex h-full w-full items-center justify-center text-white">
-            <div className="text-center">
-              <div className="animate-pulse text-4xl">🔴</div>
-              <p className="mt-4 text-xl text-neutral-400">
-                Connecting to stream...
-              </p>
-            </div>
+            <div className="animate-pulse text-4xl">🟡</div>
           </div>
         ) : (
           <div className="flex h-full w-full items-center justify-center text-white">

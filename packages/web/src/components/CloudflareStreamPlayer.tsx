@@ -78,7 +78,6 @@ export function CloudflareStreamPlayer({
         responsive={false}
         height="100%"
         width="100%"
-        onCanPlay={handleReady}
         onPlaying={handleReady}
       />
     </div>
