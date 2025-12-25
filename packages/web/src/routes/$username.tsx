@@ -4,6 +4,7 @@ import { getStreamByUsername, type StreamPageData } from "@/lib/stream/db"
 import { VideoPlayer } from "@/components/VideoPlayer"
 import { CloudflareStreamPlayer } from "@/components/CloudflareStreamPlayer"
 import { WebRTCPlayer } from "@/components/WebRTCPlayer"
+import { LiveNowSidebar } from "@/components/LiveNowSidebar"
 import { resolveStreamPlayback } from "@/lib/stream/playback"
 import { JazzProvider } from "@/lib/jazz/provider"
 import { ViewerCount } from "@/components/ViewerCount"
@@ -140,56 +141,34 @@ function StreamPage() {
 
   useEffect(() => {
     let isActive = true
-    const setReadySafe = (ready: boolean) => {
-      if (isActive) {
-        setStreamReady(ready)
-      }
-    }
-    const setDataSafe = (next: StreamPageData | null) => {
-      if (isActive) {
-        setData(next)
-      }
-    }
-    const setLoadingSafe = (next: boolean) => {
-      if (isActive) {
-        setLoading(next)
-      }
-    }
-    const setErrorSafe = (next: string | null) => {
-      if (isActive) {
-        setError(next)
-      }
-    }
-    const setWebRtcFailedSafe = (next: boolean) => {
-      if (isActive) {
-        setWebRtcFailed(next)
-      }
-    }
-
-    setReadySafe(false)
-    setWebRtcFailedSafe(false)
 
     // Special handling for nikiv - hardcoded stream
     if (username === "nikiv") {
-      setDataSafe(NIKIV_DATA)
-      setLoadingSafe(false)
-
+      setData(NIKIV_DATA)
+      setLoading(false)
       return () => {
         isActive = false
       }
     }
 
     const loadData = async () => {
-      setLoadingSafe(true)
-      setErrorSafe(null)
+      if (!isActive) return
+      setLoading(true)
+      setError(null)
       try {
         const result = await getStreamByUsername(username)
-        setDataSafe(result)
+        if (isActive) {
+          setData(result)
+        }
       } catch (err) {
-        setErrorSafe("Failed to load stream")
-        console.error(err)
+        if (isActive) {
+          setError("Failed to load stream")
+          console.error(err)
+        }
       } finally {
-        setLoadingSafe(false)
+        if (isActive) {
+          setLoading(false)
+        }
       }
     }
     loadData()
@@ -537,6 +516,7 @@ function StreamPage() {
 
   return (
     <JazzProvider>
+      <LiveNowSidebar currentUsername={username} />
       <div className="h-screen w-screen bg-black flex flex-col md:flex-row">
         {/* Main content area */}
         <div className="flex-1 relative min-h-0">
