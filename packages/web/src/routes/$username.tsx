@@ -47,6 +47,32 @@ const NIKIV_DATA: StreamPageData = {
   },
 }
 
+// Free preview duration in milliseconds (5 minutes)
+const FREE_PREVIEW_MS = 5 * 60 * 1000
+const STORAGE_KEY = "linsa_stream_watch_time"
+
+function getWatchTime(): number {
+  if (typeof window === "undefined") return 0
+  const stored = localStorage.getItem(STORAGE_KEY)
+  if (!stored) return 0
+  try {
+    const data = JSON.parse(stored)
+    // Reset if older than 24 hours
+    if (Date.now() - data.startedAt > 24 * 60 * 60 * 1000) {
+      localStorage.removeItem(STORAGE_KEY)
+      return 0
+    }
+    return data.watchTime || 0
+  } catch {
+    return 0
+  }
+}
+
+function saveWatchTime(watchTime: number, startedAt: number) {
+  if (typeof window === "undefined") return
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ watchTime, startedAt }))
+}
+
 function StreamPage() {
   const { username } = Route.useParams()
   const { data: session, isPending: sessionLoading } = authClient.useSession()
@@ -65,7 +91,47 @@ function StreamPage() {
   const [showReadyPulse, setShowReadyPulse] = useState(false)
   const readyPulseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Free preview tracking
+  const [watchTime, setWatchTime] = useState(0)
+  const [previewExpired, setPreviewExpired] = useState(false)
+  const watchStartRef = useRef<number | null>(null)
+
   const isAuthenticated = !sessionLoading && !!session?.user
+
+  // Track watch time for unauthenticated users
+  useEffect(() => {
+    if (isAuthenticated || sessionLoading) return
+
+    // Initialize from localStorage
+    const savedTime = getWatchTime()
+    setWatchTime(savedTime)
+    if (savedTime >= FREE_PREVIEW_MS) {
+      setPreviewExpired(true)
+      return
+    }
+
+    watchStartRef.current = Date.now()
+    const startedAt = Date.now() - savedTime
+
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - (watchStartRef.current || Date.now()) + savedTime
+      setWatchTime(elapsed)
+      saveWatchTime(elapsed, startedAt)
+
+      if (elapsed >= FREE_PREVIEW_MS) {
+        setPreviewExpired(true)
+        clearInterval(interval)
+      }
+    }, 1000)
+
+    return () => {
+      clearInterval(interval)
+      if (watchStartRef.current) {
+        const elapsed = Date.now() - watchStartRef.current + savedTime
+        saveWatchTime(elapsed, startedAt)
+      }
+    }
+  }, [isAuthenticated, sessionLoading])
 
   useEffect(() => {
     let isActive = true
@@ -337,7 +403,13 @@ function StreamPage() {
     }
   }, [shouldFetchSpotify])
 
-  // Auth gate - require login to view streams
+  // Format remaining time
+  const remainingMs = Math.max(0, FREE_PREVIEW_MS - watchTime)
+  const remainingMin = Math.floor(remainingMs / 60000)
+  const remainingSec = Math.floor((remainingMs % 60000) / 1000)
+  const remainingFormatted = `${remainingMin}:${remainingSec.toString().padStart(2, "0")}`
+
+  // Auth gate - show preview for 5 min, then require login
   if (sessionLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-black text-white">
@@ -346,19 +418,20 @@ function StreamPage() {
     )
   }
 
-  if (!isAuthenticated) {
+  // Show auth wall when preview expires for unauthenticated users
+  if (!isAuthenticated && previewExpired) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-black text-white">
         <div className="text-center">
-          <h1 className="text-4xl font-bold mb-4">Sign in to watch</h1>
+          <h1 className="text-4xl font-bold mb-4">Free preview ended</h1>
           <p className="text-neutral-400 mb-8">
-            Create an account or sign in to view this stream
+            Sign in to continue watching this stream
           </p>
           <Link
             to="/login"
             className="inline-block rounded-lg bg-white px-6 py-3 font-medium text-black hover:bg-neutral-200 transition-colors"
           >
-            Sign in
+            Sign in to continue
           </Link>
         </div>
       </div>
@@ -416,8 +489,23 @@ function StreamPage() {
       <div className="h-screen w-screen bg-black flex">
         {/* Main content area */}
         <div className="flex-1 relative">
+          {/* Free preview countdown banner for unauthenticated users */}
+          {!isAuthenticated && !previewExpired && (
+            <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-r from-purple-600/90 to-pink-600/90 backdrop-blur-sm px-4 py-2 flex items-center justify-center gap-4">
+              <span className="text-white text-sm">
+                Free preview: <span className="font-mono font-bold">{remainingFormatted}</span> remaining
+              </span>
+              <Link
+                to="/login"
+                className="text-xs font-medium bg-white/20 hover:bg-white/30 text-white px-3 py-1 rounded-full transition-colors"
+              >
+                Sign in for unlimited access
+              </Link>
+            </div>
+          )}
+
           {/* Viewer count overlay */}
-          <div className="absolute top-4 right-4 z-10 rounded-lg bg-black/50 px-3 py-2 backdrop-blur-sm">
+          <div className="absolute top-4 right-4 z-10 rounded-lg bg-black/50 px-3 py-2 backdrop-blur-sm" style={{ top: !isAuthenticated && !previewExpired ? '3rem' : '1rem' }}>
             <ViewerCount username={username} />
           </div>
 
