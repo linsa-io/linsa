@@ -138,6 +138,7 @@ function StreamPage() {
 
     const fetchStatus = async () => {
       const status = await getStreamStatus()
+      console.log("[Stream Status] nikiv.dev/api/stream-status:", status)
       if (isActive) {
         setStreamLive(status.isLive)
       }
@@ -209,9 +210,11 @@ function StreamPage() {
 
     setStreamReady(false)
     setHlsLive(null)
+    console.log("[HLS Check] Fetching manifest:", activePlayback.url)
     fetch(activePlayback.url)
       .then(async (res) => {
         if (isActive) {
+          console.log("[HLS Check] Response status:", res.status, res.ok)
           if (!res.ok) {
             setStreamReady(false)
             setHlsLive(false)
@@ -220,11 +223,13 @@ function StreamPage() {
           const manifest = await res.text()
           if (!isActive) return
           const live = isHlsPlaylistLive(manifest)
+          console.log("[HLS Check] Manifest live check:", { live, manifestLength: manifest.length, first200: manifest.slice(0, 200) })
           setStreamReady(live)
           setHlsLive(live)
         }
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error("[HLS Check] Fetch error:", err)
         if (isActive) {
           setStreamReady(false)
           setHlsLive(false)
@@ -276,6 +281,22 @@ function StreamPage() {
   const isActuallyLive =
     isLiveStatus && (activePlayback?.type !== "hls" || hlsLive !== false)
   const shouldFetchSpotify = username === "nikiv" && !isActuallyLive
+
+  // Debug logging for stream status
+  useEffect(() => {
+    if (username === "nikiv") {
+      console.log("[Stream Debug]", {
+        streamLive,
+        hlsLive,
+        isLiveStatus,
+        isActuallyLive,
+        streamReady,
+        activePlaybackType: activePlayback?.type,
+        webRtcFailed,
+        hlsUrl: stream?.hls_url,
+      })
+    }
+  }, [username, streamLive, hlsLive, isLiveStatus, isActuallyLive, streamReady, activePlayback?.type, webRtcFailed, stream?.hls_url])
 
   useEffect(() => {
     if (!shouldFetchSpotify) {
