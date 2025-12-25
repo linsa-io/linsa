@@ -23,28 +23,17 @@ export function ProfileSidebar({ user, isLive, viewerCount, children }: ProfileS
     <div className="h-full flex flex-col bg-black border-l border-white/10">
       {/* Profile Header */}
       <div className="p-4 border-b border-white/10">
-        {/* Avatar and Live Badge */}
+        {/* Name and Live Badge */}
         <div className="flex items-start gap-3">
-          {user.image ? (
-            <div className="relative">
-              <img
-                src={user.image}
-                alt={displayName}
-                className="w-16 h-16 rounded-full bg-white/10"
-              />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-bold text-white truncate">{displayName}</h2>
               {isLive && (
-                <span className="absolute -bottom-1 -right-1 px-1.5 py-0.5 text-[10px] font-bold uppercase bg-red-500 text-white rounded">
+                <span className="px-2 py-0.5 text-xs font-bold uppercase bg-red-500 text-white rounded">
                   Live
                 </span>
               )}
             </div>
-          ) : isLive ? (
-            <div className="relative">
-              <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-            </div>
-          ) : null}
-          <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-bold text-white truncate">{displayName}</h2>
             <p className="text-sm text-white/60">@{user.username}</p>
           </div>
         </div>

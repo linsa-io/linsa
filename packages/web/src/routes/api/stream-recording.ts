@@ -6,7 +6,9 @@ import { promises as fs } from "fs"
  * Chunks are stored temporarily and then synced to Jazz FileStream by client
  */
 
-const STORAGE_PATH = "/Users/nikiv/fork-i/garden-co/jazz/glide-storage/stream-recordings"
+const STORAGE_PATH =
+  process.env.STREAM_RECORDINGS_PATH ||
+  "/var/lib/jazz/stream-recordings"
 
 interface StreamChunk {
   streamId: string

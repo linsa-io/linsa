@@ -152,6 +152,21 @@ export type StreamRecording = z.infer<typeof StreamRecording>
 export const StreamRecordingList = co.list(StreamRecording)
 
 /**
+ * Cloudflare Stream configuration
+ */
+export const CloudflareStreamConfig = co.map({
+  /** Cloudflare Live Input UID (permanent, doesn't change between connections) */
+  liveInputUid: z.string(),
+  /** Cloudflare customer code (e.g., xctsztqzu046isdc) */
+  customerCode: z.string(),
+  /** Stream name/title */
+  name: z.string(),
+  /** Last updated timestamp */
+  updatedAt: z.number(),
+})
+export type CloudflareStreamConfig = co.loaded<typeof CloudflareStreamConfig>
+
+/**
  * Viewer account root - stores any viewer-specific data
  */
 export const ViewerRoot = co.map({
@@ -163,6 +178,8 @@ export const ViewerRoot = co.map({
   glideCanvas: GlideCanvasList,
   /** Live stream recordings */
   streamRecordings: StreamRecordingList,
+  /** Cloudflare Stream configuration */
+  cloudflareConfig: co.optional(CloudflareStreamConfig),
 })
 
 /**

@@ -66,6 +66,32 @@ export const Route = createFileRoute("/api/streams/$username/check-hls")({
         }
 
         try {
+          // Hardcoded config for nikiv (stored in Jazz, not Postgres)
+          if (username === "nikiv") {
+            const hlsUrl = buildCloudflareHlsUrl("bb7858eafc85de6c92963f3817477b5d", "xctsztqzu046isdc")
+
+            const res = await fetch(hlsUrl, { cache: "no-store" })
+
+            if (!res.ok) {
+              return json({
+                isLive: false,
+                hlsUrl,
+                status: res.status,
+                error: "HLS not available",
+              })
+            }
+
+            const manifest = await res.text()
+            const isLive = isHlsPlaylistLive(manifest)
+
+            return json({
+              isLive,
+              hlsUrl,
+              status: res.status,
+              manifestLength: manifest.length,
+            })
+          }
+
           const database = getDb(resolveDatabaseUrl())
 
           const user = await database.query.users.findFirst({
