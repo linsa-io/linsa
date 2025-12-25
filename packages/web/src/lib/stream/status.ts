@@ -4,12 +4,12 @@ export interface StreamStatus {
 }
 
 /**
- * Fetches stream status from nikiv.dev/api/stream-status
+ * Fetches stream status via local API proxy (avoids CORS)
  * This is set by Lin when streaming starts/stops
  */
 export async function getStreamStatus(): Promise<StreamStatus> {
   try {
-    const response = await fetch("https://nikiv.dev/api/stream-status", {
+    const response = await fetch("/api/stream-status", {
       cache: "no-store",
     })
     if (!response.ok) {

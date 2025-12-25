@@ -1,21 +1,15 @@
-import { useMemo, useState, type FormEvent, type ReactNode } from "react"
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import { authClient } from "@/lib/auth-client"
 import SettingsPanel from "@/components/Settings-panel"
 import {
-  BadgeDollarSign,
   Check,
   ChevronDown,
-  CreditCard,
-  Gem,
   LogOut,
-  Shield,
   Sparkles,
   UserRoundPen,
   Lock,
-  X,
 } from "lucide-react"
-import { BillingStatusNew } from "@/components/billing"
 
 type SectionId = "preferences" | "profile" | "billing"
 
@@ -26,9 +20,6 @@ export const Route = createFileRoute("/settings")({
   component: SettingsPage,
   ssr: false,
 })
-
-const CHANGE_PLAN_BACKGROUND =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.18'/%3E%3C/svg%3E"
 
 type Option = { value: string; label: string }
 
@@ -440,171 +431,137 @@ function ProfileSection({
   )
 }
 
-function UsageBar({
-  icon,
-  label,
-  current,
-  total,
-  gradient,
-}: {
-  icon: ReactNode
-  label: string
-  current: number
-  total: number
-  gradient: string
-}) {
-  const pct = Math.min(100, Math.round((current / total) * 100))
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 text-sm text-slate-200">
-        <div className="text-lg">{icon}</div>
-        <span className="font-semibold text-white">{current}</span>
-        <span className="text-slate-400">
-          / {total.toLocaleString()} {label}
-        </span>
-      </div>
-      <div className="h-3 bg-white/5 rounded-full overflow-hidden">
-        <div
-          className="h-full rounded-full"
-          style={{
-            width: `${pct}%`,
-            background: gradient,
-          }}
-        />
-      </div>
-    </div>
-  )
-}
-
-function PlanCard({
-  name,
-  price,
-  cadence,
-  brand,
-  last4,
-  active,
-  badge,
-  gradient,
-}: {
-  name: string
-  price: string
-  cadence: string
-  brand: string
-  last4: string
-  active?: boolean
-  badge?: string
-  gradient: string
-}) {
-  const cardBackground = gradient
-
-  return (
-    <div
-      className={`rounded-3xl w-full p-5 border relative overflow-hidden ${
-        active ? "border-white/10" : "border-white/5"
-      }`}
-      style={{
-        backgroundImage: `url("${PLAN_CARD_NOISE}")`,
-        backgroundColor: cardBackground,
-        backgroundBlendMode: "overlay, normal",
-        backgroundSize: "280px 280px, cover",
-        backgroundRepeat: "repeat, no-repeat",
-        opacity: active ? 1 : 0.6,
-      }}
-    >
-      {badge ? (
-        <span className="absolute top-3 right-3 text-[11px] px-3 py-1 rounded-lg bg-white/10 text-white/80 border border-white/10">
-          {badge}
-        </span>
-      ) : null}
-      <div className="flex items-center gap-2 text-2xl font-semibold text-white">
-        <Sparkles className="w-5 h-5 text-pink-200" />
-        <span>{name}</span>
-      </div>
-      <p className="text-slate-200 mt-1">{price}</p>
-      <div className="flex items-center gap-3 text-sm text-slate-100 mt-6">
-        <span>{cadence}</span>
-        <span className="text-white/40">•</span>
-        <span className="inline-flex items-center gap-2">
-          <CreditCard className="w-4 h-4" />
-          {brand} •••• {last4}
-        </span>
-      </div>
-      {!active ? (
-        <div className="absolute inset-0 bg-black/35 backdrop-blur-[1px]" />
-      ) : null}
-    </div>
-  )
-}
-
 function BillingSection() {
+  const [isSubscribed, setIsSubscribed] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [subscribing, setSubscribing] = useState(false)
+
+  useEffect(() => {
+    const checkSubscription = async () => {
+      try {
+        const res = await fetch("/api/stripe/billing", { credentials: "include" })
+        if (res.ok) {
+          const data = await res.json()
+          setIsSubscribed(data.hasActiveSubscription)
+        }
+      } catch {
+        // Ignore errors
+      } finally {
+        setLoading(false)
+      }
+    }
+    checkSubscription()
+  }, [])
+
+  const handleSubscribe = async () => {
+    setSubscribing(true)
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        credentials: "include",
+      })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      }
+    } catch (err) {
+      console.error("Failed to start checkout:", err)
+    } finally {
+      setSubscribing(false)
+    }
+  }
+
+  const handleManageBilling = async () => {
+    try {
+      const res = await fetch("/api/stripe/portal", {
+        method: "POST",
+        credentials: "include",
+      })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      }
+    } catch (err) {
+      console.error("Failed to open billing portal:", err)
+    }
+  }
+
   return (
     <div id="billing" className="scroll-mt-24 mx-auto">
       <SectionHeader
         title="Subscription"
-        description="Current plan, upcoming tiers, and credit usage."
+        description="Manage your Linsa Pro subscription."
       />
-      <div className="flex flex-row gap-8 w-full">
-        <div className="flex flex-col gap-4 w-full">
-          <PlanCard
-            name="Gen Pro"
-            price="$7.99 / month"
-            cadence="Monthly"
-            brand="Visa"
-            last4="1777"
-            active
-            badge="Current plan"
-            gradient="linear-gradient(135deg, #aa5ea4 0%, #2d254a 40%, #494281 90%)"
-          />
 
-          <PlanCard
-            name="Gen Teams"
-            price="$19.99 / month"
-            cadence="Team plan — coming soon"
-            brand="—"
-            last4="0000"
-            gradient="linear-gradient(135deg, #000000 0%, #2d254a 40%, #494281 90%)"
-            badge="Coming soon"
-          />
-        </div>
-        <div className="space-y-6 self-stretch w-full h-fit">
-          <UsageBar
-            icon={<BadgeDollarSign className="w-4 h-4 text-white/80" />}
-            label="standard credits"
-            current={875}
-            total={1000}
-            gradient="linear-gradient(90deg, #7da2ff, #a36bff, #d870ff)"
-          />
-          <UsageBar
-            icon={<Gem className="w-4 h-4 text-white/80" />}
-            label="premium credits"
-            current={56}
-            total={100}
-            gradient="linear-gradient(90deg, #ff7dcf, #7df3ff, #4f5bff)"
-          />
-          <div className="flex flex-row gap-2">
-            <button
-              type="button"
-              style={{
-                backgroundImage: `url("${CHANGE_PLAN_BACKGROUND}")`,
-              }}
-              className="w-full text-sm font-medium text-white bg-white/5 shadow-inner shadow-neutral-800/65 hover:bg-white/10 border border-white/10 transition-colors rounded-lg py-2 bg-cover bg-center bg-no-repeat"
-            >
-              Change plan
-            </button>
-            <button
-              type="button"
-              style={{
-                backgroundImage: `url("${CHANGE_PLAN_BACKGROUND}")`,
-              }}
-              className="w-full text-sm font-medium text-white bg-blue-200/15 hover:bg-blue-100/20 shadow-inner shadow-neutral-800/65 border border-white/5 transition-colors rounded-lg py-2 bg-cover bg-center bg-no-repeat"
-            >
-              Get more credits
-            </button>
+      <div className="max-w-xl">
+        {/* Plan Card */}
+        <div
+          className="rounded-3xl p-6 border border-white/10 relative overflow-hidden"
+          style={{
+            backgroundImage: `url("${PLAN_CARD_NOISE}")`,
+            background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
+            backgroundBlendMode: "overlay, normal",
+          }}
+        >
+          {isSubscribed && (
+            <span className="absolute top-4 right-4 text-xs px-3 py-1 rounded-full bg-teal-500/20 text-teal-400 border border-teal-500/30">
+              Active
+            </span>
+          )}
+
+          <div className="flex items-center gap-3 mb-4">
+            <Sparkles className="w-6 h-6 text-teal-400" />
+            <h3 className="text-2xl font-bold text-white">Linsa Pro</h3>
           </div>
-        </div>
-      </div>
 
-      <BillingStatusNew />
+          <div className="flex items-baseline gap-1 mb-6">
+            <span className="text-4xl font-bold text-white">$8</span>
+            <span className="text-white/60">/ month</span>
+          </div>
+
+          <ul className="space-y-3 mb-6">
+            <li className="flex items-center gap-3 text-white/90">
+              <Check className="w-5 h-5 text-teal-400 shrink-0" />
+              <span>Unlimited bookmark saving</span>
+            </li>
+            <li className="flex items-center gap-3 text-white/90">
+              <Check className="w-5 h-5 text-teal-400 shrink-0" />
+              <span>Access to all stream archives</span>
+            </li>
+            <li className="flex items-center gap-3 text-white/90">
+              <Check className="w-5 h-5 text-teal-400 shrink-0" />
+              <span>Priority support</span>
+            </li>
+          </ul>
+
+          {loading ? (
+            <div className="h-12 bg-white/5 rounded-xl animate-pulse" />
+          ) : isSubscribed ? (
+            <button
+              type="button"
+              onClick={handleManageBilling}
+              className="w-full py-3 rounded-xl text-sm font-medium bg-white/10 hover:bg-white/15 text-white border border-white/10 transition-colors"
+            >
+              Manage Billing
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSubscribe}
+              disabled={subscribing}
+              className="w-full py-3 rounded-xl text-sm font-semibold bg-teal-500 hover:bg-teal-400 text-white transition-colors disabled:opacity-50"
+            >
+              {subscribing ? "Loading..." : "Subscribe Now"}
+            </button>
+          )}
+        </div>
+
+        {!isSubscribed && !loading && (
+          <p className="text-center text-white/50 text-sm mt-4">
+            Cancel anytime. No questions asked.
+          </p>
+        )}
+      </div>
     </div>
   )
 }

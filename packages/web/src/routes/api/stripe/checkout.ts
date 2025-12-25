@@ -23,16 +23,16 @@ export const Route = createFileRoute("/api/stripe/checkout")({
         }
 
         const stripe = getStripe()
-        const { archivePriceId } = getStripeConfig()
+        const { proPriceId } = getStripeConfig()
 
         if (!stripe) {
           console.error("[stripe] Stripe not configured - missing STRIPE_SECRET_KEY")
           return json({ error: "Stripe not configured" }, 500)
         }
 
-        if (!archivePriceId) {
-          console.error("[stripe] Price ID not configured - missing STRIPE_ARCHIVE_PRICE_ID")
-          return json({ error: "Price ID not configured" }, 500)
+        if (!proPriceId) {
+          console.error("[stripe] Price ID not configured - missing STRIPE_PRO_PRICE_ID")
+          return json({ error: "Price ID not configured. Set STRIPE_PRO_PRICE_ID" }, 500)
         }
 
         const database = db()
@@ -67,23 +67,17 @@ export const Route = createFileRoute("/api/stripe/checkout")({
             stripeCustomerId = stripeCustomer.id
           }
 
-          // Parse request body for success/cancel URLs
-          const body = (await request.json().catch(() => ({}))) as {
-            successUrl?: string
-            cancelUrl?: string
-          }
-
           const origin = new URL(request.url).origin
-          const successUrl = body.successUrl ?? `${origin}/archive?billing=success`
-          const cancelUrl = body.cancelUrl ?? `${origin}/archive?billing=canceled`
+          const successUrl = `${origin}/settings?subscribed=true`
+          const cancelUrl = `${origin}/settings?canceled=true`
 
-          // Create checkout session
+          // Create checkout session for Linsa Pro ($8/month)
           const checkoutSession = await stripe.checkout.sessions.create({
             customer: stripeCustomerId,
             mode: "subscription",
             line_items: [
               {
-                price: archivePriceId,
+                price: proPriceId,
                 quantity: 1,
               },
             ],

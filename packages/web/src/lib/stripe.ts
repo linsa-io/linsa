@@ -3,13 +3,13 @@ import Stripe from "stripe"
 type StripeEnv = {
   STRIPE_SECRET_KEY?: string
   STRIPE_WEBHOOK_SECRET?: string
-  STRIPE_ARCHIVE_PRICE_ID?: string // Archive subscription price
+  STRIPE_PRO_PRICE_ID?: string // Linsa Pro subscription price ($8/month)
 }
 
 const getEnv = (): StripeEnv => {
   let STRIPE_SECRET_KEY: string | undefined
   let STRIPE_WEBHOOK_SECRET: string | undefined
-  let STRIPE_ARCHIVE_PRICE_ID: string | undefined
+  let STRIPE_PRO_PRICE_ID: string | undefined
 
   try {
     const { getServerContext } = require("@tanstack/react-start/server") as {
@@ -18,7 +18,7 @@ const getEnv = (): StripeEnv => {
     const ctx = getServerContext()
     STRIPE_SECRET_KEY = ctx?.cloudflare?.env?.STRIPE_SECRET_KEY
     STRIPE_WEBHOOK_SECRET = ctx?.cloudflare?.env?.STRIPE_WEBHOOK_SECRET
-    STRIPE_ARCHIVE_PRICE_ID = ctx?.cloudflare?.env?.STRIPE_ARCHIVE_PRICE_ID
+    STRIPE_PRO_PRICE_ID = ctx?.cloudflare?.env?.STRIPE_PRO_PRICE_ID
   } catch {
     // Not in server context
   }
@@ -26,10 +26,10 @@ const getEnv = (): StripeEnv => {
   STRIPE_SECRET_KEY = STRIPE_SECRET_KEY ?? process.env.STRIPE_SECRET_KEY
   STRIPE_WEBHOOK_SECRET =
     STRIPE_WEBHOOK_SECRET ?? process.env.STRIPE_WEBHOOK_SECRET
-  STRIPE_ARCHIVE_PRICE_ID =
-    STRIPE_ARCHIVE_PRICE_ID ?? process.env.STRIPE_ARCHIVE_PRICE_ID
+  STRIPE_PRO_PRICE_ID =
+    STRIPE_PRO_PRICE_ID ?? process.env.STRIPE_PRO_PRICE_ID
 
-  return { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_ARCHIVE_PRICE_ID }
+  return { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRO_PRICE_ID }
 }
 
 export const getStripe = (): Stripe | null => {
@@ -46,6 +46,6 @@ export const getStripeConfig = () => {
   const env = getEnv()
   return {
     webhookSecret: env.STRIPE_WEBHOOK_SECRET,
-    archivePriceId: env.STRIPE_ARCHIVE_PRICE_ID,
+    proPriceId: env.STRIPE_PRO_PRICE_ID,
   }
 }

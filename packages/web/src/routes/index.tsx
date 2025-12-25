@@ -48,7 +48,7 @@ function LandingPage() {
   useEffect(() => {
     const checkLiveStatus = async () => {
       try {
-        const response = await fetch("https://nikiv.dev/api/stream-status")
+        const response = await fetch("/api/stream-status")
         if (response.ok) {
           const data = await response.json()
           setIsLive(Boolean(data.isLive))

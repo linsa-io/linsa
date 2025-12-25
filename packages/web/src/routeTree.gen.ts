@@ -28,6 +28,7 @@ import { Route as CanvasCanvasIdRouteImport } from './routes/canvas.$canvasId'
 import { Route as ArchiveArchiveIdRouteImport } from './routes/archive.$archiveId'
 import { Route as ApiUsersRouteImport } from './routes/api/users'
 import { Route as ApiUsageEventsRouteImport } from './routes/api/usage-events'
+import { Route as ApiStreamStatusRouteImport } from './routes/api/stream-status'
 import { Route as ApiStreamReplaysRouteImport } from './routes/api/stream-replays'
 import { Route as ApiStreamCommentsRouteImport } from './routes/api/stream-comments'
 import { Route as ApiStreamRouteImport } from './routes/api/stream'
@@ -164,6 +165,11 @@ const ApiUsersRoute = ApiUsersRouteImport.update({
 const ApiUsageEventsRoute = ApiUsageEventsRouteImport.update({
   id: '/api/usage-events',
   path: '/api/usage-events',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStreamStatusRoute = ApiStreamStatusRouteImport.update({
+  id: '/api/stream-status',
+  path: '/api/stream-status',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiStreamReplaysRoute = ApiStreamReplaysRouteImport.update({
@@ -407,6 +413,7 @@ export interface FileRoutesByFullPath {
   '/api/stream': typeof ApiStreamRoute
   '/api/stream-comments': typeof ApiStreamCommentsRoute
   '/api/stream-replays': typeof ApiStreamReplaysRouteWithChildren
+  '/api/stream-status': typeof ApiStreamStatusRoute
   '/api/usage-events': typeof ApiUsageEventsRouteWithChildren
   '/api/users': typeof ApiUsersRouteWithChildren
   '/archive/$archiveId': typeof ArchiveArchiveIdRoute
@@ -469,6 +476,7 @@ export interface FileRoutesByTo {
   '/api/stream': typeof ApiStreamRoute
   '/api/stream-comments': typeof ApiStreamCommentsRoute
   '/api/stream-replays': typeof ApiStreamReplaysRouteWithChildren
+  '/api/stream-status': typeof ApiStreamStatusRoute
   '/api/usage-events': typeof ApiUsageEventsRouteWithChildren
   '/api/users': typeof ApiUsersRouteWithChildren
   '/archive/$archiveId': typeof ArchiveArchiveIdRoute
@@ -533,6 +541,7 @@ export interface FileRoutesById {
   '/api/stream': typeof ApiStreamRoute
   '/api/stream-comments': typeof ApiStreamCommentsRoute
   '/api/stream-replays': typeof ApiStreamReplaysRouteWithChildren
+  '/api/stream-status': typeof ApiStreamStatusRoute
   '/api/usage-events': typeof ApiUsageEventsRouteWithChildren
   '/api/users': typeof ApiUsersRouteWithChildren
   '/archive/$archiveId': typeof ArchiveArchiveIdRoute
@@ -598,6 +607,7 @@ export interface FileRouteTypes {
     | '/api/stream'
     | '/api/stream-comments'
     | '/api/stream-replays'
+    | '/api/stream-status'
     | '/api/usage-events'
     | '/api/users'
     | '/archive/$archiveId'
@@ -660,6 +670,7 @@ export interface FileRouteTypes {
     | '/api/stream'
     | '/api/stream-comments'
     | '/api/stream-replays'
+    | '/api/stream-status'
     | '/api/usage-events'
     | '/api/users'
     | '/archive/$archiveId'
@@ -723,6 +734,7 @@ export interface FileRouteTypes {
     | '/api/stream'
     | '/api/stream-comments'
     | '/api/stream-replays'
+    | '/api/stream-status'
     | '/api/usage-events'
     | '/api/users'
     | '/archive/$archiveId'
@@ -787,6 +799,7 @@ export interface RootRouteChildren {
   ApiStreamRoute: typeof ApiStreamRoute
   ApiStreamCommentsRoute: typeof ApiStreamCommentsRoute
   ApiStreamReplaysRoute: typeof ApiStreamReplaysRouteWithChildren
+  ApiStreamStatusRoute: typeof ApiStreamStatusRoute
   ApiUsageEventsRoute: typeof ApiUsageEventsRouteWithChildren
   ApiUsersRoute: typeof ApiUsersRouteWithChildren
   I1focusDemoRoute: typeof I1focusDemoRoute
@@ -946,6 +959,13 @@ declare module '@tanstack/react-router' {
       path: '/api/usage-events'
       fullPath: '/api/usage-events'
       preLoaderRoute: typeof ApiUsageEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/stream-status': {
+      id: '/api/stream-status'
+      path: '/api/stream-status'
+      fullPath: '/api/stream-status'
+      preLoaderRoute: typeof ApiStreamStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/stream-replays': {
@@ -1404,6 +1424,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiStreamRoute: ApiStreamRoute,
   ApiStreamCommentsRoute: ApiStreamCommentsRoute,
   ApiStreamReplaysRoute: ApiStreamReplaysRouteWithChildren,
+  ApiStreamStatusRoute: ApiStreamStatusRoute,
   ApiUsageEventsRoute: ApiUsageEventsRouteWithChildren,
   ApiUsersRoute: ApiUsersRouteWithChildren,
   I1focusDemoRoute: I1focusDemoRoute,
