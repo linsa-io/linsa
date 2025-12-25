@@ -7,7 +7,7 @@ const json = (data: unknown, status = 200) =>
   })
 
 // Cloudflare Stream HLS URL
-const HLS_URL = "https://customer-xctsztqzu046isdc.cloudflarestream.com/bb7858eafc85de6c92963f3817477b5d/manifest/video.m3u8"
+const HLS_URL = "https://customer-xctsztqzu046isdc.cloudflarestream.com/1b0363e3f8d54ddc639dc85737f8c28a/manifest/video.m3u8"
 
 function isHlsPlaylistLive(manifest: string): boolean {
   const upper = manifest.toUpperCase()

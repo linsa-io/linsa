@@ -14,6 +14,7 @@ import {
 } from "@/lib/spotify/now-playing"
 import { getStreamStatus } from "@/lib/stream/status"
 import { authClient } from "@/lib/auth-client"
+import { MessageCircle, LogIn, X } from "lucide-react"
 
 export const Route = createFileRoute("/$username")({
   ssr: false,
@@ -21,7 +22,7 @@ export const Route = createFileRoute("/$username")({
 })
 
 // Cloudflare Stream HLS URL
-const HLS_URL = "https://customer-xctsztqzu046isdc.cloudflarestream.com/bb7858eafc85de6c92963f3817477b5d/manifest/video.m3u8"
+const HLS_URL = "https://customer-xctsztqzu046isdc.cloudflarestream.com/1b0363e3f8d54ddc639dc85737f8c28a/manifest/video.m3u8"
 const NIKIV_PLAYBACK = resolveStreamPlayback({ hlsUrl: HLS_URL, webrtcUrl: null })
 const READY_PULSE_MS = 1200
 
@@ -79,9 +80,9 @@ function StreamPage() {
   const [data, setData] = useState<StreamPageData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [streamReady, setStreamReady] = useState(false)
-  const [webRtcFailed, setWebRtcFailed] = useState(false)
+  const [playerReady, setPlayerReady] = useState(false)
   const [hlsLive, setHlsLive] = useState<boolean | null>(null)
+  const [isConnecting, setIsConnecting] = useState(false)
   const [nowPlaying, setNowPlaying] = useState<SpotifyNowPlayingResponse | null>(
     null,
   )
@@ -90,11 +91,15 @@ function StreamPage() {
   const [streamLive, setStreamLive] = useState(false)
   const [showReadyPulse, setShowReadyPulse] = useState(false)
   const readyPulseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hasConnectedOnce = useRef(false)
 
   // Free preview tracking
   const [watchTime, setWatchTime] = useState(0)
   const [previewExpired, setPreviewExpired] = useState(false)
   const watchStartRef = useRef<number | null>(null)
+
+  // Mobile chat overlay
+  const [showMobileChat, setShowMobileChat] = useState(false)
 
   const isAuthenticated = !sessionLoading && !!session?.user
 
@@ -228,7 +233,7 @@ function StreamPage() {
       readyPulseTimeoutRef.current = null
     }
 
-    if (!streamReady) {
+    if (!playerReady) {
       setShowReadyPulse(false)
       return
     }
@@ -245,17 +250,13 @@ function StreamPage() {
         readyPulseTimeoutRef.current = null
       }
     }
-  }, [streamReady])
+  }, [playerReady])
 
   const stream = data?.stream ?? null
-  const playback = stream?.playback ?? null
-  const fallbackPlayback = stream?.hls_url
-    ? { type: "hls", url: stream.hls_url }
-    : null
-  const activePlayback =
-    playback?.type === "webrtc" && webRtcFailed
-      ? fallbackPlayback ?? playback
-      : playback
+  // For nikiv, always use HLS directly (no WebRTC)
+  const activePlayback = username === "nikiv"
+    ? { type: "hls" as const, url: HLS_URL }
+    : stream?.playback ?? null
 
   const isHlsPlaylistLive = (manifest: string) => {
     const upper = manifest.toUpperCase()
@@ -275,32 +276,31 @@ function StreamPage() {
     let isActive = true
 
     const checkHlsViaApi = async () => {
-      console.log("[HLS Check] Calling /api/check-hls...")
       try {
         const res = await fetch("/api/check-hls", { cache: "no-store" })
         if (!isActive) return
 
         const data = await res.json()
-        console.log("[HLS Check] API response:", data)
 
         if (data.isLive) {
-          setStreamReady(true)
+          // Stream is live - set connecting state if first time
+          if (!hasConnectedOnce.current) {
+            setIsConnecting(true)
+          }
           setHlsLive(true)
         } else {
-          setStreamReady(false)
-          setHlsLive(false)
+          // Only set offline if we haven't connected yet
+          // This prevents flickering when HLS check temporarily fails
+          if (!hasConnectedOnce.current) {
+            setHlsLive(false)
+          }
         }
-      } catch (err) {
-        console.error("[HLS Check] API error:", err)
-        if (isActive) {
-          setStreamReady(false)
-          setHlsLive(false)
-        }
+      } catch {
+        // Silently ignore errors - don't change state on network issues
       }
     }
 
     // Initial check
-    setStreamReady(false)
     setHlsLive(null)
     checkHlsViaApi()
 
@@ -315,15 +315,13 @@ function StreamPage() {
 
   // For non-nikiv users, use direct HLS check
   useEffect(() => {
-    let isActive = true
     if (username === "nikiv" || !activePlayback || activePlayback.type !== "hls") {
-      return () => {
-        isActive = false
-      }
+      return
     }
 
+    let isActive = true
+
     const checkHlsLive = async () => {
-      console.log("[HLS Check] Fetching manifest:", activePlayback.url)
       try {
         const res = await fetch(activePlayback.url, {
           cache: "no-store",
@@ -332,11 +330,10 @@ function StreamPage() {
 
         if (!isActive) return
 
-        console.log("[HLS Check] Response status:", res.status, res.ok)
-
         if (!res.ok) {
-          setStreamReady(false)
-          setHlsLive(false)
+          if (!hasConnectedOnce.current) {
+            setHlsLive(false)
+          }
           return
         }
 
@@ -344,28 +341,22 @@ function StreamPage() {
         if (!isActive) return
 
         const live = isHlsPlaylistLive(manifest)
-        console.log("[HLS Check] Manifest live check:", {
-          live,
-          manifestLength: manifest.length,
-          first200: manifest.slice(0, 200)
-        })
-        setStreamReady(live)
-        setHlsLive(live)
-      } catch (err) {
-        console.error("[HLS Check] Fetch error:", err)
-        if (isActive) {
-          setStreamReady(false)
+        if (live) {
+          if (!hasConnectedOnce.current) {
+            setIsConnecting(true)
+          }
+          setHlsLive(true)
+        } else if (!hasConnectedOnce.current) {
           setHlsLive(false)
         }
+      } catch {
+        // Silently ignore fetch errors
       }
     }
 
-    // Initial check
-    setStreamReady(false)
     setHlsLive(null)
     checkHlsLive()
 
-    // Poll every 5 seconds to detect when stream goes live
     const interval = setInterval(checkHlsLive, 5000)
 
     return () => {
@@ -409,30 +400,14 @@ function StreamPage() {
     }
   }, [activePlayback?.type, stream?.hls_url])
 
-  // For nikiv, primarily use HLS live check from Cloudflare
-  // Fall back to streamLive status if HLS check hasn't completed
+  // For nikiv, use HLS live check from our API
   // For other users, use stream?.is_live from the database
-  const isLiveStatus = username === "nikiv"
-    ? (hlsLive === true || (hlsLive === null && streamLive))
+  const isActuallyLive = username === "nikiv"
+    ? hlsLive === true
     : Boolean(stream?.is_live)
-  const isActuallyLive = isLiveStatus
-  const shouldFetchSpotify = username === "nikiv" && !isActuallyLive
 
-  // Debug logging for stream status
-  useEffect(() => {
-    if (username === "nikiv") {
-      console.log("[Stream Debug]", {
-        streamLive,
-        hlsLive,
-        isLiveStatus,
-        isActuallyLive,
-        streamReady,
-        activePlaybackType: activePlayback?.type,
-        webRtcFailed,
-        hlsUrl: stream?.hls_url,
-      })
-    }
-  }, [username, streamLive, hlsLive, isLiveStatus, isActuallyLive, streamReady, activePlayback?.type, webRtcFailed, stream?.hls_url])
+  // Only show Spotify when we know stream is offline (not during initial check)
+  const shouldFetchSpotify = username === "nikiv" && !isActuallyLive && hlsLive === false
 
   useEffect(() => {
     if (!shouldFetchSpotify) {
@@ -453,9 +428,9 @@ function StreamPage() {
         if (!isActive) return
         setNowPlaying(response)
         setNowPlayingError(false)
-      } catch (err) {
+      } catch {
         if (!isActive) return
-        console.error("Failed to load Spotify now playing", err)
+        // Silently handle Spotify errors - it's not critical
         setNowPlayingError(true)
       } finally {
         if (isActive && showLoading) {
@@ -540,10 +515,6 @@ function StreamPage() {
     )
   }
 
-  const showPlayer =
-    activePlayback?.type === "cloudflare" ||
-    activePlayback?.type === "webrtc" ||
-    (activePlayback?.type === "hls" && streamReady)
   const nowPlayingTrack = nowPlaying?.track ?? null
   const nowPlayingArtists = nowPlayingTrack?.artists.length
     ? nowPlayingTrack.artists.join(", ")
@@ -554,19 +525,29 @@ function StreamPage() {
       : nowPlayingTrack.title
     : null
 
+  // Callback when player is ready
+  const handlePlayerReady = () => {
+    hasConnectedOnce.current = true
+    setIsConnecting(false)
+    setPlayerReady(true)
+  }
+
+  // Show loading state during initial check
+  const isChecking = hlsLive === null
+
   return (
     <JazzProvider>
-      <div className="h-screen w-screen bg-black flex">
+      <div className="h-screen w-screen bg-black flex flex-col md:flex-row">
         {/* Main content area */}
-        <div className="flex-1 relative">
-          {/* Free preview countdown banner for unauthenticated users */}
-          {!isAuthenticated && !previewExpired && (
-            <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-r from-purple-600/90 to-pink-600/90 backdrop-blur-sm px-4 py-2 flex items-center justify-center gap-4">
+        <div className="flex-1 relative min-h-0">
+          {/* Free preview countdown banner - hidden on mobile */}
+          {!isAuthenticated && !previewExpired && isActuallyLive && (
+            <div className="hidden md:flex absolute top-0 left-0 right-0 z-20 bg-gradient-to-r from-purple-600/90 to-pink-600/90 backdrop-blur-sm px-4 py-2 items-center justify-center gap-4">
               <span className="text-white text-sm">
                 Free preview: <span className="font-mono font-bold">{remainingFormatted}</span> remaining
               </span>
               <Link
-                to="/login"
+                to="/auth"
                 className="text-xs font-medium bg-white/20 hover:bg-white/30 text-white px-3 py-1 rounded-full transition-colors"
               >
                 Sign in for unlimited access
@@ -574,47 +555,39 @@ function StreamPage() {
             </div>
           )}
 
-          {/* Viewer count overlay */}
-          <div className="absolute top-4 right-4 z-10 rounded-lg bg-black/50 px-3 py-2 backdrop-blur-sm" style={{ top: !isAuthenticated && !previewExpired ? '3rem' : '1rem' }}>
-            <ViewerCount username={username} />
-          </div>
+          {/* Viewer count overlay - hidden on mobile */}
+          {isActuallyLive && (
+            <div className="hidden md:block absolute top-4 right-4 z-10 rounded-lg bg-black/50 px-3 py-2 backdrop-blur-sm" style={{ top: !isAuthenticated && !previewExpired ? '3rem' : '1rem' }}>
+              <ViewerCount username={username} />
+            </div>
+          )}
 
-          {isActuallyLive && activePlayback && showPlayer ? (
-          activePlayback.type === "webrtc" ? (
+          {/* Loading state - checking if stream is live */}
+          {isChecking ? (
+            <div className="flex h-full w-full flex-col items-center justify-center text-white">
+              <div className="relative">
+                <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+              </div>
+              <p className="mt-6 text-lg text-neutral-400">Checking stream status...</p>
+            </div>
+          ) : isActuallyLive && activePlayback ? (
+            /* Stream is live - show the player */
             <div className="relative h-full w-full">
-              <WebRTCPlayer
+              <VideoPlayer
                 src={activePlayback.url}
                 muted={false}
-                onReady={() => setStreamReady(true)}
-                onError={() => {
-                  setWebRtcFailed(true)
-                  setStreamReady(!fallbackPlayback)
-                }}
+                onReady={handlePlayerReady}
               />
-              {!streamReady && (
-                <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-black/70">
-                  <div className="animate-pulse text-4xl">🟡</div>
+              {/* Loading overlay while connecting */}
+              {(isConnecting || !playerReady) && (
+                <div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/80">
+                  <div className="relative">
+                    <div className="w-16 h-16 border-4 border-white/20 border-t-red-500 rounded-full animate-spin" />
+                  </div>
+                  <p className="mt-6 text-lg text-white">Connecting to stream...</p>
                 </div>
               )}
-              {showReadyPulse && (
-                <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
-                  <div className="animate-pulse text-4xl">🔴</div>
-                </div>
-              )}
-            </div>
-          ) : activePlayback.type === "cloudflare" ? (
-            <div className="relative h-full w-full">
-              <CloudflareStreamPlayer
-                uid={activePlayback.uid}
-                customerCode={activePlayback.customerCode}
-                muted={false}
-                onReady={() => setStreamReady(true)}
-              />
-              {!streamReady && (
-                <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-black/70">
-                  <div className="animate-pulse text-4xl">🟡</div>
-                </div>
-              )}
+              {/* Ready pulse */}
               {showReadyPulse && (
                 <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
                   <div className="animate-pulse text-4xl">🔴</div>
@@ -622,86 +595,113 @@ function StreamPage() {
               )}
             </div>
           ) : (
-            <div className="relative h-full w-full">
-              <VideoPlayer src={activePlayback.url} muted={false} />
-              {showReadyPulse && (
-                <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
-                  <div className="animate-pulse text-4xl">🔴</div>
+            /* Stream is offline */
+            <div className="flex h-full w-full items-center justify-center text-white pb-16 md:pb-0">
+              {shouldFetchSpotify ? (
+                <div className="mx-auto flex w-full max-w-2xl flex-col items-center px-6 text-center">
+                  <div className="flex items-center gap-2 text-xs uppercase tracking-[0.35em] text-neutral-400">
+                    <span className="h-2 w-2 rounded-full bg-neutral-500" />
+                    Offline
+                  </div>
+                  <p className="mt-6 text-2xl md:text-3xl font-semibold">
+                    Not live right now
+                  </p>
+                  <div className="mt-6 text-base md:text-lg text-neutral-300">
+                    {nowPlayingLoading ? (
+                      <span>Checking Spotify...</span>
+                    ) : nowPlaying?.isPlaying && nowPlayingTrack ? (
+                      <span>
+                        Currently playing{" "}
+                        {nowPlayingTrack.url ? (
+                          <a
+                            href={nowPlayingTrack.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-white hover:text-neutral-300 transition-colors"
+                          >
+                            {nowPlayingText ?? "Spotify"}
+                          </a>
+                        ) : (
+                          <span className="text-white">
+                            {nowPlayingText ?? "Spotify"}
+                          </span>
+                        )}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <a
+                    href="https://nikiv.dev"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-8 text-2xl md:text-3xl font-medium text-white hover:text-neutral-300 transition-colors"
+                  >
+                    nikiv.dev
+                  </a>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <p className="text-xl md:text-2xl font-medium text-neutral-400 mb-6">
+                    stream soon
+                  </p>
+                  <a
+                    href={username === "nikiv" ? "https://nikiv.dev" : "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-2xl md:text-4xl font-medium text-white hover:text-neutral-300 transition-colors"
+                  >
+                    {username === "nikiv" ? "nikiv.dev" : `@${username}`}
+                  </a>
                 </div>
               )}
             </div>
-          )
-        ) : isActuallyLive && activePlayback ? (
-          <div className="flex h-full w-full items-center justify-center text-white">
-            <div className="animate-pulse text-4xl">🟡</div>
-          </div>
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-white">
-            {shouldFetchSpotify ? (
-              <div className="mx-auto flex w-full max-w-2xl flex-col items-center px-6 text-center">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.35em] text-neutral-400">
-                  <span className="h-2 w-2 rounded-full bg-neutral-500" />
-                  Offline
-                </div>
-                <p className="mt-6 text-3xl font-semibold">
-                  Not live right now
-                </p>
-                <div className="mt-6 text-lg text-neutral-300">
-                  {nowPlayingLoading ? (
-                    <span>Checking Spotify...</span>
-                  ) : nowPlaying?.isPlaying && nowPlayingTrack ? (
-                    <span>
-                      Currently playing{" "}
-                      {nowPlayingTrack.url ? (
-                        <a
-                          href={nowPlayingTrack.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-white hover:text-neutral-300 transition-colors"
-                        >
-                          {nowPlayingText ?? "Spotify"}
-                        </a>
-                      ) : (
-                        <span className="text-white">
-                          {nowPlayingText ?? "Spotify"}
-                        </span>
-                      )}
-                    </span>
-                  ) : null}
-                </div>
-
-                <a
-                  href="https://nikiv.dev"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-8 text-3xl font-medium text-white hover:text-neutral-300 transition-colors"
-                >
-                  nikiv.dev
-                </a>
-              </div>
-            ) : (
-              <div className="text-center">
-                <p className="text-2xl font-medium text-neutral-400 mb-6">
-                  stream soon
-                </p>
-                <a
-                  href={username === "nikiv" ? "https://nikiv.dev" : "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-4xl font-medium text-white hover:text-neutral-300 transition-colors"
-                >
-                  {username === "nikiv" ? "nikiv.dev" : `@${username}`}
-                </a>
-              </div>
-            )}
-          </div>
-        )}
+          )}
         </div>
 
-        {/* Chat sidebar */}
-        <div className="w-80 h-full border-l border-white/10 flex-shrink-0">
+        {/* Desktop Chat sidebar */}
+        <div className="hidden md:block w-80 h-full border-l border-white/10 flex-shrink-0">
           <CommentBox username={username} />
         </div>
+
+        {/* Mobile bottom bar */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-black/90 backdrop-blur-sm border-t border-white/10 px-4 py-3 flex items-center justify-center gap-6">
+          {!isAuthenticated && (
+            <Link
+              to="/auth"
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 text-white text-sm font-medium"
+            >
+              <LogIn className="w-4 h-4" />
+              Sign In
+            </Link>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowMobileChat(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 text-white text-sm font-medium"
+          >
+            <MessageCircle className="w-4 h-4" />
+            Chat
+          </button>
+        </div>
+
+        {/* Mobile chat overlay */}
+        {showMobileChat && (
+          <div className="md:hidden fixed inset-0 z-40 bg-black flex flex-col">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+              <span className="text-white font-medium">Chat</span>
+              <button
+                type="button"
+                onClick={() => setShowMobileChat(false)}
+                className="p-2 text-white/70 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 min-h-0">
+              <CommentBox username={username} />
+            </div>
+          </div>
+        )}
       </div>
     </JazzProvider>
   )

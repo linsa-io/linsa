@@ -5,12 +5,14 @@ interface VideoPlayerProps {
   src: string
   autoPlay?: boolean
   muted?: boolean
+  onReady?: () => void
 }
 
 export function VideoPlayer({
   src,
   autoPlay = true,
   muted = false,
+  onReady,
 }: VideoPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -39,7 +41,17 @@ export function VideoPlayer({
     // Check if native HLS is supported (Safari)
     if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = src
-      if (autoPlay) video.play().catch(() => setIsPlaying(false))
+      if (autoPlay) {
+        video.play()
+          .then(() => {
+            setIsPlaying(true)
+            onReady?.()
+          })
+          .catch(() => setIsPlaying(false))
+      } else {
+        // Even if not autoplay, notify ready when we can play
+        video.addEventListener("canplay", () => onReady?.(), { once: true })
+      }
       return
     }
 
@@ -56,7 +68,16 @@ export function VideoPlayer({
       hls.attachMedia(video)
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        if (autoPlay) video.play().catch(() => setIsPlaying(false))
+        if (autoPlay) {
+          video.play()
+            .then(() => {
+              setIsPlaying(true)
+              onReady?.()
+            })
+            .catch(() => setIsPlaying(false))
+        } else {
+          onReady?.()
+        }
       })
 
       hls.on(Hls.Events.ERROR, (_, data) => {
@@ -87,7 +108,7 @@ export function VideoPlayer({
     } else {
       setError("HLS playback not supported in this browser")
     }
-  }, [src, autoPlay])
+  }, [src, autoPlay, onReady])
 
   useEffect(() => {
     return () => {
