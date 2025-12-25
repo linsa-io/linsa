@@ -38,19 +38,23 @@ export function VideoPlayer({
     const video = videoRef.current
     if (!video || !src) return
 
+    let hasCalledReady = false
+    const callReady = () => {
+      if (!hasCalledReady) {
+        hasCalledReady = true
+        onReady?.()
+      }
+    }
+
     // Check if native HLS is supported (Safari)
     if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = src
+      // Call ready when video can play
+      video.addEventListener("canplay", callReady, { once: true })
       if (autoPlay) {
         video.play()
-          .then(() => {
-            setIsPlaying(true)
-            onReady?.()
-          })
+          .then(() => setIsPlaying(true))
           .catch(() => setIsPlaying(false))
-      } else {
-        // Even if not autoplay, notify ready when we can play
-        video.addEventListener("canplay", () => onReady?.(), { once: true })
       }
       return
     }
@@ -68,15 +72,12 @@ export function VideoPlayer({
       hls.attachMedia(video)
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        // Call ready as soon as manifest is parsed
+        callReady()
         if (autoPlay) {
           video.play()
-            .then(() => {
-              setIsPlaying(true)
-              onReady?.()
-            })
+            .then(() => setIsPlaying(true))
             .catch(() => setIsPlaying(false))
-        } else {
-          onReady?.()
         }
       })
 

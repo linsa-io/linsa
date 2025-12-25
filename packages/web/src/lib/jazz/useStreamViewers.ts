@@ -140,8 +140,9 @@ export function useStreamViewers(username: string): UseStreamViewersResult {
   }, [presenceFeed?.$isLoaded, presenceFeed])
 
   // Sync viewer count to database for external access
+  // Skip for nikiv since it's a hardcoded user without a database entry
   useEffect(() => {
-    if (viewerCount === 0) return
+    if (viewerCount === 0 || username === "nikiv") return
 
     // Debounce the API call
     const timeout = setTimeout(() => {
@@ -149,8 +150,8 @@ export function useStreamViewers(username: string): UseStreamViewersResult {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ viewerCount }),
-      }).catch((err) => {
-        console.error("Failed to sync viewer count:", err)
+      }).catch(() => {
+        // Silently ignore sync errors - not critical
       })
     }, 1000)
 
