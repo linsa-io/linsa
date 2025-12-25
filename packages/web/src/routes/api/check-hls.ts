@@ -15,7 +15,13 @@ function isHlsPlaylistLive(manifest: string): boolean {
   const isVod = upper.includes("#EXT-X-PLAYLIST-TYPE:VOD")
   const hasSegments = upper.includes("#EXTINF") || upper.includes("#EXT-X-PART")
   const isValidManifest = upper.includes("#EXTM3U")
-  return isValidManifest && !hasEndlist && !isVod && hasSegments
+  // Master playlists have #EXT-X-STREAM-INF but no segments - they're still "live"
+  const isMasterPlaylist = upper.includes("#EXT-X-STREAM-INF")
+
+  // A manifest is live if:
+  // 1. It's a valid HLS manifest
+  // 2. AND (it's a master playlist OR it has segments without ENDLIST/VOD markers)
+  return isValidManifest && (isMasterPlaylist || (!hasEndlist && !isVod && hasSegments))
 }
 
 export const Route = createFileRoute("/api/check-hls")({
