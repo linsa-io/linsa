@@ -5,6 +5,8 @@ import { VideoPlayer } from "@/components/VideoPlayer"
 import { JazzProvider } from "@/lib/jazz/provider"
 import { CommentBox } from "@/components/CommentBox"
 import { ProfileSidebar } from "@/components/ProfileSidebar"
+import { ReplayGrid } from "@/components/ReplayGrid"
+import { PaywallBanner } from "@/components/PaywallBanner"
 import { authClient } from "@/lib/auth-client"
 import { MessageCircle, LogIn, X, User } from "lucide-react"
 
@@ -32,6 +34,11 @@ function StreamPage() {
   // Mobile overlays
   const [showMobileChat, setShowMobileChat] = useState(false)
   const [showMobileProfile, setShowMobileProfile] = useState(false)
+
+  // Replays state
+  const [replays, setReplays] = useState<any[]>([])
+  const [replaysLoading, setReplaysLoading] = useState(false)
+  const [showPaywall, setShowPaywall] = useState(false)
 
   const isAuthenticated = !!session?.user
 
@@ -148,6 +155,55 @@ function StreamPage() {
   // Determine if stream is actually live
   const isActuallyLive = hlsLive === true || Boolean(stream?.is_live)
 
+  // Fetch past stream replays when offline
+  useEffect(() => {
+    if (!data?.user || isActuallyLive || hlsLive === null) {
+      return
+    }
+
+    let isActive = true
+
+    const fetchReplays = async () => {
+      setReplaysLoading(true)
+      setShowPaywall(false)
+
+      try {
+        const res = await fetch(`/api/streams/${username}/replays`)
+
+        if (!isActive) return
+
+        if (res.status === 403) {
+          const errorData = await res.json()
+          if (errorData.code === "SUBSCRIPTION_REQUIRED") {
+            setShowPaywall(true)
+            setReplays([])
+          }
+          return
+        }
+
+        if (!res.ok) {
+          console.error("Failed to fetch replays:", res.status)
+          return
+        }
+
+        const replayData = await res.json()
+        setReplays(replayData.replays || [])
+      } catch (err) {
+        console.error("Error fetching replays:", err)
+      } finally {
+        if (isActive) {
+          setReplaysLoading(false)
+        }
+      }
+    }
+
+    fetchReplays()
+
+    return () => {
+      isActive = false
+    }
+  }, [data?.user, username, isActuallyLive, hlsLive])
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-black text-white">
@@ -236,25 +292,52 @@ function StreamPage() {
               )}
             </div>
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-white pb-16 md:pb-0">
-              <div className="mx-auto flex w-full max-w-2xl flex-col items-center px-6 text-center">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.35em] text-neutral-400">
-                  <span className="h-2 w-2 rounded-full bg-neutral-500" />
-                  Offline
+            <div className="flex h-full w-full flex-col overflow-y-auto text-white pb-16 md:pb-0">
+              {/* Offline Message */}
+              <div className="flex-shrink-0 flex items-center justify-center py-16 md:py-24">
+                <div className="mx-auto flex w-full max-w-2xl flex-col items-center px-6 text-center">
+                  <div className="flex items-center gap-2 text-xs uppercase tracking-[0.35em] text-neutral-400">
+                    <span className="h-2 w-2 rounded-full bg-neutral-500" />
+                    Offline
+                  </div>
+                  <p className="mt-6 text-2xl md:text-3xl font-semibold">
+                    Not live right now
+                  </p>
+                  {profileUser.website && (
+                    <a
+                      href={profileUser.website.startsWith("http") ? profileUser.website : `https://${profileUser.website}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-8 text-2xl md:text-3xl font-medium text-white hover:text-neutral-300 transition-colors"
+                    >
+                      {profileUser.website.replace(/^https?:\/\//, "")}
+                    </a>
+                  )}
                 </div>
-                <p className="mt-6 text-2xl md:text-3xl font-semibold">
-                  Not live right now
-                </p>
-                {profileUser.website && (
-                  <a
-                    href={profileUser.website.startsWith("http") ? profileUser.website : `https://${profileUser.website}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-8 text-2xl md:text-3xl font-medium text-white hover:text-neutral-300 transition-colors"
-                  >
-                    {profileUser.website.replace(/^https?:\/\//, "")}
-                  </a>
-                )}
+              </div>
+
+              {/* Past Streams Section */}
+              <div className="flex-shrink-0 border-t border-white/10">
+                <div className="max-w-7xl mx-auto">
+                  <div className="px-6 py-6 border-b border-white/10">
+                    <h2 className="text-xl font-bold text-white">Past Streams</h2>
+                    <p className="text-sm text-white/60 mt-1">Watch previous recordings</p>
+                  </div>
+
+                  {replaysLoading ? (
+                    <div className="flex items-center justify-center py-16">
+                      <div className="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+                    </div>
+                  ) : showPaywall ? (
+                    <PaywallBanner
+                      creatorName={profileUser.name || profileUser.username}
+                      creatorUsername={profileUser.username}
+                      isAuthenticated={isAuthenticated}
+                    />
+                  ) : (
+                    <ReplayGrid replays={replays} username={username} />
+                  )}
+                </div>
               </div>
             </div>
           )}
