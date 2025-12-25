@@ -1,18 +1,72 @@
-import { useState, type FormEvent } from "react"
+import { useState, useEffect, type FormEvent } from "react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { ShaderBackground } from "@/components/ShaderBackground"
 import { authClient } from "@/lib/auth-client"
 import { useAccount } from "jazz-tools/react"
 import { ViewerAccount, type SavedUrl } from "@/lib/jazz/schema"
-import { Link2, Plus, Trash2, ExternalLink, Video, Settings, LogOut } from "lucide-react"
+import { JazzProvider } from "@/lib/jazz/provider"
+import { Link2, Plus, Trash2, ExternalLink, Video, Settings, LogOut, Radio } from "lucide-react"
 
 // Feature flag: only this email can access stream features
 const STREAM_ENABLED_EMAIL = "nikita@nikiv.dev"
 
+function LiveNowSidebar({ isLive }: { isLive: boolean }) {
+  if (!isLive) return null
+
+  return (
+    <div className="fixed right-6 top-1/2 -translate-y-1/2 z-20">
+      <Link
+        to="/nikiv"
+        className="block p-4 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl hover:border-red-500/50 transition-all group"
+      >
+        <div className="flex items-center gap-2 mb-3">
+          <div className="relative">
+            <Radio className="w-4 h-4 text-red-500" />
+            <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+          </div>
+          <span className="text-xs font-medium text-red-400 uppercase tracking-wide">Live Now</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <img
+            src="https://nikiv.dev/nikiv.jpg"
+            alt="nikiv"
+            className="w-12 h-12 rounded-full border-2 border-red-500/50 group-hover:border-red-500 transition-colors"
+          />
+          <div>
+            <p className="font-semibold text-white">nikiv</p>
+            <p className="text-xs text-white/60">Streaming now</p>
+          </div>
+        </div>
+      </Link>
+    </div>
+  )
+}
+
 function LandingPage() {
+  const [isLive, setIsLive] = useState(false)
+
+  useEffect(() => {
+    const checkLiveStatus = async () => {
+      try {
+        const response = await fetch("https://nikiv.dev/api/stream-status")
+        if (response.ok) {
+          const data = await response.json()
+          setIsLive(Boolean(data.isLive))
+        }
+      } catch {
+        // Ignore errors, just don't show live indicator
+      }
+    }
+
+    checkLiveStatus()
+    const interval = setInterval(checkLiveStatus, 30000) // Check every 30s
+    return () => clearInterval(interval)
+  }, [])
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-black text-white">
       <ShaderBackground />
+      <LiveNowSidebar isLive={isLive} />
 
       {/* Hero Section */}
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center">
@@ -278,7 +332,11 @@ function HomePage() {
   }
 
   if (session?.user) {
-    return <Dashboard />
+    return (
+      <JazzProvider>
+        <Dashboard />
+      </JazzProvider>
+    )
   }
 
   return <LandingPage />
