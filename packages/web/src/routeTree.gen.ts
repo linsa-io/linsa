@@ -29,6 +29,7 @@ import { Route as ArchiveArchiveIdRouteImport } from './routes/archive.$archiveI
 import { Route as ApiUsersRouteImport } from './routes/api/users'
 import { Route as ApiUsageEventsRouteImport } from './routes/api/usage-events'
 import { Route as ApiStreamReplaysRouteImport } from './routes/api/stream-replays'
+import { Route as ApiStreamCommentsRouteImport } from './routes/api/stream-comments'
 import { Route as ApiStreamRouteImport } from './routes/api/stream'
 import { Route as ApiProfileRouteImport } from './routes/api/profile'
 import { Route as ApiContextItemsRouteImport } from './routes/api/context-items'
@@ -43,7 +44,9 @@ import { Route as DemoApiNamesRouteImport } from './routes/demo/api.names'
 import { Route as ApiUsersUsernameRouteImport } from './routes/api/users.username'
 import { Route as ApiUsageEventsCreateRouteImport } from './routes/api/usage-events.create'
 import { Route as ApiStripeWebhooksRouteImport } from './routes/api/stripe/webhooks'
+import { Route as ApiStripePortalRouteImport } from './routes/api/stripe/portal'
 import { Route as ApiStripeCheckoutRouteImport } from './routes/api/stripe/checkout'
+import { Route as ApiStripeBillingRouteImport } from './routes/api/stripe/billing'
 import { Route as ApiStreamsUsernameRouteImport } from './routes/api/streams.$username'
 import { Route as ApiStreamReplaysReplayIdRouteImport } from './routes/api/stream-replays.$replayId'
 import { Route as ApiSpotifyNowPlayingRouteImport } from './routes/api/spotify.now-playing'
@@ -165,6 +168,11 @@ const ApiStreamReplaysRoute = ApiStreamReplaysRouteImport.update({
   path: '/api/stream-replays',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStreamCommentsRoute = ApiStreamCommentsRouteImport.update({
+  id: '/api/stream-comments',
+  path: '/api/stream-comments',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiStreamRoute = ApiStreamRouteImport.update({
   id: '/api/stream',
   path: '/api/stream',
@@ -235,9 +243,19 @@ const ApiStripeWebhooksRoute = ApiStripeWebhooksRouteImport.update({
   path: '/api/stripe/webhooks',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStripePortalRoute = ApiStripePortalRouteImport.update({
+  id: '/api/stripe/portal',
+  path: '/api/stripe/portal',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiStripeCheckoutRoute = ApiStripeCheckoutRouteImport.update({
   id: '/api/stripe/checkout',
   path: '/api/stripe/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStripeBillingRoute = ApiStripeBillingRouteImport.update({
+  id: '/api/stripe/billing',
+  path: '/api/stripe/billing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiStreamsUsernameRoute = ApiStreamsUsernameRouteImport.update({
@@ -368,6 +386,7 @@ export interface FileRoutesByFullPath {
   '/api/context-items': typeof ApiContextItemsRoute
   '/api/profile': typeof ApiProfileRoute
   '/api/stream': typeof ApiStreamRoute
+  '/api/stream-comments': typeof ApiStreamCommentsRoute
   '/api/stream-replays': typeof ApiStreamReplaysRouteWithChildren
   '/api/usage-events': typeof ApiUsageEventsRouteWithChildren
   '/api/users': typeof ApiUsersRouteWithChildren
@@ -387,7 +406,9 @@ export interface FileRoutesByFullPath {
   '/api/spotify/now-playing': typeof ApiSpotifyNowPlayingRoute
   '/api/stream-replays/$replayId': typeof ApiStreamReplaysReplayIdRoute
   '/api/streams/$username': typeof ApiStreamsUsernameRouteWithChildren
+  '/api/stripe/billing': typeof ApiStripeBillingRoute
   '/api/stripe/checkout': typeof ApiStripeCheckoutRoute
+  '/api/stripe/portal': typeof ApiStripePortalRoute
   '/api/stripe/webhooks': typeof ApiStripeWebhooksRoute
   '/api/usage-events/create': typeof ApiUsageEventsCreateRoute
   '/api/users/username': typeof ApiUsersUsernameRoute
@@ -424,6 +445,7 @@ export interface FileRoutesByTo {
   '/api/context-items': typeof ApiContextItemsRoute
   '/api/profile': typeof ApiProfileRoute
   '/api/stream': typeof ApiStreamRoute
+  '/api/stream-comments': typeof ApiStreamCommentsRoute
   '/api/stream-replays': typeof ApiStreamReplaysRouteWithChildren
   '/api/usage-events': typeof ApiUsageEventsRouteWithChildren
   '/api/users': typeof ApiUsersRouteWithChildren
@@ -443,7 +465,9 @@ export interface FileRoutesByTo {
   '/api/spotify/now-playing': typeof ApiSpotifyNowPlayingRoute
   '/api/stream-replays/$replayId': typeof ApiStreamReplaysReplayIdRoute
   '/api/streams/$username': typeof ApiStreamsUsernameRouteWithChildren
+  '/api/stripe/billing': typeof ApiStripeBillingRoute
   '/api/stripe/checkout': typeof ApiStripeCheckoutRoute
+  '/api/stripe/portal': typeof ApiStripePortalRoute
   '/api/stripe/webhooks': typeof ApiStripeWebhooksRoute
   '/api/usage-events/create': typeof ApiUsageEventsCreateRoute
   '/api/users/username': typeof ApiUsersUsernameRoute
@@ -482,6 +506,7 @@ export interface FileRoutesById {
   '/api/context-items': typeof ApiContextItemsRoute
   '/api/profile': typeof ApiProfileRoute
   '/api/stream': typeof ApiStreamRoute
+  '/api/stream-comments': typeof ApiStreamCommentsRoute
   '/api/stream-replays': typeof ApiStreamReplaysRouteWithChildren
   '/api/usage-events': typeof ApiUsageEventsRouteWithChildren
   '/api/users': typeof ApiUsersRouteWithChildren
@@ -501,7 +526,9 @@ export interface FileRoutesById {
   '/api/spotify/now-playing': typeof ApiSpotifyNowPlayingRoute
   '/api/stream-replays/$replayId': typeof ApiStreamReplaysReplayIdRoute
   '/api/streams/$username': typeof ApiStreamsUsernameRouteWithChildren
+  '/api/stripe/billing': typeof ApiStripeBillingRoute
   '/api/stripe/checkout': typeof ApiStripeCheckoutRoute
+  '/api/stripe/portal': typeof ApiStripePortalRoute
   '/api/stripe/webhooks': typeof ApiStripeWebhooksRoute
   '/api/usage-events/create': typeof ApiUsageEventsCreateRoute
   '/api/users/username': typeof ApiUsersUsernameRoute
@@ -541,6 +568,7 @@ export interface FileRouteTypes {
     | '/api/context-items'
     | '/api/profile'
     | '/api/stream'
+    | '/api/stream-comments'
     | '/api/stream-replays'
     | '/api/usage-events'
     | '/api/users'
@@ -560,7 +588,9 @@ export interface FileRouteTypes {
     | '/api/spotify/now-playing'
     | '/api/stream-replays/$replayId'
     | '/api/streams/$username'
+    | '/api/stripe/billing'
     | '/api/stripe/checkout'
+    | '/api/stripe/portal'
     | '/api/stripe/webhooks'
     | '/api/usage-events/create'
     | '/api/users/username'
@@ -597,6 +627,7 @@ export interface FileRouteTypes {
     | '/api/context-items'
     | '/api/profile'
     | '/api/stream'
+    | '/api/stream-comments'
     | '/api/stream-replays'
     | '/api/usage-events'
     | '/api/users'
@@ -616,7 +647,9 @@ export interface FileRouteTypes {
     | '/api/spotify/now-playing'
     | '/api/stream-replays/$replayId'
     | '/api/streams/$username'
+    | '/api/stripe/billing'
     | '/api/stripe/checkout'
+    | '/api/stripe/portal'
     | '/api/stripe/webhooks'
     | '/api/usage-events/create'
     | '/api/users/username'
@@ -654,6 +687,7 @@ export interface FileRouteTypes {
     | '/api/context-items'
     | '/api/profile'
     | '/api/stream'
+    | '/api/stream-comments'
     | '/api/stream-replays'
     | '/api/usage-events'
     | '/api/users'
@@ -673,7 +707,9 @@ export interface FileRouteTypes {
     | '/api/spotify/now-playing'
     | '/api/stream-replays/$replayId'
     | '/api/streams/$username'
+    | '/api/stripe/billing'
     | '/api/stripe/checkout'
+    | '/api/stripe/portal'
     | '/api/stripe/webhooks'
     | '/api/usage-events/create'
     | '/api/users/username'
@@ -712,6 +748,7 @@ export interface RootRouteChildren {
   ApiContextItemsRoute: typeof ApiContextItemsRoute
   ApiProfileRoute: typeof ApiProfileRoute
   ApiStreamRoute: typeof ApiStreamRoute
+  ApiStreamCommentsRoute: typeof ApiStreamCommentsRoute
   ApiStreamReplaysRoute: typeof ApiStreamReplaysRouteWithChildren
   ApiUsageEventsRoute: typeof ApiUsageEventsRouteWithChildren
   ApiUsersRoute: typeof ApiUsersRouteWithChildren
@@ -723,7 +760,9 @@ export interface RootRouteChildren {
   ApiFlowgladSplatRoute: typeof ApiFlowgladSplatRoute
   ApiSpotifyNowPlayingRoute: typeof ApiSpotifyNowPlayingRoute
   ApiStreamsUsernameRoute: typeof ApiStreamsUsernameRouteWithChildren
+  ApiStripeBillingRoute: typeof ApiStripeBillingRoute
   ApiStripeCheckoutRoute: typeof ApiStripeCheckoutRoute
+  ApiStripePortalRoute: typeof ApiStripePortalRoute
   ApiStripeWebhooksRoute: typeof ApiStripeWebhooksRoute
   DemoApiNamesRoute: typeof DemoApiNamesRoute
   DemoStartApiRequestRoute: typeof DemoStartApiRequestRoute
@@ -876,6 +915,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiStreamReplaysRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/stream-comments': {
+      id: '/api/stream-comments'
+      path: '/api/stream-comments'
+      fullPath: '/api/stream-comments'
+      preLoaderRoute: typeof ApiStreamCommentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/stream': {
       id: '/api/stream'
       path: '/api/stream'
@@ -974,11 +1020,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiStripeWebhooksRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/stripe/portal': {
+      id: '/api/stripe/portal'
+      path: '/api/stripe/portal'
+      fullPath: '/api/stripe/portal'
+      preLoaderRoute: typeof ApiStripePortalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/stripe/checkout': {
       id: '/api/stripe/checkout'
       path: '/api/stripe/checkout'
       fullPath: '/api/stripe/checkout'
       preLoaderRoute: typeof ApiStripeCheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/stripe/billing': {
+      id: '/api/stripe/billing'
+      path: '/api/stripe/billing'
+      fullPath: '/api/stripe/billing'
+      preLoaderRoute: typeof ApiStripeBillingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/streams/$username': {
@@ -1281,6 +1341,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiContextItemsRoute: ApiContextItemsRoute,
   ApiProfileRoute: ApiProfileRoute,
   ApiStreamRoute: ApiStreamRoute,
+  ApiStreamCommentsRoute: ApiStreamCommentsRoute,
   ApiStreamReplaysRoute: ApiStreamReplaysRouteWithChildren,
   ApiUsageEventsRoute: ApiUsageEventsRouteWithChildren,
   ApiUsersRoute: ApiUsersRouteWithChildren,
@@ -1292,7 +1353,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiFlowgladSplatRoute: ApiFlowgladSplatRoute,
   ApiSpotifyNowPlayingRoute: ApiSpotifyNowPlayingRoute,
   ApiStreamsUsernameRoute: ApiStreamsUsernameRouteWithChildren,
+  ApiStripeBillingRoute: ApiStripeBillingRoute,
   ApiStripeCheckoutRoute: ApiStripeCheckoutRoute,
+  ApiStripePortalRoute: ApiStripePortalRoute,
   ApiStripeWebhooksRoute: ApiStripeWebhooksRoute,
   DemoApiNamesRoute: DemoApiNamesRoute,
   DemoStartApiRequestRoute: DemoStartApiRequestRoute,

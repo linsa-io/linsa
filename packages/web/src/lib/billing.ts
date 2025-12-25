@@ -508,3 +508,23 @@ export function formatBytes(bytes: number): string {
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`
 }
+
+/**
+ * Check if a user has an active subscription (server-side only)
+ */
+export async function hasActiveSubscription(userId: string): Promise<boolean> {
+  const database = db()
+
+  const [subscription] = await database
+    .select()
+    .from(stripe_subscriptions)
+    .where(
+      and(
+        eq(stripe_subscriptions.user_id, userId),
+        eq(stripe_subscriptions.status, "active")
+      )
+    )
+    .limit(1)
+
+  return !!subscription
+}

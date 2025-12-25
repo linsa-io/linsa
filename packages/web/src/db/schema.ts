@@ -298,6 +298,25 @@ export const selectStreamReplaySchema = createSelectSchema(stream_replays)
 export type StreamReplay = z.infer<typeof selectStreamReplaySchema>
 
 // =============================================================================
+// Stream Comments (live chat for streams)
+// =============================================================================
+
+export const stream_comments = pgTable("stream_comments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  stream_username: text("stream_username").notNull(), // Username of the streamer
+  user_id: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  created_at: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+})
+
+export const selectStreamCommentSchema = createSelectSchema(stream_comments)
+export type StreamComment = z.infer<typeof selectStreamCommentSchema>
+
+// =============================================================================
 // Stripe Billing
 // =============================================================================
 

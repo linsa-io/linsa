@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { createFileRoute } from "@tanstack/react-router"
-import { Mail, Apple, Github } from "lucide-react"
+import { Mail } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
 
 export const Route = createFileRoute("/auth")({
@@ -9,29 +9,6 @@ export const Route = createFileRoute("/auth")({
 })
 
 type Step = "email" | "otp"
-
-function ChromeIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <circle cx="12" cy="12" r="10" />
-      <circle cx="12" cy="12" r="4" />
-      <line x1="21.17" y1="8" x2="12" y2="8" />
-      <line x1="3.95" y1="6.06" x2="8.54" y2="14" />
-      <line x1="10.88" y1="21.94" x2="15.46" y2="14" />
-    </svg>
-  )
-}
 
 function AuthPage() {
   const [step, setStep] = useState<Step>("email")
@@ -252,38 +229,6 @@ function AuthPage() {
               </div>
             </form>
           )}
-
-          <div className="mt-8 border-t border-white/10 pt-6">
-            <p className="text-xs uppercase tracking-[0.3em] text-white/40">
-              Coming soon
-            </p>
-            <div className="mt-4 grid grid-cols-3 gap-3">
-              <button
-                type="button"
-                disabled
-                className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white/70 transition hover:bg-white/10 disabled:cursor-not-allowed"
-              >
-                <Apple className="h-4 w-4" aria-hidden="true" />
-                Apple
-              </button>
-              <button
-                type="button"
-                disabled
-                className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white/70 transition hover:bg-white/10 disabled:cursor-not-allowed"
-              >
-                <ChromeIcon className="h-4 w-4" />
-                Google
-              </button>
-              <button
-                type="button"
-                disabled
-                className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white/70 transition hover:bg-white/10 disabled:cursor-not-allowed"
-              >
-                <Github className="h-4 w-4" aria-hidden="true" />
-                GitHub
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>

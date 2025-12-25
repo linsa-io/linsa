@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, Link } from "@tanstack/react-router"
 import { ShaderBackground } from "@/components/ShaderBackground"
 
 const galleryItems = [
@@ -25,6 +25,12 @@ function LandingPage() {
         <p className="mt-4 text-xl text-white/80 drop-shadow-lg">
           Save anything privately. Share it.
         </p>
+        <Link
+          to="/auth"
+          className="mt-8 rounded-full bg-white px-8 py-3 text-lg font-semibold text-black transition-all hover:bg-white/90 hover:scale-105"
+        >
+          Sign up
+        </Link>
         <div className="mt-6 flex items-center gap-4">
           <a
             href="https://x.com/linsa_io"

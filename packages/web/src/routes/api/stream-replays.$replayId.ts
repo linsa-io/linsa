@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { and, eq } from "drizzle-orm"
 import { db } from "@/db/connection"
 import { getAuth } from "@/lib/auth"
+import { hasActiveSubscription } from "@/lib/billing"
 import { stream_replays, streams } from "@/db/schema"
 
 const json = (data: unknown, status = 200) =>
@@ -80,6 +81,8 @@ const handleGet = async ({
   params: { replayId: string }
 }) => {
   const database = db()
+  const auth = getAuth()
+  const session = await auth.api.getSession({ headers: request.headers })
 
   const replay = await database.query.stream_replays.findFirst({
     where: eq(stream_replays.id, params.replayId),
@@ -89,8 +92,31 @@ const handleGet = async ({
     return json({ error: "Replay not found" }, 404)
   }
 
-  const isOwner = await canAccessReplay(request, replay.user_id)
-  if (!isOwner && (!replay.is_public || replay.status !== "ready")) {
+  const isOwner = session?.user?.id === replay.user_id
+
+  // Owners can always view their own replays
+  if (isOwner) {
+    return json({ replay })
+  }
+
+  // Non-owners need subscription to view replays
+  if (!session?.user?.id) {
+    return json(
+      { error: "Subscription required", code: "SUBSCRIPTION_REQUIRED" },
+      403
+    )
+  }
+
+  const hasSubscription = await hasActiveSubscription(session.user.id)
+  if (!hasSubscription) {
+    return json(
+      { error: "Subscription required", code: "SUBSCRIPTION_REQUIRED" },
+      403
+    )
+  }
+
+  // With subscription, can view public ready replays
+  if (!replay.is_public || replay.status !== "ready") {
     return json({ error: "Forbidden" }, 403)
   }
 

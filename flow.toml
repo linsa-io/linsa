@@ -129,6 +129,116 @@ dependencies = ["node", "pnpm"]
 shortcuts = ["s"]
 
 [[tasks]]
+name = "setup-worker-admin"
+interactive = true
+command = """
+set -euo pipefail
+
+ROOT="$(pwd)"
+WORKER_DIR="$ROOT/packages/worker"
+WORKER_VARS="$WORKER_DIR/.dev.vars"
+WEB_ENV_FILE="$ROOT/packages/web/.env"
+
+echo "=== Worker Admin Setup ==="
+echo ""
+
+if [ ! -f "$WORKER_VARS" ]; then
+  touch "$WORKER_VARS"
+  echo "Created $WORKER_VARS"
+else
+  echo "$WORKER_VARS exists"
+fi
+
+CURRENT_ADMIN=$(grep -E "^ADMIN_API_KEY=" "$WORKER_VARS" 2>/dev/null | tail -1 | cut -d'=' -f2- || true)
+if [ -z "$CURRENT_ADMIN" ]; then
+  echo ""
+  read -s -p "Enter ADMIN_API_KEY (leave empty to generate): " ADMIN_API_KEY
+  echo ""
+  if [ -z "$ADMIN_API_KEY" ]; then
+    ADMIN_API_KEY=$(openssl rand -hex 32)
+    echo "Generated ADMIN_API_KEY."
+  fi
+else
+  ADMIN_API_KEY="$CURRENT_ADMIN"
+  echo "ADMIN_API_KEY already set in .dev.vars"
+fi
+
+CURRENT_DB=$(grep -E "^DATABASE_URL=" "$WORKER_VARS" 2>/dev/null | tail -1 | cut -d'=' -f2- || true)
+DATABASE_URL=""
+if [ -n "$CURRENT_DB" ] && [[ "$CURRENT_DB" != *"user:password"* ]]; then
+  DATABASE_URL="$CURRENT_DB"
+  echo "DATABASE_URL already set in .dev.vars"
+else
+  WEB_DB=""
+  if [ -f "$WEB_ENV_FILE" ]; then
+    WEB_DB=$(grep -E "^DATABASE_URL=" "$WEB_ENV_FILE" 2>/dev/null | cut -d'=' -f2- || true)
+  fi
+
+  if [ -n "$WEB_DB" ] && [[ "$WEB_DB" != *"user:password"* ]]; then
+    read -p "Use DATABASE_URL from packages/web/.env for worker? (Y/n): " USE_WEB_DB
+    if [ -z "$USE_WEB_DB" ] || [ "$USE_WEB_DB" = "y" ] || [ "$USE_WEB_DB" = "Y" ]; then
+      DATABASE_URL="$WEB_DB"
+    fi
+  fi
+
+  if [ -z "$DATABASE_URL" ]; then
+    read -p "Paste DATABASE_URL for worker (optional, press Enter to skip): " DATABASE_URL
+  fi
+fi
+
+ADMIN_API_KEY="$ADMIN_API_KEY" DATABASE_URL="$DATABASE_URL" node - <<'NODE'
+const fs = require("fs")
+const path = require("path")
+
+const varsPath = path.join("packages", "worker", ".dev.vars")
+let text = ""
+if (fs.existsSync(varsPath)) {
+  text = fs.readFileSync(varsPath, "utf8")
+}
+
+const ensureKey = (key, value) => {
+  if (!value) return
+  const pattern = new RegExp(`^${key}=.*$`, "m")
+  if (pattern.test(text)) {
+    text = text.replace(pattern, `${key}=${value}`)
+  } else {
+    if (text.length > 0 && !text.endsWith("\n")) {
+      text += "\n"
+    }
+    text += `${key}=${value}\n`
+  }
+  console.log(`  Set ${key}`)
+}
+
+ensureKey("ADMIN_API_KEY", process.env.ADMIN_API_KEY || "")
+ensureKey("DATABASE_URL", process.env.DATABASE_URL || "")
+
+fs.writeFileSync(varsPath, text)
+NODE
+
+echo ""
+read -p "Set ADMIN_API_KEY for production worker via wrangler now? (y/N): " SET_PROD
+if [ "$SET_PROD" = "y" ] || [ "$SET_PROD" = "Y" ]; then
+  cd "$WORKER_DIR"
+  if ! pnpm exec wrangler whoami >/dev/null 2>&1; then
+    echo "Not logged in to Cloudflare. Running wrangler login..."
+    pnpm exec wrangler login
+  fi
+
+  echo "$ADMIN_API_KEY" | pnpm exec wrangler secret put ADMIN_API_KEY
+  echo "ADMIN_API_KEY set for worker"
+  cd "$ROOT"
+fi
+
+echo ""
+echo "Worker admin setup complete."
+echo "Run 'pnpm -C packages/worker dev' to start the worker."
+"""
+description = "Set up worker admin API env (.dev.vars) and optionally push ADMIN_API_KEY to Cloudflare."
+dependencies = ["node", "pnpm"]
+shortcuts = ["swa"]
+
+[[tasks]]
 name = "seed"
 command = """
 set -euo pipefail

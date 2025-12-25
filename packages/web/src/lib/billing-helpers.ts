@@ -1,4 +1,11 @@
-import type { BillingWithChecks, Price, UsageMeter, Product } from "@flowglad/server"
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type BillingWithChecks = any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Price = any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type UsageMeter = any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Product = any
 
 /**
  * Computes the total usage credits for a given usage meter slug from the current subscription's feature items.

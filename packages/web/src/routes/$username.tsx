@@ -7,6 +7,7 @@ import { WebRTCPlayer } from "@/components/WebRTCPlayer"
 import { resolveStreamPlayback } from "@/lib/stream/playback"
 import { JazzProvider } from "@/lib/jazz/provider"
 import { ViewerCount } from "@/components/ViewerCount"
+import { CommentBox } from "@/components/CommentBox"
 import {
   getSpotifyNowPlaying,
   type SpotifyNowPlayingResponse,
@@ -359,13 +360,15 @@ function StreamPage() {
 
   return (
     <JazzProvider>
-      <div className="h-screen w-screen bg-black">
-        {/* Viewer count overlay */}
-        <div className="absolute top-4 right-4 z-10 rounded-lg bg-black/50 px-3 py-2 backdrop-blur-sm">
-          <ViewerCount username={username} />
-        </div>
+      <div className="h-screen w-screen bg-black flex">
+        {/* Main content area */}
+        <div className="flex-1 relative">
+          {/* Viewer count overlay */}
+          <div className="absolute top-4 right-4 z-10 rounded-lg bg-black/50 px-3 py-2 backdrop-blur-sm">
+            <ViewerCount username={username} />
+          </div>
 
-        {isActuallyLive && activePlayback && showPlayer ? (
+          {isActuallyLive && activePlayback && showPlayer ? (
           activePlayback.type === "webrtc" ? (
             <div className="relative h-full w-full">
               <WebRTCPlayer
@@ -486,6 +489,12 @@ function StreamPage() {
             )}
           </div>
         )}
+        </div>
+
+        {/* Chat sidebar */}
+        <div className="w-80 h-full border-l border-white/10 flex-shrink-0">
+          <CommentBox username={username} />
+        </div>
       </div>
     </JazzProvider>
   )

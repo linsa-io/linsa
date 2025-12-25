@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { and, desc, eq } from "drizzle-orm"
 import { db } from "@/db/connection"
 import { getAuth } from "@/lib/auth"
+import { hasActiveSubscription } from "@/lib/billing"
 import { stream_replays, users } from "@/db/schema"
 
 const json = (data: unknown, status = 200) =>
@@ -37,17 +38,52 @@ const handleGet = async ({
   const session = await auth.api.getSession({ headers: request.headers })
   const isOwner = session?.user?.id === user.id
 
-  const conditions = [eq(stream_replays.user_id, user.id)]
-  if (!isOwner) {
-    conditions.push(eq(stream_replays.is_public, true))
-    conditions.push(eq(stream_replays.status, "ready"))
+  // Owners can always see their own replays
+  if (isOwner) {
+    try {
+      const replays = await database
+        .select()
+        .from(stream_replays)
+        .where(eq(stream_replays.user_id, user.id))
+        .orderBy(
+          desc(stream_replays.started_at),
+          desc(stream_replays.created_at)
+        )
+      return json({ replays })
+    } catch (error) {
+      console.error("[stream-replays] Error fetching replays:", error)
+      return json({ error: "Failed to fetch replays" }, 500)
+    }
   }
 
+  // Non-owners need subscription to view replays
+  if (!session?.user?.id) {
+    return json(
+      { error: "Subscription required", code: "SUBSCRIPTION_REQUIRED" },
+      403
+    )
+  }
+
+  const hasSubscription = await hasActiveSubscription(session.user.id)
+  if (!hasSubscription) {
+    return json(
+      { error: "Subscription required", code: "SUBSCRIPTION_REQUIRED" },
+      403
+    )
+  }
+
+  // With subscription, can view public ready replays
   try {
     const replays = await database
       .select()
       .from(stream_replays)
-      .where(and(...conditions))
+      .where(
+        and(
+          eq(stream_replays.user_id, user.id),
+          eq(stream_replays.is_public, true),
+          eq(stream_replays.status, "ready")
+        )
+      )
       .orderBy(desc(stream_replays.started_at), desc(stream_replays.created_at))
 
     return json({ replays })

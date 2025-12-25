@@ -461,7 +461,8 @@ app.post("/api/v1/admin/chat/messages", async (c) => {
 app.post("/api/v1/admin/context-items", async (c) => {
   const body = await parseBody(c)
   const userId = typeof body.userId === "string" ? body.userId.trim() : ""
-  const type = typeof body.type === "string" ? body.type.trim() : ""
+  const type =
+    typeof body.type === "string" ? body.type.trim().toLowerCase() : ""
   const url = typeof body.url === "string" ? body.url.trim() : null
   const name =
     typeof body.name === "string" && body.name.trim()
@@ -537,7 +538,7 @@ app.patch("/api/v1/admin/context-items/:itemId", async (c) => {
 
   if (typeof body.name === "string") updates.name = body.name
   if (typeof body.type === "string") {
-    const nextType = body.type.trim()
+    const nextType = body.type.trim().toLowerCase()
     if (nextType !== "url" && nextType !== "file") {
       return c.json({ error: "type must be 'url' or 'file'" }, 400)
     }
