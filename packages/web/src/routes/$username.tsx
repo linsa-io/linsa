@@ -49,35 +49,9 @@ const NIKIV_DATA: StreamPageData = {
   },
 }
 
-// Free preview duration in milliseconds (5 minutes)
-const FREE_PREVIEW_MS = 5 * 60 * 1000
-const STORAGE_KEY = "linsa_stream_watch_time"
-
-function getWatchTime(): number {
-  if (typeof window === "undefined") return 0
-  const stored = localStorage.getItem(STORAGE_KEY)
-  if (!stored) return 0
-  try {
-    const data = JSON.parse(stored)
-    // Reset if older than 24 hours
-    if (Date.now() - data.startedAt > 24 * 60 * 60 * 1000) {
-      localStorage.removeItem(STORAGE_KEY)
-      return 0
-    }
-    return data.watchTime || 0
-  } catch {
-    return 0
-  }
-}
-
-function saveWatchTime(watchTime: number, startedAt: number) {
-  if (typeof window === "undefined") return
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ watchTime, startedAt }))
-}
-
 function StreamPage() {
   const { username } = Route.useParams()
-  const { data: session, isPending: sessionLoading } = authClient.useSession()
+  const { data: session } = authClient.useSession()
   const [data, setData] = useState<StreamPageData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -94,50 +68,10 @@ function StreamPage() {
   const readyPulseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hasConnectedOnce = useRef(false)
 
-  // Free preview tracking
-  const [watchTime, setWatchTime] = useState(0)
-  const [previewExpired, setPreviewExpired] = useState(false)
-  const watchStartRef = useRef<number | null>(null)
-
   // Mobile chat overlay
   const [showMobileChat, setShowMobileChat] = useState(false)
 
-  const isAuthenticated = !sessionLoading && !!session?.user
-
-  // Track watch time for unauthenticated users
-  useEffect(() => {
-    if (isAuthenticated || sessionLoading) return
-
-    // Initialize from localStorage
-    const savedTime = getWatchTime()
-    setWatchTime(savedTime)
-    if (savedTime >= FREE_PREVIEW_MS) {
-      setPreviewExpired(true)
-      return
-    }
-
-    watchStartRef.current = Date.now()
-    const startedAt = Date.now() - savedTime
-
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - (watchStartRef.current || Date.now()) + savedTime
-      setWatchTime(elapsed)
-      saveWatchTime(elapsed, startedAt)
-
-      if (elapsed >= FREE_PREVIEW_MS) {
-        setPreviewExpired(true)
-        clearInterval(interval)
-      }
-    }, 1000)
-
-    return () => {
-      clearInterval(interval)
-      if (watchStartRef.current) {
-        const elapsed = Date.now() - watchStartRef.current + savedTime
-        saveWatchTime(elapsed, startedAt)
-      }
-    }
-  }, [isAuthenticated, sessionLoading])
+  const isAuthenticated = !!session?.user
 
   useEffect(() => {
     let isActive = true
@@ -426,35 +360,6 @@ function StreamPage() {
       clearInterval(interval)
     }
   }, [shouldFetchSpotify])
-
-  // Auth gate - show preview for 5 min, then require login
-  if (sessionLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-black text-white">
-        <div className="text-xl">Loading...</div>
-      </div>
-    )
-  }
-
-  // Show auth wall when preview expires for unauthenticated users
-  if (!isAuthenticated && previewExpired) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-black text-white">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold mb-4">Free preview ended</h1>
-          <p className="text-neutral-400 mb-8">
-            Sign in to continue watching this stream
-          </p>
-          <Link
-            to="/login"
-            className="inline-block rounded-lg bg-white px-6 py-3 font-medium text-black hover:bg-neutral-200 transition-colors"
-          >
-            Sign in to continue
-          </Link>
-        </div>
-      </div>
-    )
-  }
 
   if (loading) {
     return (
