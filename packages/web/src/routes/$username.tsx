@@ -274,36 +274,45 @@ function StreamPage() {
       }
     }
 
-    setStreamReady(false)
-    setHlsLive(null)
-    console.log("[HLS Check] Fetching manifest:", activePlayback.url)
-    fetch(activePlayback.url)
-      .then(async (res) => {
-        if (isActive) {
-          console.log("[HLS Check] Response status:", res.status, res.ok)
-          if (!res.ok) {
+    const checkHlsLive = () => {
+      console.log("[HLS Check] Fetching manifest:", activePlayback.url)
+      fetch(activePlayback.url, { cache: "no-store" })
+        .then(async (res) => {
+          if (isActive) {
+            console.log("[HLS Check] Response status:", res.status, res.ok)
+            if (!res.ok) {
+              setStreamReady(false)
+              setHlsLive(false)
+              return
+            }
+            const manifest = await res.text()
+            if (!isActive) return
+            const live = isHlsPlaylistLive(manifest)
+            console.log("[HLS Check] Manifest live check:", { live, manifestLength: manifest.length, first200: manifest.slice(0, 200) })
+            setStreamReady(live)
+            setHlsLive(live)
+          }
+        })
+        .catch((err) => {
+          console.error("[HLS Check] Fetch error:", err)
+          if (isActive) {
             setStreamReady(false)
             setHlsLive(false)
-            return
           }
-          const manifest = await res.text()
-          if (!isActive) return
-          const live = isHlsPlaylistLive(manifest)
-          console.log("[HLS Check] Manifest live check:", { live, manifestLength: manifest.length, first200: manifest.slice(0, 200) })
-          setStreamReady(live)
-          setHlsLive(live)
-        }
-      })
-      .catch((err) => {
-        console.error("[HLS Check] Fetch error:", err)
-        if (isActive) {
-          setStreamReady(false)
-          setHlsLive(false)
-        }
-      })
+        })
+    }
+
+    // Initial check
+    setStreamReady(false)
+    setHlsLive(null)
+    checkHlsLive()
+
+    // Poll every 5 seconds to detect when stream goes live
+    const interval = setInterval(checkHlsLive, 5000)
 
     return () => {
       isActive = false
+      clearInterval(interval)
     }
   }, [
     activePlayback?.type,
@@ -341,11 +350,13 @@ function StreamPage() {
     }
   }, [activePlayback?.type, stream?.hls_url])
 
-  // For nikiv, use streamLive from the polled API status
+  // For nikiv, primarily use HLS live check from Cloudflare
+  // Fall back to streamLive status if HLS check hasn't completed
   // For other users, use stream?.is_live from the database
-  const isLiveStatus = username === "nikiv" ? streamLive : Boolean(stream?.is_live)
-  const isActuallyLive =
-    isLiveStatus && (activePlayback?.type !== "hls" || hlsLive !== false)
+  const isLiveStatus = username === "nikiv"
+    ? (hlsLive === true || (hlsLive === null && streamLive))
+    : Boolean(stream?.is_live)
+  const isActuallyLive = isLiveStatus
   const shouldFetchSpotify = username === "nikiv" && !isActuallyLive
 
   // Debug logging for stream status
