@@ -2,20 +2,16 @@ import { useEffect, useRef, useState } from "react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { getStreamByUsername, type StreamPageData } from "@/lib/stream/db"
 import { VideoPlayer } from "@/components/VideoPlayer"
-import { CloudflareStreamPlayer } from "@/components/CloudflareStreamPlayer"
-import { WebRTCPlayer } from "@/components/WebRTCPlayer"
-import { LiveNowSidebar } from "@/components/LiveNowSidebar"
 import { resolveStreamPlayback } from "@/lib/stream/playback"
 import { JazzProvider } from "@/lib/jazz/provider"
-import { ViewerCount } from "@/components/ViewerCount"
 import { CommentBox } from "@/components/CommentBox"
+import { ProfileSidebar } from "@/components/ProfileSidebar"
 import {
   getSpotifyNowPlaying,
   type SpotifyNowPlayingResponse,
 } from "@/lib/spotify/now-playing"
-import { getStreamStatus } from "@/lib/stream/status"
 import { authClient } from "@/lib/auth-client"
-import { MessageCircle, LogIn, X } from "lucide-react"
+import { MessageCircle, LogIn, X, User } from "lucide-react"
 
 export const Route = createFileRoute("/$username")({
   ssr: false,
@@ -29,9 +25,13 @@ function makeNikivData(hlsUrl: string): StreamPageData {
   return {
     user: {
       id: "nikiv",
-      name: "Nikita",
+      name: "Nikita Voloboev",
       username: "nikiv",
-      image: null,
+      image: "https://nikiv.dev/nikiv.jpg",
+      bio: "Building in public. Making tools I want to exist.",
+      website: "nikiv.dev",
+      location: null,
+      joinedAt: "2024-01-01",
     },
     stream: {
       id: "nikiv-stream",
@@ -77,12 +77,8 @@ function StreamPage() {
     let isActive = true
 
     // Special handling for nikiv - URL comes from API (secret)
+    // Data and loading state are handled by the HLS check effect
     if (username === "nikiv") {
-      // Data will be set when we get the HLS URL from the API
-      if (hlsUrl) {
-        setData(makeNikivData(hlsUrl))
-      }
-      setLoading(false)
       return () => {
         isActive = false
       }
@@ -190,6 +186,7 @@ function StreamPage() {
     if (username !== "nikiv") return
 
     let isActive = true
+    let isFirstCheck = true
 
     const checkHlsViaApi = async () => {
       try {
@@ -219,6 +216,12 @@ function StreamPage() {
         }
       } catch {
         // Silently ignore errors - don't change state on network issues
+      } finally {
+        // Mark loading as done after first check completes
+        if (isActive && isFirstCheck) {
+          isFirstCheck = false
+          setLoading(false)
+        }
       }
     }
 
