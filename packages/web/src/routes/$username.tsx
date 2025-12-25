@@ -22,31 +22,32 @@ export const Route = createFileRoute("/$username")({
   component: StreamPage,
 })
 
-// Cloudflare Stream HLS URL
-const HLS_URL = "https://customer-xctsztqzu046isdc.cloudflarestream.com/1b0363e3f8d54ddc639dc85737f8c28a/manifest/video.m3u8"
-const NIKIV_PLAYBACK = resolveStreamPlayback({ hlsUrl: HLS_URL, webrtcUrl: null })
+// Default Cloudflare Stream HLS URL (will be overridden by API)
+const DEFAULT_HLS_URL = "https://customer-xctsztqzu046isdc.cloudflarestream.com/cd56ef73791c628c252cd290ee710275/manifest/video.m3u8"
 const READY_PULSE_MS = 1200
 
-// Hardcoded user for nikiv
-const NIKIV_DATA: StreamPageData = {
-  user: {
-    id: "nikiv",
-    name: "Nikita",
-    username: "nikiv",
-    image: null,
-  },
-  stream: {
-    id: "nikiv-stream",
-    title: "Live Coding",
-    description: "Building in public",
-    is_live: false, // Set to true when actually streaming
-    viewer_count: 0,
-    hls_url: HLS_URL,
-    webrtc_url: null,
-    playback: NIKIV_PLAYBACK,
-    thumbnail_url: null,
-    started_at: null,
-  },
+// Hardcoded user for nikiv (hls_url will be updated from API)
+function makeNikivData(hlsUrl: string): StreamPageData {
+  return {
+    user: {
+      id: "nikiv",
+      name: "Nikita",
+      username: "nikiv",
+      image: null,
+    },
+    stream: {
+      id: "nikiv-stream",
+      title: "Live Coding",
+      description: "Building in public",
+      is_live: false,
+      viewer_count: 0,
+      hls_url: hlsUrl,
+      webrtc_url: null,
+      playback: resolveStreamPlayback({ hlsUrl, webrtcUrl: null }),
+      thumbnail_url: null,
+      started_at: null,
+    },
+  }
 }
 
 function StreamPage() {
@@ -57,6 +58,7 @@ function StreamPage() {
   const [error, setError] = useState<string | null>(null)
   const [playerReady, setPlayerReady] = useState(false)
   const [hlsLive, setHlsLive] = useState<boolean | null>(null)
+  const [hlsUrl, setHlsUrl] = useState<string>(DEFAULT_HLS_URL)
   const [isConnecting, setIsConnecting] = useState(false)
   const [nowPlaying, setNowPlaying] = useState<SpotifyNowPlayingResponse | null>(
     null,
@@ -76,9 +78,9 @@ function StreamPage() {
   useEffect(() => {
     let isActive = true
 
-    // Special handling for nikiv - hardcoded stream
+    // Special handling for nikiv - hardcoded stream with dynamic HLS URL
     if (username === "nikiv") {
-      setData(NIKIV_DATA)
+      setData(makeNikivData(hlsUrl))
       setLoading(false)
       return () => {
         isActive = false
@@ -193,9 +195,15 @@ function StreamPage() {
         const res = await fetch("/api/check-hls", { cache: "no-store" })
         if (!isActive) return
 
-        const data = await res.json()
+        const apiData = await res.json()
 
-        if (data.isLive) {
+        // Update HLS URL if returned from API
+        if (apiData.hlsUrl && apiData.hlsUrl !== hlsUrl) {
+          setHlsUrl(apiData.hlsUrl)
+          setData(makeNikivData(apiData.hlsUrl))
+        }
+
+        if (apiData.isLive) {
           // Stream is live - set connecting state if first time
           if (!hasConnectedOnce.current) {
             setIsConnecting(true)
@@ -224,7 +232,7 @@ function StreamPage() {
       isActive = false
       clearInterval(interval)
     }
-  }, [username])
+  }, [username, hlsUrl])
 
   // For non-nikiv users, use direct HLS check
   useEffect(() => {

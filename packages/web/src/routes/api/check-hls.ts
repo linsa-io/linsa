@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, getServerContext } from "@tanstack/react-router"
 
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), {
@@ -6,8 +6,14 @@ const json = (data: unknown, status = 200) =>
     headers: { "content-type": "application/json" },
   })
 
-// Cloudflare Stream HLS URL
-const HLS_URL = "https://customer-xctsztqzu046isdc.cloudflarestream.com/1b0363e3f8d54ddc639dc85737f8c28a/manifest/video.m3u8"
+// Default video ID (fallback)
+const DEFAULT_VIDEO_ID = "cd56ef73791c628c252cd290ee710275"
+
+function getHlsUrl(): string {
+  const ctx = (getServerContext as () => { cloudflare?: { env?: Record<string, string> } } | null)()
+  const videoId = ctx?.cloudflare?.env?.CLOUDFLARE_STREAM_NIKIV_VIDEO_ID || DEFAULT_VIDEO_ID
+  return `https://customer-xctsztqzu046isdc.cloudflarestream.com/${videoId}/manifest/video.m3u8`
+}
 
 function isHlsPlaylistLive(manifest: string): boolean {
   const upper = manifest.toUpperCase()
@@ -29,7 +35,8 @@ export const Route = createFileRoute("/api/check-hls")({
     handlers: {
       GET: async () => {
         try {
-          const res = await fetch(HLS_URL, {
+          const hlsUrl = getHlsUrl()
+          const res = await fetch(hlsUrl, {
             cache: "no-store",
           })
 
@@ -38,6 +45,7 @@ export const Route = createFileRoute("/api/check-hls")({
           if (!res.ok) {
             return json({
               isLive: false,
+              hlsUrl,
               status: res.status,
               error: "HLS not available",
             })
@@ -54,6 +62,7 @@ export const Route = createFileRoute("/api/check-hls")({
 
           return json({
             isLive,
+            hlsUrl,
             status: res.status,
             manifestLength: manifest.length,
           })
@@ -62,6 +71,7 @@ export const Route = createFileRoute("/api/check-hls")({
           console.error("[check-hls] Error:", error.message)
           return json({
             isLive: false,
+            hlsUrl: getHlsUrl(),
             error: error.message,
           })
         }

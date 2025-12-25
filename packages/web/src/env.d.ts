@@ -13,6 +13,7 @@ declare namespace Cloudflare {
     OPENROUTER_MODEL?: string
     GEMINI_API_KEY?: string
     FLOWGLAD_SECRET_KEY?: string
+    CLOUDFLARE_STREAM_NIKIV_VIDEO_ID?: string
   }
 }
 
