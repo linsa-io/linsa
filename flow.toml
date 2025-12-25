@@ -1606,12 +1606,14 @@ set -euo pipefail
 
 echo "=== Stripe Payments Setup ==="
 echo ""
-echo "This will configure Stripe for production payments."
-echo "You'll need:"
+echo "Creator Economy Model - creators set custom prices for:"
+echo "  - Subscription tiers (access to stream archives)"
+echo "  - One-time products (digital goods)"
+echo ""
+echo "You need:"
 echo "  - Stripe account (https://dashboard.stripe.com)"
 echo "  - Secret key (sk_live_... or sk_test_...)"
 echo "  - Webhook signing secret (whsec_...)"
-echo "  - Price ID for subscription (price_...)"
 echo ""
 
 cd packages/web
@@ -1649,13 +1651,6 @@ else
   MISSING=1
 fi
 
-if is_secret_set "STRIPE_ARCHIVE_PRICE_ID"; then
-  echo "  ✓ STRIPE_ARCHIVE_PRICE_ID is set"
-else
-  echo "  ✗ STRIPE_ARCHIVE_PRICE_ID is NOT set"
-  MISSING=1
-fi
-
 if [ "$MISSING" -eq 0 ]; then
   echo ""
   echo "All Stripe secrets are configured!"
@@ -1666,9 +1661,8 @@ if [ "$MISSING" -eq 0 ]; then
     echo "=== Stripe Endpoints ==="
     echo ""
     echo "Your Stripe integration is ready:"
-    echo "  - Checkout: POST /api/stripe/checkout"
-    echo "  - Billing portal: POST /api/stripe/portal"
-    echo "  - Billing status: GET /api/stripe/billing"
+    echo "  - Creator tiers: /api/creator/tiers"
+    echo "  - Subscribe: POST /api/creator/subscribe"
     echo "  - Webhooks: POST /api/stripe/webhooks"
     echo ""
     echo "Webhook URL for Stripe Dashboard:"
@@ -1680,14 +1674,10 @@ fi
 echo ""
 echo "=== Stripe Dashboard Setup ==="
 echo ""
-echo "Before continuing, ensure you have:"
+echo "1. Get your API keys at:"
+echo "   https://dashboard.stripe.com/apikeys"
 echo ""
-echo "1. Created a Product in Stripe Dashboard:"
-echo "   https://dashboard.stripe.com/products/create"
-echo "   - Name: 'Archive Pro' (or similar)"
-echo '   - Add a recurring price (e.g., $5/month)'
-echo ""
-echo "2. Created a Webhook endpoint:"
+echo "2. Create a Webhook endpoint:"
 echo "   https://dashboard.stripe.com/webhooks/create"
 echo "   - URL: https://linsa.io/api/stripe/webhooks"
 echo "   - Events to listen for:"
@@ -1731,21 +1721,6 @@ if [ -n "$STRIPE_WEBHOOK_SECRET" ]; then
   echo "✓ STRIPE_WEBHOOK_SECRET set"
 fi
 
-# STRIPE_ARCHIVE_PRICE_ID
-echo ""
-echo "=== STRIPE_ARCHIVE_PRICE_ID ==="
-echo "Find this in your Product page -> Pricing section (starts with price_...)"
-echo ""
-if is_secret_set "STRIPE_ARCHIVE_PRICE_ID"; then
-  read -p "Already set. Enter new value to update (or press Enter to skip): " STRIPE_ARCHIVE_PRICE_ID
-else
-  read -p "Enter STRIPE_ARCHIVE_PRICE_ID: " STRIPE_ARCHIVE_PRICE_ID
-fi
-if [ -n "$STRIPE_ARCHIVE_PRICE_ID" ]; then
-  echo "$STRIPE_ARCHIVE_PRICE_ID" | pnpm exec wrangler secret put STRIPE_ARCHIVE_PRICE_ID
-  echo "✓ STRIPE_ARCHIVE_PRICE_ID set"
-fi
-
 echo ""
 echo "=== Verification ==="
 echo ""
@@ -1761,28 +1736,22 @@ check_final() {
 
 check_final "STRIPE_SECRET_KEY"
 check_final "STRIPE_WEBHOOK_SECRET"
-check_final "STRIPE_ARCHIVE_PRICE_ID"
 
 echo ""
 echo "=== Setup Complete ==="
 echo ""
-echo "Your Stripe integration endpoints:"
-echo "  - Checkout: POST /api/stripe/checkout"
-echo "  - Portal: POST /api/stripe/portal"
-echo "  - Billing: GET /api/stripe/billing"
-echo "  - Webhooks: POST /api/stripe/webhooks"
+echo "Creator Economy endpoints:"
+echo "  - GET/POST /api/creator/tiers - Manage subscription tiers"
+echo "  - POST /api/creator/subscribe - Subscribe to a creator"
+echo "  - GET /api/creator/:username/access - Check access to creator content"
+echo "  - POST /api/stripe/webhooks - Stripe webhooks"
 echo ""
 echo "Webhook URL (add to Stripe Dashboard):"
 echo "  https://linsa.io/api/stripe/webhooks"
 echo ""
-echo "To test:"
-echo "  1. Visit https://linsa.io/archive"
-echo "  2. Click 'Subscribe' to start checkout"
-echo "  3. Use test card: 4242 4242 4242 4242"
-echo ""
 echo "Run 'f deploy' to deploy with new secrets."
 """
-description = "Configure Stripe payments for production: API keys, webhook, and price ID."
+description = "Configure Stripe for creator economy: API keys and webhook."
 dependencies = ["node", "pnpm"]
 shortcuts = ["stripe", "pay"]
 
@@ -1814,23 +1783,19 @@ MISSING=0
 echo "Stripe Secrets:"
 check "STRIPE_SECRET_KEY" || MISSING=1
 check "STRIPE_WEBHOOK_SECRET" || MISSING=1
-check "STRIPE_ARCHIVE_PRICE_ID" || MISSING=1
 
 echo ""
-echo "API Endpoints:"
-echo "  - Checkout: POST https://linsa.io/api/stripe/checkout"
-echo "  - Portal: POST https://linsa.io/api/stripe/portal"
-echo "  - Billing: GET https://linsa.io/api/stripe/billing"
-echo "  - Webhooks: POST https://linsa.io/api/stripe/webhooks"
+echo "Creator Economy Endpoints:"
+echo "  - GET/POST /api/creator/tiers"
+echo "  - POST /api/creator/subscribe"
+echo "  - GET /api/creator/:username/access"
+echo "  - POST /api/stripe/webhooks"
 
 echo ""
 if [ "$MISSING" -eq 1 ]; then
   echo "⚠ Some secrets missing. Run 'f stripe-setup' to configure."
 else
   echo "✓ All Stripe secrets configured!"
-  echo ""
-  echo "To test checkout flow:"
-  echo "  curl -X POST https://linsa.io/api/stripe/checkout -H 'Cookie: <session>'"
 fi
 """
 description = "Check Stripe configuration status."

@@ -1,7 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { getStripe, getStripeConfig } from "@/lib/stripe"
 import { db } from "@/db/connection"
-import { stripe_customers, stripe_subscriptions, storage_usage } from "@/db/schema"
+import {
+  stripe_customers,
+  stripe_subscriptions,
+  storage_usage,
+  creator_subscriptions,
+} from "@/db/schema"
 import { eq, and } from "drizzle-orm"
 import type Stripe from "stripe"
 
@@ -105,6 +110,13 @@ async function handleSubscriptionCreated(
 ) {
   const customerId = subscription.customer as string
   const priceId = subscription.items.data[0]?.price.id
+  const metadata = subscription.metadata || {}
+
+  // Check if this is a creator subscription
+  if (metadata.creator_id && metadata.subscriber_id && metadata.tier_id) {
+    await handleCreatorSubscription(database, subscription, metadata)
+    return
+  }
 
   // Find user by Stripe customer ID
   const [customer] = await database
@@ -185,10 +197,75 @@ async function handleSubscriptionCreated(
   console.log(`[stripe] Subscription synced for user ${customer.user_id}`)
 }
 
+// Handle creator economy subscriptions
+async function handleCreatorSubscription(
+  database: ReturnType<typeof db>,
+  subscription: Stripe.Subscription,
+  metadata: Record<string, string>
+) {
+  const { creator_id, subscriber_id, tier_id } = metadata
+
+  // Period dates
+  const item = subscription.items.data[0]
+  const periodStart = item?.current_period_start
+    ? new Date(item.current_period_start * 1000)
+    : new Date()
+  const periodEnd = item?.current_period_end
+    ? new Date(item.current_period_end * 1000)
+    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+
+  // Check for existing subscription
+  const existing = await database
+    .select()
+    .from(creator_subscriptions)
+    .where(eq(creator_subscriptions.stripe_subscription_id, subscription.id))
+    .limit(1)
+
+  const subscriptionData = {
+    stripe_subscription_id: subscription.id,
+    status: subscription.status,
+    current_period_start: periodStart,
+    current_period_end: periodEnd,
+    cancel_at_period_end: subscription.cancel_at_period_end,
+    updated_at: new Date(),
+  }
+
+  if (existing.length > 0) {
+    await database
+      .update(creator_subscriptions)
+      .set(subscriptionData)
+      .where(eq(creator_subscriptions.stripe_subscription_id, subscription.id))
+    console.log(`[stripe] Updated creator subscription ${subscription.id}`)
+  } else {
+    await database.insert(creator_subscriptions).values({
+      subscriber_id,
+      creator_id,
+      tier_id,
+      ...subscriptionData,
+    })
+    console.log(`[stripe] Created creator subscription: ${subscriber_id} -> ${creator_id}`)
+  }
+}
+
 async function handleSubscriptionDeleted(
   database: ReturnType<typeof db>,
   subscription: Stripe.Subscription
 ) {
+  const metadata = subscription.metadata || {}
+
+  // Check if this is a creator subscription
+  if (metadata.creator_id && metadata.subscriber_id) {
+    await database
+      .update(creator_subscriptions)
+      .set({
+        status: "canceled",
+        updated_at: new Date(),
+      })
+      .where(eq(creator_subscriptions.stripe_subscription_id, subscription.id))
+    console.log(`[stripe] Creator subscription ${subscription.id} marked as canceled`)
+    return
+  }
+
   await database
     .update(stripe_subscriptions)
     .set({

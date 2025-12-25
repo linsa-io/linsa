@@ -51,6 +51,8 @@ import { Route as ApiStreamsUsernameRouteImport } from './routes/api/streams.$us
 import { Route as ApiStreamReplaysReplayIdRouteImport } from './routes/api/stream-replays.$replayId'
 import { Route as ApiSpotifyNowPlayingRouteImport } from './routes/api/spotify.now-playing'
 import { Route as ApiFlowgladSplatRouteImport } from './routes/api/flowglad/$'
+import { Route as ApiCreatorTiersRouteImport } from './routes/api/creator/tiers'
+import { Route as ApiCreatorSubscribeRouteImport } from './routes/api/creator/subscribe'
 import { Route as ApiChatMutationsRouteImport } from './routes/api/chat/mutations'
 import { Route as ApiChatGuestRouteImport } from './routes/api/chat/guest'
 import { Route as ApiChatAiRouteImport } from './routes/api/chat/ai'
@@ -65,6 +67,7 @@ import { Route as DemoStartSsrFullSsrRouteImport } from './routes/demo/start.ssr
 import { Route as DemoStartSsrDataOnlyRouteImport } from './routes/demo/start.ssr.data-only'
 import { Route as ApiStreamsUsernameViewersRouteImport } from './routes/api/streams.$username.viewers'
 import { Route as ApiStreamsUsernameReplaysRouteImport } from './routes/api/streams.$username.replays'
+import { Route as ApiCreatorUsernameAccessRouteImport } from './routes/api/creator/$username.access'
 import { Route as ApiCanvasImagesImageIdRouteImport } from './routes/api/canvas.images.$imageId'
 import { Route as ApiCanvasImagesImageIdGenerateRouteImport } from './routes/api/canvas.images.$imageId.generate'
 
@@ -279,6 +282,16 @@ const ApiFlowgladSplatRoute = ApiFlowgladSplatRouteImport.update({
   path: '/api/flowglad/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCreatorTiersRoute = ApiCreatorTiersRouteImport.update({
+  id: '/api/creator/tiers',
+  path: '/api/creator/tiers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCreatorSubscribeRoute = ApiCreatorSubscribeRouteImport.update({
+  id: '/api/creator/subscribe',
+  path: '/api/creator/subscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiChatMutationsRoute = ApiChatMutationsRouteImport.update({
   id: '/api/chat/mutations',
   path: '/api/chat/mutations',
@@ -352,6 +365,12 @@ const ApiStreamsUsernameReplaysRoute =
     path: '/replays',
     getParentRoute: () => ApiStreamsUsernameRoute,
   } as any)
+const ApiCreatorUsernameAccessRoute =
+  ApiCreatorUsernameAccessRouteImport.update({
+    id: '/api/creator/$username/access',
+    path: '/api/creator/$username/access',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiCanvasImagesImageIdRoute = ApiCanvasImagesImageIdRouteImport.update({
   id: '/$imageId',
   path: '/$imageId',
@@ -402,6 +421,8 @@ export interface FileRoutesByFullPath {
   '/api/chat/ai': typeof ApiChatAiRoute
   '/api/chat/guest': typeof ApiChatGuestRoute
   '/api/chat/mutations': typeof ApiChatMutationsRoute
+  '/api/creator/subscribe': typeof ApiCreatorSubscribeRoute
+  '/api/creator/tiers': typeof ApiCreatorTiersRoute
   '/api/flowglad/$': typeof ApiFlowgladSplatRoute
   '/api/spotify/now-playing': typeof ApiSpotifyNowPlayingRoute
   '/api/stream-replays/$replayId': typeof ApiStreamReplaysReplayIdRoute
@@ -416,6 +437,7 @@ export interface FileRoutesByFullPath {
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
   '/api/canvas/images/$imageId': typeof ApiCanvasImagesImageIdRouteWithChildren
+  '/api/creator/$username/access': typeof ApiCreatorUsernameAccessRoute
   '/api/streams/$username/replays': typeof ApiStreamsUsernameReplaysRoute
   '/api/streams/$username/viewers': typeof ApiStreamsUsernameViewersRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
@@ -461,6 +483,8 @@ export interface FileRoutesByTo {
   '/api/chat/ai': typeof ApiChatAiRoute
   '/api/chat/guest': typeof ApiChatGuestRoute
   '/api/chat/mutations': typeof ApiChatMutationsRoute
+  '/api/creator/subscribe': typeof ApiCreatorSubscribeRoute
+  '/api/creator/tiers': typeof ApiCreatorTiersRoute
   '/api/flowglad/$': typeof ApiFlowgladSplatRoute
   '/api/spotify/now-playing': typeof ApiSpotifyNowPlayingRoute
   '/api/stream-replays/$replayId': typeof ApiStreamReplaysReplayIdRoute
@@ -475,6 +499,7 @@ export interface FileRoutesByTo {
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
   '/api/canvas/images/$imageId': typeof ApiCanvasImagesImageIdRouteWithChildren
+  '/api/creator/$username/access': typeof ApiCreatorUsernameAccessRoute
   '/api/streams/$username/replays': typeof ApiStreamsUsernameReplaysRoute
   '/api/streams/$username/viewers': typeof ApiStreamsUsernameViewersRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
@@ -522,6 +547,8 @@ export interface FileRoutesById {
   '/api/chat/ai': typeof ApiChatAiRoute
   '/api/chat/guest': typeof ApiChatGuestRoute
   '/api/chat/mutations': typeof ApiChatMutationsRoute
+  '/api/creator/subscribe': typeof ApiCreatorSubscribeRoute
+  '/api/creator/tiers': typeof ApiCreatorTiersRoute
   '/api/flowglad/$': typeof ApiFlowgladSplatRoute
   '/api/spotify/now-playing': typeof ApiSpotifyNowPlayingRoute
   '/api/stream-replays/$replayId': typeof ApiStreamReplaysReplayIdRoute
@@ -536,6 +563,7 @@ export interface FileRoutesById {
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
   '/api/canvas/images/$imageId': typeof ApiCanvasImagesImageIdRouteWithChildren
+  '/api/creator/$username/access': typeof ApiCreatorUsernameAccessRoute
   '/api/streams/$username/replays': typeof ApiStreamsUsernameReplaysRoute
   '/api/streams/$username/viewers': typeof ApiStreamsUsernameViewersRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
@@ -584,6 +612,8 @@ export interface FileRouteTypes {
     | '/api/chat/ai'
     | '/api/chat/guest'
     | '/api/chat/mutations'
+    | '/api/creator/subscribe'
+    | '/api/creator/tiers'
     | '/api/flowglad/$'
     | '/api/spotify/now-playing'
     | '/api/stream-replays/$replayId'
@@ -598,6 +628,7 @@ export interface FileRouteTypes {
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
     | '/api/canvas/images/$imageId'
+    | '/api/creator/$username/access'
     | '/api/streams/$username/replays'
     | '/api/streams/$username/viewers'
     | '/demo/start/ssr/data-only'
@@ -643,6 +674,8 @@ export interface FileRouteTypes {
     | '/api/chat/ai'
     | '/api/chat/guest'
     | '/api/chat/mutations'
+    | '/api/creator/subscribe'
+    | '/api/creator/tiers'
     | '/api/flowglad/$'
     | '/api/spotify/now-playing'
     | '/api/stream-replays/$replayId'
@@ -657,6 +690,7 @@ export interface FileRouteTypes {
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
     | '/api/canvas/images/$imageId'
+    | '/api/creator/$username/access'
     | '/api/streams/$username/replays'
     | '/api/streams/$username/viewers'
     | '/demo/start/ssr/data-only'
@@ -703,6 +737,8 @@ export interface FileRouteTypes {
     | '/api/chat/ai'
     | '/api/chat/guest'
     | '/api/chat/mutations'
+    | '/api/creator/subscribe'
+    | '/api/creator/tiers'
     | '/api/flowglad/$'
     | '/api/spotify/now-playing'
     | '/api/stream-replays/$replayId'
@@ -717,6 +753,7 @@ export interface FileRouteTypes {
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
     | '/api/canvas/images/$imageId'
+    | '/api/creator/$username/access'
     | '/api/streams/$username/replays'
     | '/api/streams/$username/viewers'
     | '/demo/start/ssr/data-only'
@@ -757,6 +794,8 @@ export interface RootRouteChildren {
   ApiChatAiRoute: typeof ApiChatAiRoute
   ApiChatGuestRoute: typeof ApiChatGuestRoute
   ApiChatMutationsRoute: typeof ApiChatMutationsRoute
+  ApiCreatorSubscribeRoute: typeof ApiCreatorSubscribeRoute
+  ApiCreatorTiersRoute: typeof ApiCreatorTiersRoute
   ApiFlowgladSplatRoute: typeof ApiFlowgladSplatRoute
   ApiSpotifyNowPlayingRoute: typeof ApiSpotifyNowPlayingRoute
   ApiStreamsUsernameRoute: typeof ApiStreamsUsernameRouteWithChildren
@@ -767,6 +806,7 @@ export interface RootRouteChildren {
   DemoApiNamesRoute: typeof DemoApiNamesRoute
   DemoStartApiRequestRoute: typeof DemoStartApiRequestRoute
   DemoStartServerFuncsRoute: typeof DemoStartServerFuncsRoute
+  ApiCreatorUsernameAccessRoute: typeof ApiCreatorUsernameAccessRoute
   DemoStartSsrDataOnlyRoute: typeof DemoStartSsrDataOnlyRoute
   DemoStartSsrFullSsrRoute: typeof DemoStartSsrFullSsrRoute
   DemoStartSsrSpaModeRoute: typeof DemoStartSsrSpaModeRoute
@@ -1069,6 +1109,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiFlowgladSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/creator/tiers': {
+      id: '/api/creator/tiers'
+      path: '/api/creator/tiers'
+      fullPath: '/api/creator/tiers'
+      preLoaderRoute: typeof ApiCreatorTiersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/creator/subscribe': {
+      id: '/api/creator/subscribe'
+      path: '/api/creator/subscribe'
+      fullPath: '/api/creator/subscribe'
+      preLoaderRoute: typeof ApiCreatorSubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/chat/mutations': {
       id: '/api/chat/mutations'
       path: '/api/chat/mutations'
@@ -1166,6 +1220,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/streams/$username/replays'
       preLoaderRoute: typeof ApiStreamsUsernameReplaysRouteImport
       parentRoute: typeof ApiStreamsUsernameRoute
+    }
+    '/api/creator/$username/access': {
+      id: '/api/creator/$username/access'
+      path: '/api/creator/$username/access'
+      fullPath: '/api/creator/$username/access'
+      preLoaderRoute: typeof ApiCreatorUsernameAccessRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/canvas/images/$imageId': {
       id: '/api/canvas/images/$imageId'
@@ -1350,6 +1411,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatAiRoute: ApiChatAiRoute,
   ApiChatGuestRoute: ApiChatGuestRoute,
   ApiChatMutationsRoute: ApiChatMutationsRoute,
+  ApiCreatorSubscribeRoute: ApiCreatorSubscribeRoute,
+  ApiCreatorTiersRoute: ApiCreatorTiersRoute,
   ApiFlowgladSplatRoute: ApiFlowgladSplatRoute,
   ApiSpotifyNowPlayingRoute: ApiSpotifyNowPlayingRoute,
   ApiStreamsUsernameRoute: ApiStreamsUsernameRouteWithChildren,
@@ -1360,6 +1423,7 @@ const rootRouteChildren: RootRouteChildren = {
   DemoApiNamesRoute: DemoApiNamesRoute,
   DemoStartApiRequestRoute: DemoStartApiRequestRoute,
   DemoStartServerFuncsRoute: DemoStartServerFuncsRoute,
+  ApiCreatorUsernameAccessRoute: ApiCreatorUsernameAccessRoute,
   DemoStartSsrDataOnlyRoute: DemoStartSsrDataOnlyRoute,
   DemoStartSsrFullSsrRoute: DemoStartSsrFullSsrRoute,
   DemoStartSsrSpaModeRoute: DemoStartSsrSpaModeRoute,
