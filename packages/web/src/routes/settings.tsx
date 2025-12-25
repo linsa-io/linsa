@@ -9,6 +9,8 @@ import {
   Sparkles,
   UserRoundPen,
   Lock,
+  MessageCircle,
+  HelpCircle,
 } from "lucide-react"
 
 type SectionId = "preferences" | "profile" | "billing"
@@ -424,6 +426,35 @@ function ProfileSection({
               <LogOut className="w-4 h-4" />
               Leave
             </button>
+          </div>
+        </SettingCard>
+
+        <SettingCard title="Support">
+          <div className="flex items-start justify-between py-2">
+            <div className="flex flex-col gap-2">
+              <p className="font-medium text-white">Get help</p>
+              <p className="text-xs text-white/70">
+                Join our Discord community or contact support.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <a
+                href="https://discord.com/invite/bxtD8x6aNF"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm bg-white/5 hover:bg-white/10 text-white px-3 py-2 rounded-lg border border-white/10 transition-colors"
+              >
+                <MessageCircle className="w-4 h-4" />
+                Discord
+              </a>
+              <a
+                href="mailto:support@linsa.io"
+                className="inline-flex items-center gap-2 text-sm bg-white/5 hover:bg-white/10 text-white px-3 py-2 rounded-lg border border-white/10 transition-colors"
+              >
+                <HelpCircle className="w-4 h-4" />
+                Support
+              </a>
+            </div>
           </div>
         </SettingCard>
       </div>

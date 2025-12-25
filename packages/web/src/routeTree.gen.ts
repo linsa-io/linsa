@@ -34,6 +34,7 @@ import { Route as ApiStreamCommentsRouteImport } from './routes/api/stream-comme
 import { Route as ApiStreamRouteImport } from './routes/api/stream'
 import { Route as ApiProfileRouteImport } from './routes/api/profile'
 import { Route as ApiContextItemsRouteImport } from './routes/api/context-items'
+import { Route as ApiCheckHlsRouteImport } from './routes/api/check-hls'
 import { Route as ApiChatThreadsRouteImport } from './routes/api/chat-threads'
 import { Route as ApiChatMessagesRouteImport } from './routes/api/chat-messages'
 import { Route as ApiCanvasRouteImport } from './routes/api/canvas'
@@ -195,6 +196,11 @@ const ApiProfileRoute = ApiProfileRouteImport.update({
 const ApiContextItemsRoute = ApiContextItemsRouteImport.update({
   id: '/api/context-items',
   path: '/api/context-items',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCheckHlsRoute = ApiCheckHlsRouteImport.update({
+  id: '/api/check-hls',
+  path: '/api/check-hls',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiChatThreadsRoute = ApiChatThreadsRouteImport.update({
@@ -408,6 +414,7 @@ export interface FileRoutesByFullPath {
   '/api/canvas': typeof ApiCanvasRouteWithChildren
   '/api/chat-messages': typeof ApiChatMessagesRoute
   '/api/chat-threads': typeof ApiChatThreadsRoute
+  '/api/check-hls': typeof ApiCheckHlsRoute
   '/api/context-items': typeof ApiContextItemsRoute
   '/api/profile': typeof ApiProfileRoute
   '/api/stream': typeof ApiStreamRoute
@@ -471,6 +478,7 @@ export interface FileRoutesByTo {
   '/api/canvas': typeof ApiCanvasRouteWithChildren
   '/api/chat-messages': typeof ApiChatMessagesRoute
   '/api/chat-threads': typeof ApiChatThreadsRoute
+  '/api/check-hls': typeof ApiCheckHlsRoute
   '/api/context-items': typeof ApiContextItemsRoute
   '/api/profile': typeof ApiProfileRoute
   '/api/stream': typeof ApiStreamRoute
@@ -536,6 +544,7 @@ export interface FileRoutesById {
   '/api/canvas': typeof ApiCanvasRouteWithChildren
   '/api/chat-messages': typeof ApiChatMessagesRoute
   '/api/chat-threads': typeof ApiChatThreadsRoute
+  '/api/check-hls': typeof ApiCheckHlsRoute
   '/api/context-items': typeof ApiContextItemsRoute
   '/api/profile': typeof ApiProfileRoute
   '/api/stream': typeof ApiStreamRoute
@@ -602,6 +611,7 @@ export interface FileRouteTypes {
     | '/api/canvas'
     | '/api/chat-messages'
     | '/api/chat-threads'
+    | '/api/check-hls'
     | '/api/context-items'
     | '/api/profile'
     | '/api/stream'
@@ -665,6 +675,7 @@ export interface FileRouteTypes {
     | '/api/canvas'
     | '/api/chat-messages'
     | '/api/chat-threads'
+    | '/api/check-hls'
     | '/api/context-items'
     | '/api/profile'
     | '/api/stream'
@@ -729,6 +740,7 @@ export interface FileRouteTypes {
     | '/api/canvas'
     | '/api/chat-messages'
     | '/api/chat-threads'
+    | '/api/check-hls'
     | '/api/context-items'
     | '/api/profile'
     | '/api/stream'
@@ -794,6 +806,7 @@ export interface RootRouteChildren {
   ApiCanvasRoute: typeof ApiCanvasRouteWithChildren
   ApiChatMessagesRoute: typeof ApiChatMessagesRoute
   ApiChatThreadsRoute: typeof ApiChatThreadsRoute
+  ApiCheckHlsRoute: typeof ApiCheckHlsRoute
   ApiContextItemsRoute: typeof ApiContextItemsRoute
   ApiProfileRoute: typeof ApiProfileRoute
   ApiStreamRoute: typeof ApiStreamRoute
@@ -1001,6 +1014,13 @@ declare module '@tanstack/react-router' {
       path: '/api/context-items'
       fullPath: '/api/context-items'
       preLoaderRoute: typeof ApiContextItemsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/check-hls': {
+      id: '/api/check-hls'
+      path: '/api/check-hls'
+      fullPath: '/api/check-hls'
+      preLoaderRoute: typeof ApiCheckHlsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/chat-threads': {
@@ -1419,6 +1439,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCanvasRoute: ApiCanvasRouteWithChildren,
   ApiChatMessagesRoute: ApiChatMessagesRoute,
   ApiChatThreadsRoute: ApiChatThreadsRoute,
+  ApiCheckHlsRoute: ApiCheckHlsRoute,
   ApiContextItemsRoute: ApiContextItemsRoute,
   ApiProfileRoute: ApiProfileRoute,
   ApiStreamRoute: ApiStreamRoute,

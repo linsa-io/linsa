@@ -16,23 +16,10 @@ type SpotifyNowPlayingResponse = {
 }
 
 const JAZZ_READ_KEY = "nikiv-spotify@garden.co"
+const JAZZ_SPOTIFY_STATE_ID = "co_zSxojQnqZ4v5FiMrk65v3SLayJi"
 
-const resolveSpotifyStateId = (): string | undefined => {
-  let stateId: string | undefined
-
-  try {
-    const { getServerContext } = require("@tanstack/react-start/server") as {
-      getServerContext: () => { cloudflare?: { env?: Record<string, string> } } | null
-    }
-    const ctx = getServerContext()
-    if (ctx?.cloudflare?.env) {
-      stateId = ctx.cloudflare.env.JAZZ_SPOTIFY_STATE_ID
-    }
-  } catch {
-    // not in Cloudflare context
-  }
-
-  return stateId ?? process.env.JAZZ_SPOTIFY_STATE_ID
+const resolveSpotifyStateId = (): string => {
+  return JAZZ_SPOTIFY_STATE_ID
 }
 
 const parseTrackIdFromUrl = (url: string | null | undefined) => {

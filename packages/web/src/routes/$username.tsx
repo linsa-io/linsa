@@ -263,43 +263,101 @@ function StreamPage() {
     const isVod = upper.includes("#EXT-X-PLAYLIST-TYPE:VOD")
     const hasSegments =
       upper.includes("#EXTINF") || upper.includes("#EXT-X-PART")
-    return !hasEndlist && !isVod && hasSegments
+    // Also check for #EXTM3U which is the start of any valid HLS manifest
+    const isValidManifest = upper.includes("#EXTM3U")
+    return isValidManifest && !hasEndlist && !isVod && hasSegments
   }
 
+  // For nikiv, use server-side API to check HLS (avoids CORS)
+  useEffect(() => {
+    if (username !== "nikiv") return
+
+    let isActive = true
+
+    const checkHlsViaApi = async () => {
+      console.log("[HLS Check] Calling /api/check-hls...")
+      try {
+        const res = await fetch("/api/check-hls", { cache: "no-store" })
+        if (!isActive) return
+
+        const data = await res.json()
+        console.log("[HLS Check] API response:", data)
+
+        if (data.isLive) {
+          setStreamReady(true)
+          setHlsLive(true)
+        } else {
+          setStreamReady(false)
+          setHlsLive(false)
+        }
+      } catch (err) {
+        console.error("[HLS Check] API error:", err)
+        if (isActive) {
+          setStreamReady(false)
+          setHlsLive(false)
+        }
+      }
+    }
+
+    // Initial check
+    setStreamReady(false)
+    setHlsLive(null)
+    checkHlsViaApi()
+
+    // Poll every 5 seconds to detect when stream goes live
+    const interval = setInterval(checkHlsViaApi, 5000)
+
+    return () => {
+      isActive = false
+      clearInterval(interval)
+    }
+  }, [username])
+
+  // For non-nikiv users, use direct HLS check
   useEffect(() => {
     let isActive = true
-    if (!activePlayback || activePlayback.type !== "hls") {
+    if (username === "nikiv" || !activePlayback || activePlayback.type !== "hls") {
       return () => {
         isActive = false
       }
     }
 
-    const checkHlsLive = () => {
+    const checkHlsLive = async () => {
       console.log("[HLS Check] Fetching manifest:", activePlayback.url)
-      fetch(activePlayback.url, { cache: "no-store" })
-        .then(async (res) => {
-          if (isActive) {
-            console.log("[HLS Check] Response status:", res.status, res.ok)
-            if (!res.ok) {
-              setStreamReady(false)
-              setHlsLive(false)
-              return
-            }
-            const manifest = await res.text()
-            if (!isActive) return
-            const live = isHlsPlaylistLive(manifest)
-            console.log("[HLS Check] Manifest live check:", { live, manifestLength: manifest.length, first200: manifest.slice(0, 200) })
-            setStreamReady(live)
-            setHlsLive(live)
-          }
+      try {
+        const res = await fetch(activePlayback.url, {
+          cache: "no-store",
+          mode: "cors",
         })
-        .catch((err) => {
-          console.error("[HLS Check] Fetch error:", err)
-          if (isActive) {
-            setStreamReady(false)
-            setHlsLive(false)
-          }
+
+        if (!isActive) return
+
+        console.log("[HLS Check] Response status:", res.status, res.ok)
+
+        if (!res.ok) {
+          setStreamReady(false)
+          setHlsLive(false)
+          return
+        }
+
+        const manifest = await res.text()
+        if (!isActive) return
+
+        const live = isHlsPlaylistLive(manifest)
+        console.log("[HLS Check] Manifest live check:", {
+          live,
+          manifestLength: manifest.length,
+          first200: manifest.slice(0, 200)
         })
+        setStreamReady(live)
+        setHlsLive(live)
+      } catch (err) {
+        console.error("[HLS Check] Fetch error:", err)
+        if (isActive) {
+          setStreamReady(false)
+          setHlsLive(false)
+        }
+      }
     }
 
     // Initial check
@@ -315,6 +373,7 @@ function StreamPage() {
       clearInterval(interval)
     }
   }, [
+    username,
     activePlayback?.type,
     activePlayback?.type === "hls" ? activePlayback.url : null,
   ])
@@ -608,11 +667,7 @@ function StreamPage() {
                         </span>
                       )}
                     </span>
-                  ) : nowPlayingError ? (
-                    <span>Spotify status unavailable right now.</span>
-                  ) : (
-                    <span>Not playing anything right now.</span>
-                  )}
+                  ) : null}
                 </div>
 
                 <a
