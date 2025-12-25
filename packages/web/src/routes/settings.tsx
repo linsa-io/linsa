@@ -8,7 +8,6 @@ import {
   LogOut,
   Sparkles,
   UserRoundPen,
-  Lock,
   MessageCircle,
   HelpCircle,
   Copy,
@@ -237,12 +236,10 @@ function ProfileSection({
   profile: sessionProfile,
   onLogout,
   onChangeEmail,
-  onChangePassword,
 }: {
   profile: { name?: string | null; email: string; username?: string | null; image?: string | null; bio?: string | null; website?: string | null } | null | undefined
   onLogout: () => Promise<void>
   onChangeEmail: () => void
-  onChangePassword: () => void
 }) {
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState(sessionProfile)
@@ -460,23 +457,6 @@ function ProfileSection({
               </button>
             </div>
           </div>
-        </SettingCard>
-
-        <SettingCard title="Password">
-          <SettingRow
-            title="Password"
-            description="Change your password."
-            control={
-              <button
-                type="button"
-                onClick={onChangePassword}
-                className="text-sm flex items-center gap-2 bg-white/5 hover:bg-white/10 text-white px-3 py-2 rounded-lg border border-white/10 transition-colors"
-              >
-                <Lock className="w-4 h-4" />
-                Change
-              </button>
-            }
-          />
         </SettingCard>
 
         <SettingCard title="Session">
@@ -878,10 +858,7 @@ function SettingsPage() {
   const { data: session, isPending } = authClient.useSession()
   const [activeSection, setActiveSection] = useState<SectionId>("preferences")
   const [showEmailModal, setShowEmailModal] = useState(false)
-  const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [emailInput, setEmailInput] = useState("")
-  const [currentPassword, setCurrentPassword] = useState("")
-  const [newPassword, setNewPassword] = useState("")
 
   const handleLogout = async () => {
     await authClient.signOut()
@@ -893,22 +870,9 @@ function SettingsPage() {
     setShowEmailModal(true)
   }
 
-  const openPasswordModal = () => {
-    setCurrentPassword("")
-    setNewPassword("")
-    setShowPasswordModal(true)
-  }
-
   const handleEmailSubmit = (event: FormEvent) => {
     event.preventDefault()
     setShowEmailModal(false)
-  }
-
-  const handlePasswordSubmit = (event: FormEvent) => {
-    event.preventDefault()
-    setShowPasswordModal(false)
-    setCurrentPassword("")
-    setNewPassword("")
   }
 
   if (isPending) {
@@ -936,7 +900,6 @@ function SettingsPage() {
                 profile={session?.user}
                 onLogout={handleLogout}
                 onChangeEmail={openEmailModal}
-                onChangePassword={openPasswordModal}
               />
             ) : activeSection === "streaming" ? (
               <StreamingSection username={session?.user?.username} />
@@ -981,53 +944,6 @@ function SettingsPage() {
         </Modal>
       ) : null}
 
-      {showPasswordModal ? (
-        <Modal
-          title="Change password"
-          description="Confirm your current password and set a new one."
-          onClose={() => setShowPasswordModal(false)}
-        >
-          <form onSubmit={handlePasswordSubmit} className="space-y-4">
-            <label className="block space-y-2">
-              <span className="text-sm text-slate-300">Current password</span>
-              <input
-                type="password"
-                required
-                value={currentPassword}
-                onChange={(event) => setCurrentPassword(event.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                placeholder="Enter your current password"
-              />
-            </label>
-            <label className="block space-y-2">
-              <span className="text-sm text-slate-300">New password</span>
-              <input
-                type="password"
-                required
-                value={newPassword}
-                onChange={(event) => setNewPassword(event.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                placeholder="Create a new password"
-              />
-            </label>
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowPasswordModal(false)}
-                className="px-4 py-2 rounded-lg text-sm text-slate-200 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-teal-600 hover:bg-teal-500 transition-colors"
-              >
-                Save password
-              </button>
-            </div>
-          </form>
-        </Modal>
-      ) : null}
     </>
   )
 }

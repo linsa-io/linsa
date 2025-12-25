@@ -15,6 +15,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SessionsRouteImport } from './routes/sessions'
 import { Route as MarketplaceRouteImport } from './routes/marketplace'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as GlideRouteImport } from './routes/glide'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as CanvasRouteImport } from './routes/canvas'
 import { Route as BlocksRouteImport } from './routes/blocks'
@@ -33,6 +34,7 @@ import { Route as ApiStreamReplaysRouteImport } from './routes/api/stream-replay
 import { Route as ApiStreamCommentsRouteImport } from './routes/api/stream-comments'
 import { Route as ApiStreamRouteImport } from './routes/api/stream'
 import { Route as ApiProfileRouteImport } from './routes/api/profile'
+import { Route as ApiGlideCanvasRouteImport } from './routes/api/glide-canvas'
 import { Route as ApiContextItemsRouteImport } from './routes/api/context-items'
 import { Route as ApiCheckHlsRouteImport } from './routes/api/check-hls'
 import { Route as ApiChatThreadsRouteImport } from './routes/api/chat-threads'
@@ -103,6 +105,11 @@ const MarketplaceRoute = MarketplaceRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GlideRoute = GlideRouteImport.update({
+  id: '/glide',
+  path: '/glide',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChatRoute = ChatRouteImport.update({
@@ -193,6 +200,11 @@ const ApiStreamRoute = ApiStreamRouteImport.update({
 const ApiProfileRoute = ApiProfileRouteImport.update({
   id: '/api/profile',
   path: '/api/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGlideCanvasRoute = ApiGlideCanvasRouteImport.update({
+  id: '/api/glide-canvas',
+  path: '/api/glide-canvas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiContextItemsRoute = ApiContextItemsRouteImport.update({
@@ -416,6 +428,7 @@ export interface FileRoutesByFullPath {
   '/blocks': typeof BlocksRoute
   '/canvas': typeof CanvasRouteWithChildren
   '/chat': typeof ChatRoute
+  '/glide': typeof GlideRoute
   '/login': typeof LoginRoute
   '/marketplace': typeof MarketplaceRoute
   '/sessions': typeof SessionsRoute
@@ -429,6 +442,7 @@ export interface FileRoutesByFullPath {
   '/api/chat-threads': typeof ApiChatThreadsRoute
   '/api/check-hls': typeof ApiCheckHlsRoute
   '/api/context-items': typeof ApiContextItemsRoute
+  '/api/glide-canvas': typeof ApiGlideCanvasRoute
   '/api/profile': typeof ApiProfileRoute
   '/api/stream': typeof ApiStreamRouteWithChildren
   '/api/stream-comments': typeof ApiStreamCommentsRoute
@@ -482,6 +496,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/blocks': typeof BlocksRoute
   '/chat': typeof ChatRoute
+  '/glide': typeof GlideRoute
   '/login': typeof LoginRoute
   '/marketplace': typeof MarketplaceRoute
   '/sessions': typeof SessionsRoute
@@ -495,6 +510,7 @@ export interface FileRoutesByTo {
   '/api/chat-threads': typeof ApiChatThreadsRoute
   '/api/check-hls': typeof ApiCheckHlsRoute
   '/api/context-items': typeof ApiContextItemsRoute
+  '/api/glide-canvas': typeof ApiGlideCanvasRoute
   '/api/profile': typeof ApiProfileRoute
   '/api/stream': typeof ApiStreamRouteWithChildren
   '/api/stream-comments': typeof ApiStreamCommentsRoute
@@ -550,6 +566,7 @@ export interface FileRoutesById {
   '/blocks': typeof BlocksRoute
   '/canvas': typeof CanvasRouteWithChildren
   '/chat': typeof ChatRoute
+  '/glide': typeof GlideRoute
   '/login': typeof LoginRoute
   '/marketplace': typeof MarketplaceRoute
   '/sessions': typeof SessionsRoute
@@ -563,6 +580,7 @@ export interface FileRoutesById {
   '/api/chat-threads': typeof ApiChatThreadsRoute
   '/api/check-hls': typeof ApiCheckHlsRoute
   '/api/context-items': typeof ApiContextItemsRoute
+  '/api/glide-canvas': typeof ApiGlideCanvasRoute
   '/api/profile': typeof ApiProfileRoute
   '/api/stream': typeof ApiStreamRouteWithChildren
   '/api/stream-comments': typeof ApiStreamCommentsRoute
@@ -619,6 +637,7 @@ export interface FileRouteTypes {
     | '/blocks'
     | '/canvas'
     | '/chat'
+    | '/glide'
     | '/login'
     | '/marketplace'
     | '/sessions'
@@ -632,6 +651,7 @@ export interface FileRouteTypes {
     | '/api/chat-threads'
     | '/api/check-hls'
     | '/api/context-items'
+    | '/api/glide-canvas'
     | '/api/profile'
     | '/api/stream'
     | '/api/stream-comments'
@@ -685,6 +705,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/blocks'
     | '/chat'
+    | '/glide'
     | '/login'
     | '/marketplace'
     | '/sessions'
@@ -698,6 +719,7 @@ export interface FileRouteTypes {
     | '/api/chat-threads'
     | '/api/check-hls'
     | '/api/context-items'
+    | '/api/glide-canvas'
     | '/api/profile'
     | '/api/stream'
     | '/api/stream-comments'
@@ -752,6 +774,7 @@ export interface FileRouteTypes {
     | '/blocks'
     | '/canvas'
     | '/chat'
+    | '/glide'
     | '/login'
     | '/marketplace'
     | '/sessions'
@@ -765,6 +788,7 @@ export interface FileRouteTypes {
     | '/api/chat-threads'
     | '/api/check-hls'
     | '/api/context-items'
+    | '/api/glide-canvas'
     | '/api/profile'
     | '/api/stream'
     | '/api/stream-comments'
@@ -820,6 +844,7 @@ export interface RootRouteChildren {
   BlocksRoute: typeof BlocksRoute
   CanvasRoute: typeof CanvasRouteWithChildren
   ChatRoute: typeof ChatRoute
+  GlideRoute: typeof GlideRoute
   LoginRoute: typeof LoginRoute
   MarketplaceRoute: typeof MarketplaceRoute
   SessionsRoute: typeof SessionsRoute
@@ -833,6 +858,7 @@ export interface RootRouteChildren {
   ApiChatThreadsRoute: typeof ApiChatThreadsRoute
   ApiCheckHlsRoute: typeof ApiCheckHlsRoute
   ApiContextItemsRoute: typeof ApiContextItemsRoute
+  ApiGlideCanvasRoute: typeof ApiGlideCanvasRoute
   ApiProfileRoute: typeof ApiProfileRoute
   ApiStreamRoute: typeof ApiStreamRouteWithChildren
   ApiStreamCommentsRoute: typeof ApiStreamCommentsRoute
@@ -906,6 +932,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/glide': {
+      id: '/glide'
+      path: '/glide'
+      fullPath: '/glide'
+      preLoaderRoute: typeof GlideRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/chat': {
@@ -1032,6 +1065,13 @@ declare module '@tanstack/react-router' {
       path: '/api/profile'
       fullPath: '/api/profile'
       preLoaderRoute: typeof ApiProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/glide-canvas': {
+      id: '/api/glide-canvas'
+      path: '/api/glide-canvas'
+      fullPath: '/api/glide-canvas'
+      preLoaderRoute: typeof ApiGlideCanvasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/context-items': {
@@ -1481,6 +1521,7 @@ const rootRouteChildren: RootRouteChildren = {
   BlocksRoute: BlocksRoute,
   CanvasRoute: CanvasRouteWithChildren,
   ChatRoute: ChatRoute,
+  GlideRoute: GlideRoute,
   LoginRoute: LoginRoute,
   MarketplaceRoute: MarketplaceRoute,
   SessionsRoute: SessionsRoute,
@@ -1494,6 +1535,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatThreadsRoute: ApiChatThreadsRoute,
   ApiCheckHlsRoute: ApiCheckHlsRoute,
   ApiContextItemsRoute: ApiContextItemsRoute,
+  ApiGlideCanvasRoute: ApiGlideCanvasRoute,
   ApiProfileRoute: ApiProfileRoute,
   ApiStreamRoute: ApiStreamRouteWithChildren,
   ApiStreamCommentsRoute: ApiStreamCommentsRoute,
