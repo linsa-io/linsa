@@ -30,7 +30,7 @@
 	 */
 	"vars": {
 		"APP_BASE_URL": "https://linsa.io",
-		"CLOUDFLARE_STREAM_NIKIV_VIDEO_ID": "cd56ef73791c628c252cd290ee710275"
+		"CLOUDFLARE_LIVE_INPUT_UID": "bb7858eafc85de6c92963f3817477b5d"
 	},
 	/**
 	 * Note: Use secrets to store sensitive data.

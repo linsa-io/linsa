@@ -1,4 +1,4 @@
-import { createFileRoute, getServerContext } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), {
@@ -6,13 +6,12 @@ const json = (data: unknown, status = 200) =>
     headers: { "content-type": "application/json" },
   })
 
-// Default video ID (fallback)
-const DEFAULT_VIDEO_ID = "cd56ef73791c628c252cd290ee710275"
+// Cloudflare Live Input UID (constant - automatically shows current live stream)
+const LIVE_INPUT_UID = "bb7858eafc85de6c92963f3817477b5d"
+const HLS_URL = `https://customer-xctsztqzu046isdc.cloudflarestream.com/${LIVE_INPUT_UID}/manifest/video.m3u8`
 
 function getHlsUrl(): string {
-  const ctx = (getServerContext as () => { cloudflare?: { env?: Record<string, string> } } | null)()
-  const videoId = ctx?.cloudflare?.env?.CLOUDFLARE_STREAM_NIKIV_VIDEO_ID || DEFAULT_VIDEO_ID
-  return `https://customer-xctsztqzu046isdc.cloudflarestream.com/${videoId}/manifest/video.m3u8`
+  return HLS_URL
 }
 
 function isHlsPlaylistLive(manifest: string): boolean {

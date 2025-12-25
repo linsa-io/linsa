@@ -22,8 +22,9 @@ export const Route = createFileRoute("/$username")({
   component: StreamPage,
 })
 
-// Default Cloudflare Stream HLS URL (will be overridden by API)
-const DEFAULT_HLS_URL = "https://customer-xctsztqzu046isdc.cloudflarestream.com/cd56ef73791c628c252cd290ee710275/manifest/video.m3u8"
+// Cloudflare Live Input UID (constant - automatically shows current live stream)
+const LIVE_INPUT_UID = "bb7858eafc85de6c92963f3817477b5d"
+const HLS_URL = `https://customer-xctsztqzu046isdc.cloudflarestream.com/${LIVE_INPUT_UID}/manifest/video.m3u8`
 const READY_PULSE_MS = 1200
 
 // Hardcoded user for nikiv (hls_url will be updated from API)
@@ -58,7 +59,6 @@ function StreamPage() {
   const [error, setError] = useState<string | null>(null)
   const [playerReady, setPlayerReady] = useState(false)
   const [hlsLive, setHlsLive] = useState<boolean | null>(null)
-  const [hlsUrl, setHlsUrl] = useState<string>(DEFAULT_HLS_URL)
   const [isConnecting, setIsConnecting] = useState(false)
   const [nowPlaying, setNowPlaying] = useState<SpotifyNowPlayingResponse | null>(
     null,
@@ -78,9 +78,9 @@ function StreamPage() {
   useEffect(() => {
     let isActive = true
 
-    // Special handling for nikiv - hardcoded stream with dynamic HLS URL
+    // Special handling for nikiv - hardcoded stream with constant Live Input URL
     if (username === "nikiv") {
-      setData(makeNikivData(hlsUrl))
+      setData(makeNikivData(HLS_URL))
       setLoading(false)
       return () => {
         isActive = false
@@ -197,12 +197,6 @@ function StreamPage() {
 
         const apiData = await res.json()
 
-        // Update HLS URL if returned from API
-        if (apiData.hlsUrl && apiData.hlsUrl !== hlsUrl) {
-          setHlsUrl(apiData.hlsUrl)
-          setData(makeNikivData(apiData.hlsUrl))
-        }
-
         if (apiData.isLive) {
           // Stream is live - set connecting state if first time
           if (!hasConnectedOnce.current) {
@@ -232,7 +226,7 @@ function StreamPage() {
       isActive = false
       clearInterval(interval)
     }
-  }, [username, hlsUrl])
+  }, [username])
 
   // For non-nikiv users, use direct HLS check
   useEffect(() => {
