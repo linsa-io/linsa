@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, Link } from "@tanstack/react-router"
 import { getStreamByUsername, type StreamPageData } from "@/lib/stream/db"
 import { VideoPlayer } from "@/components/VideoPlayer"
 import { CloudflareStreamPlayer } from "@/components/CloudflareStreamPlayer"
@@ -13,6 +13,7 @@ import {
   type SpotifyNowPlayingResponse,
 } from "@/lib/spotify/now-playing"
 import { getStreamStatus } from "@/lib/stream/status"
+import { authClient } from "@/lib/auth-client"
 
 export const Route = createFileRoute("/$username")({
   ssr: false,
@@ -48,6 +49,7 @@ const NIKIV_DATA: StreamPageData = {
 
 function StreamPage() {
   const { username } = Route.useParams()
+  const { data: session, isPending: sessionLoading } = authClient.useSession()
   const [data, setData] = useState<StreamPageData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -62,6 +64,8 @@ function StreamPage() {
   const [streamLive, setStreamLive] = useState(false)
   const [showReadyPulse, setShowReadyPulse] = useState(false)
   const readyPulseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const isAuthenticated = !sessionLoading && !!session?.user
 
   useEffect(() => {
     let isActive = true
@@ -311,6 +315,34 @@ function StreamPage() {
       clearInterval(interval)
     }
   }, [shouldFetchSpotify])
+
+  // Auth gate - require login to view streams
+  if (sessionLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-black text-white">
+        <div className="text-xl">Loading...</div>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-black text-white">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-4">Sign in to watch</h1>
+          <p className="text-neutral-400 mb-8">
+            Create an account or sign in to view this stream
+          </p>
+          <Link
+            to="/login"
+            className="inline-block rounded-lg bg-white px-6 py-3 font-medium text-black hover:bg-neutral-200 transition-colors"
+          >
+            Sign in
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   if (loading) {
     return (

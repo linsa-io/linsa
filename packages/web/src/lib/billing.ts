@@ -1,7 +1,7 @@
 import { getFlowgladServer } from "./flowglad"
 import { getAuth } from "./auth"
 import { db } from "@/db/connection"
-import { stripe_subscriptions, storage_usage } from "@/db/schema"
+import { stripe_subscriptions, storage_usage, creator_subscriptions } from "@/db/schema"
 import { eq, and, gte, lte } from "drizzle-orm"
 
 // Usage limits
@@ -522,6 +522,30 @@ export async function hasActiveSubscription(userId: string): Promise<boolean> {
       and(
         eq(stripe_subscriptions.user_id, userId),
         eq(stripe_subscriptions.status, "active")
+      )
+    )
+    .limit(1)
+
+  return !!subscription
+}
+
+/**
+ * Check if a user has an active subscription to a specific creator (server-side only)
+ */
+export async function hasCreatorSubscription(
+  subscriberId: string,
+  creatorId: string
+): Promise<boolean> {
+  const database = db()
+
+  const [subscription] = await database
+    .select()
+    .from(creator_subscriptions)
+    .where(
+      and(
+        eq(creator_subscriptions.subscriber_id, subscriberId),
+        eq(creator_subscriptions.creator_id, creatorId),
+        eq(creator_subscriptions.status, "active")
       )
     )
     .limit(1)

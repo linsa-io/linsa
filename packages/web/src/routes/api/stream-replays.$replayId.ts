@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { and, eq } from "drizzle-orm"
 import { db } from "@/db/connection"
 import { getAuth } from "@/lib/auth"
-import { hasActiveSubscription } from "@/lib/billing"
+import { hasCreatorSubscription } from "@/lib/billing"
 import { stream_replays, streams } from "@/db/schema"
 
 const json = (data: unknown, status = 200) =>
@@ -99,7 +99,7 @@ const handleGet = async ({
     return json({ replay })
   }
 
-  // Non-owners need subscription to view replays
+  // Non-owners need subscription to this creator to view replays
   if (!session?.user?.id) {
     return json(
       { error: "Subscription required", code: "SUBSCRIPTION_REQUIRED" },
@@ -107,7 +107,7 @@ const handleGet = async ({
     )
   }
 
-  const hasSubscription = await hasActiveSubscription(session.user.id)
+  const hasSubscription = await hasCreatorSubscription(session.user.id, replay.user_id)
   if (!hasSubscription) {
     return json(
       { error: "Subscription required", code: "SUBSCRIPTION_REQUIRED" },
