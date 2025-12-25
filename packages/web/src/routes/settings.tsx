@@ -11,7 +11,6 @@ import {
   Lock,
   MessageCircle,
   HelpCircle,
-  Video,
   Copy,
   ExternalLink,
 } from "lucide-react"
@@ -164,104 +163,67 @@ function SectionHeader({
 }
 
 function PreferencesSection() {
-  const [homeView, setHomeView] = useState("Active issues")
-  const [displayFullNames, setDisplayFullNames] = useState(false)
-  const [firstDay, setFirstDay] = useState("Sunday")
-  const [convertEmojis, setConvertEmojis] = useState(true)
-  const [sidebar, setSidebar] = useState("Customize")
-  const [fontSize, setFontSize] = useState("Default")
-  const [pointerCursor, setPointerCursor] = useState(false)
-  const [theme, setTheme] = useState("System preference")
-  const [lightTheme, setLightTheme] = useState("Light")
-  const [darkTheme, setDarkTheme] = useState("Dark")
+  const [theme, setTheme] = useState("Dark")
+  const [autoplay, setAutoplay] = useState(true)
+  const [lowLatency, setLowLatency] = useState(true)
+  const [chatTimestamps, setChatTimestamps] = useState(false)
 
   return (
     <div id="preferences" className="scroll-mt-24">
       <SectionHeader
         title="Preferences"
-        description="Tune how your workspace looks and behaves."
+        description="Customize your viewing experience."
       />
       <div className="space-y-5">
-        <SettingCard title="General">
-          <SettingRow
-            title="Default home view"
-            description="Choose what opens first when you launch the app."
-            control={
-              <InlineSelect
-                value={homeView}
-                options={[
-                  { value: "Active issues", label: "Active issues" },
-                  { value: "All issues", label: "All issues" },
-                  { value: "My tasks", label: "My tasks" },
-                ]}
-                onChange={setHomeView}
-              />
-            }
-          />
-          <SettingRow
-            title="Display full names"
-            description="Show full names instead of short handles."
-            control={
-              <ToggleSwitch
-                checked={displayFullNames}
-                onChange={setDisplayFullNames}
-              />
-            }
-          />
-          <SettingRow
-            title="First day of the week"
-            description="Used across date pickers."
-            control={
-              <InlineSelect
-                value={firstDay}
-                options={[
-                  { value: "Sunday", label: "Sunday" },
-                  { value: "Monday", label: "Monday" },
-                ]}
-                onChange={setFirstDay}
-              />
-            }
-          />
-          <SettingRow
-            title="Convert emoticons to emoji"
-            description="Strings like :) will be rendered as emoji."
-            control={
-              <ToggleSwitch
-                checked={convertEmojis}
-                onChange={setConvertEmojis}
-              />
-            }
-          />
-        </SettingCard>
-
         <SettingCard title="Appearance">
           <SettingRow
             title="Interface theme"
-            description="Select or customize your color scheme."
+            description="Select your preferred color scheme."
             control={
               <InlineSelect
                 value={theme}
                 options={[
-                  { value: "System preference", label: "System preference" },
-                  { value: "Light", label: "Light" },
                   { value: "Dark", label: "Dark" },
+                  { value: "Light", label: "Light" },
+                  { value: "System", label: "System" },
                 ]}
                 onChange={setTheme}
               />
             }
           />
+        </SettingCard>
+
+        <SettingCard title="Player">
           <SettingRow
-            title="Font size"
-            description="Adjust text size across the app."
+            title="Autoplay streams"
+            description="Automatically play streams when you visit a channel."
             control={
-              <InlineSelect
-                value={fontSize}
-                options={[
-                  { value: "Default", label: "Default" },
-                  { value: "Large", label: "Large" },
-                  { value: "Compact", label: "Compact" },
-                ]}
-                onChange={setFontSize}
+              <ToggleSwitch
+                checked={autoplay}
+                onChange={setAutoplay}
+              />
+            }
+          />
+          <SettingRow
+            title="Low latency mode"
+            description="Reduce stream delay for more real-time interaction."
+            control={
+              <ToggleSwitch
+                checked={lowLatency}
+                onChange={setLowLatency}
+              />
+            }
+          />
+        </SettingCard>
+
+        <SettingCard title="Chat">
+          <SettingRow
+            title="Show timestamps"
+            description="Display time next to chat messages."
+            control={
+              <ToggleSwitch
+                checked={chatTimestamps}
+                onChange={setChatTimestamps}
               />
             }
           />
@@ -517,12 +479,12 @@ function ProfileSection({
           />
         </SettingCard>
 
-        <SettingCard title="Workspace access">
+        <SettingCard title="Session">
           <div className="flex items-start justify-between">
             <div className="flex flex-col gap-2 text-sm text-white/70">
               <p className="font-medium text-white">Sign out</p>
               <p className="text-xs text-white/70">
-                Revoke access on this device.
+                Sign out of your account on this device.
               </p>
             </div>
             <button
@@ -531,7 +493,7 @@ function ProfileSection({
               className="inline-flex items-center gap-2 text-sm font-medium text-rose-600 hover:bg-rose-600/10 hover:text-rose-500 rounded-lg px-4 py-2 cursor-pointer transition-colors"
             >
               <LogOut className="w-4 h-4" />
-              Leave
+              Sign out
             </button>
           </div>
         </SettingCard>
@@ -868,11 +830,11 @@ function BillingSection() {
           <ul className="space-y-3 mb-6">
             <li className="flex items-center gap-3 text-white/90">
               <Check className="w-5 h-5 text-teal-400 shrink-0" />
-              <span>Unlimited bookmark saving</span>
+              <span>Unlimited stream replays</span>
             </li>
             <li className="flex items-center gap-3 text-white/90">
               <Check className="w-5 h-5 text-teal-400 shrink-0" />
-              <span>Access to all stream archives</span>
+              <span>HD streaming quality</span>
             </li>
             <li className="flex items-center gap-3 text-white/90">
               <Check className="w-5 h-5 text-teal-400 shrink-0" />

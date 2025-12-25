@@ -150,7 +150,7 @@ const updateProfile = async ({ request }: { request: Request }) => {
     }
 
     // Update user
-    const updates: Record<string, string | null> = { updatedAt: new Date().toISOString() }
+    const updates: Record<string, string | Date | null> = { updatedAt: new Date() }
     if (name !== undefined) updates.name = name
     if (username !== undefined) updates.username = username
     if (image !== undefined) updates.image = image
