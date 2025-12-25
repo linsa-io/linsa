@@ -113,7 +113,7 @@ export const GlideCanvasItem = z.object({
   imageData: z.string().nullable(), // Base64 encoded image
   position: z.object({ x: z.number(), y: z.number() }).nullable(),
   createdAt: z.number(),
-  metadata: z.record(z.string(), z.string()).nullable(),
+  metadata: z.string().nullable(), // JSON string for metadata
 })
 export type GlideCanvasItem = z.infer<typeof GlideCanvasItem>
 
