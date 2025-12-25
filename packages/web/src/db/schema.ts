@@ -436,3 +436,132 @@ export type ContextItem = z.infer<typeof selectContextItemSchema>
 export type ThreadContextItem = z.infer<typeof selectThreadContextItemSchema>
 export type BrowserSession = z.infer<typeof selectBrowserSessionSchema>
 export type BrowserSessionTab = z.infer<typeof selectBrowserSessionTabSchema>
+
+// =============================================================================
+// Creator Economy - Subscriptions & Sales
+// =============================================================================
+
+// Stripe Connect accounts for creators to receive payouts
+export const stripe_connect_accounts = pgTable("stripe_connect_accounts", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  user_id: text("user_id")
+    .notNull()
+    .unique()
+    .references(() => users.id, { onDelete: "cascade" }),
+  stripe_account_id: text("stripe_account_id").notNull().unique(),
+  onboarding_complete: boolean("onboarding_complete").notNull().default(false),
+  payouts_enabled: boolean("payouts_enabled").notNull().default(false),
+  created_at: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updated_at: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+})
+
+// Subscription tiers that creators set up
+export const creator_tiers = pgTable("creator_tiers", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  creator_id: text("creator_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(), // e.g., "Basic", "Pro", "VIP"
+  description: text("description"),
+  price_cents: integer("price_cents").notNull(), // Price in cents (e.g., 500 = $5)
+  currency: varchar("currency", { length: 3 }).notNull().default("usd"),
+  benefits: text("benefits"), // JSON array of benefits or plain text
+  stripe_price_id: text("stripe_price_id"), // Created when tier is made
+  is_active: boolean("is_active").notNull().default(true),
+  sort_order: integer("sort_order").notNull().default(0),
+  created_at: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updated_at: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+})
+
+// Users subscribing to creators
+export const creator_subscriptions = pgTable("creator_subscriptions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  subscriber_id: text("subscriber_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  creator_id: text("creator_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  tier_id: uuid("tier_id")
+    .notNull()
+    .references(() => creator_tiers.id, { onDelete: "cascade" }),
+  stripe_subscription_id: text("stripe_subscription_id").unique(),
+  status: varchar("status", { length: 32 }).notNull().default("active"), // active, canceled, past_due
+  current_period_start: timestamp("current_period_start", { withTimezone: true }),
+  current_period_end: timestamp("current_period_end", { withTimezone: true }),
+  cancel_at_period_end: boolean("cancel_at_period_end").default(false),
+  created_at: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updated_at: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+})
+
+// One-time products/items creators can sell
+export const creator_products = pgTable("creator_products", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  creator_id: text("creator_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  price_cents: integer("price_cents").notNull(),
+  currency: varchar("currency", { length: 3 }).notNull().default("usd"),
+  type: varchar("type", { length: 32 }).notNull().default("digital"), // digital, physical, service
+  // For digital products
+  content_url: text("content_url"), // URL to downloadable content
+  // For display
+  image_url: text("image_url"),
+  stripe_price_id: text("stripe_price_id"),
+  is_active: boolean("is_active").notNull().default(true),
+  stock: integer("stock"), // null = unlimited
+  created_at: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updated_at: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+})
+
+// Purchase records for one-time products
+export const creator_purchases = pgTable("creator_purchases", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  buyer_id: text("buyer_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  product_id: uuid("product_id")
+    .notNull()
+    .references(() => creator_products.id, { onDelete: "cascade" }),
+  creator_id: text("creator_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  stripe_payment_intent_id: text("stripe_payment_intent_id"),
+  amount_cents: integer("amount_cents").notNull(),
+  currency: varchar("currency", { length: 3 }).notNull().default("usd"),
+  status: varchar("status", { length: 32 }).notNull().default("completed"), // pending, completed, refunded
+  created_at: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+})
+
+// Schema exports for creator economy
+export const selectStripeConnectAccountSchema = createSelectSchema(stripe_connect_accounts)
+export const selectCreatorTierSchema = createSelectSchema(creator_tiers)
+export const selectCreatorSubscriptionSchema = createSelectSchema(creator_subscriptions)
+export const selectCreatorProductSchema = createSelectSchema(creator_products)
+export const selectCreatorPurchaseSchema = createSelectSchema(creator_purchases)
+
+export type StripeConnectAccount = z.infer<typeof selectStripeConnectAccountSchema>
+export type CreatorTier = z.infer<typeof selectCreatorTierSchema>
+export type CreatorSubscription = z.infer<typeof selectCreatorSubscriptionSchema>
+export type CreatorProduct = z.infer<typeof selectCreatorProductSchema>
+export type CreatorPurchase = z.infer<typeof selectCreatorPurchaseSchema>
