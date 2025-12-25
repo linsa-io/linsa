@@ -50,6 +50,7 @@ import { Route as ApiStripePortalRouteImport } from './routes/api/stripe/portal'
 import { Route as ApiStripeCheckoutRouteImport } from './routes/api/stripe/checkout'
 import { Route as ApiStripeBillingRouteImport } from './routes/api/stripe/billing'
 import { Route as ApiStreamsUsernameRouteImport } from './routes/api/streams.$username'
+import { Route as ApiStreamSettingsRouteImport } from './routes/api/stream.settings'
 import { Route as ApiStreamReplaysReplayIdRouteImport } from './routes/api/stream-replays.$replayId'
 import { Route as ApiSpotifyNowPlayingRouteImport } from './routes/api/spotify.now-playing'
 import { Route as ApiFlowgladSplatRouteImport } from './routes/api/flowglad/$'
@@ -69,6 +70,7 @@ import { Route as DemoStartSsrFullSsrRouteImport } from './routes/demo/start.ssr
 import { Route as DemoStartSsrDataOnlyRouteImport } from './routes/demo/start.ssr.data-only'
 import { Route as ApiStreamsUsernameViewersRouteImport } from './routes/api/streams.$username.viewers'
 import { Route as ApiStreamsUsernameReplaysRouteImport } from './routes/api/streams.$username.replays'
+import { Route as ApiStreamsUsernameCheckHlsRouteImport } from './routes/api/streams.$username.check-hls'
 import { Route as ApiCreatorUsernameAccessRouteImport } from './routes/api/creator/$username.access'
 import { Route as ApiCanvasImagesImageIdRouteImport } from './routes/api/canvas.images.$imageId'
 import { Route as ApiCanvasImagesImageIdGenerateRouteImport } from './routes/api/canvas.images.$imageId.generate'
@@ -278,6 +280,11 @@ const ApiStreamsUsernameRoute = ApiStreamsUsernameRouteImport.update({
   path: '/api/streams/$username',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStreamSettingsRoute = ApiStreamSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => ApiStreamRoute,
+} as any)
 const ApiStreamReplaysReplayIdRoute =
   ApiStreamReplaysReplayIdRouteImport.update({
     id: '/$replayId',
@@ -377,6 +384,12 @@ const ApiStreamsUsernameReplaysRoute =
     path: '/replays',
     getParentRoute: () => ApiStreamsUsernameRoute,
   } as any)
+const ApiStreamsUsernameCheckHlsRoute =
+  ApiStreamsUsernameCheckHlsRouteImport.update({
+    id: '/check-hls',
+    path: '/check-hls',
+    getParentRoute: () => ApiStreamsUsernameRoute,
+  } as any)
 const ApiCreatorUsernameAccessRoute =
   ApiCreatorUsernameAccessRouteImport.update({
     id: '/api/creator/$username/access',
@@ -417,7 +430,7 @@ export interface FileRoutesByFullPath {
   '/api/check-hls': typeof ApiCheckHlsRoute
   '/api/context-items': typeof ApiContextItemsRoute
   '/api/profile': typeof ApiProfileRoute
-  '/api/stream': typeof ApiStreamRoute
+  '/api/stream': typeof ApiStreamRouteWithChildren
   '/api/stream-comments': typeof ApiStreamCommentsRoute
   '/api/stream-replays': typeof ApiStreamReplaysRouteWithChildren
   '/api/stream-status': typeof ApiStreamStatusRoute
@@ -440,6 +453,7 @@ export interface FileRoutesByFullPath {
   '/api/flowglad/$': typeof ApiFlowgladSplatRoute
   '/api/spotify/now-playing': typeof ApiSpotifyNowPlayingRoute
   '/api/stream-replays/$replayId': typeof ApiStreamReplaysReplayIdRoute
+  '/api/stream/settings': typeof ApiStreamSettingsRoute
   '/api/streams/$username': typeof ApiStreamsUsernameRouteWithChildren
   '/api/stripe/billing': typeof ApiStripeBillingRoute
   '/api/stripe/checkout': typeof ApiStripeCheckoutRoute
@@ -452,6 +466,7 @@ export interface FileRoutesByFullPath {
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
   '/api/canvas/images/$imageId': typeof ApiCanvasImagesImageIdRouteWithChildren
   '/api/creator/$username/access': typeof ApiCreatorUsernameAccessRoute
+  '/api/streams/$username/check-hls': typeof ApiStreamsUsernameCheckHlsRoute
   '/api/streams/$username/replays': typeof ApiStreamsUsernameReplaysRoute
   '/api/streams/$username/viewers': typeof ApiStreamsUsernameViewersRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
@@ -481,7 +496,7 @@ export interface FileRoutesByTo {
   '/api/check-hls': typeof ApiCheckHlsRoute
   '/api/context-items': typeof ApiContextItemsRoute
   '/api/profile': typeof ApiProfileRoute
-  '/api/stream': typeof ApiStreamRoute
+  '/api/stream': typeof ApiStreamRouteWithChildren
   '/api/stream-comments': typeof ApiStreamCommentsRoute
   '/api/stream-replays': typeof ApiStreamReplaysRouteWithChildren
   '/api/stream-status': typeof ApiStreamStatusRoute
@@ -504,6 +519,7 @@ export interface FileRoutesByTo {
   '/api/flowglad/$': typeof ApiFlowgladSplatRoute
   '/api/spotify/now-playing': typeof ApiSpotifyNowPlayingRoute
   '/api/stream-replays/$replayId': typeof ApiStreamReplaysReplayIdRoute
+  '/api/stream/settings': typeof ApiStreamSettingsRoute
   '/api/streams/$username': typeof ApiStreamsUsernameRouteWithChildren
   '/api/stripe/billing': typeof ApiStripeBillingRoute
   '/api/stripe/checkout': typeof ApiStripeCheckoutRoute
@@ -516,6 +532,7 @@ export interface FileRoutesByTo {
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
   '/api/canvas/images/$imageId': typeof ApiCanvasImagesImageIdRouteWithChildren
   '/api/creator/$username/access': typeof ApiCreatorUsernameAccessRoute
+  '/api/streams/$username/check-hls': typeof ApiStreamsUsernameCheckHlsRoute
   '/api/streams/$username/replays': typeof ApiStreamsUsernameReplaysRoute
   '/api/streams/$username/viewers': typeof ApiStreamsUsernameViewersRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
@@ -547,7 +564,7 @@ export interface FileRoutesById {
   '/api/check-hls': typeof ApiCheckHlsRoute
   '/api/context-items': typeof ApiContextItemsRoute
   '/api/profile': typeof ApiProfileRoute
-  '/api/stream': typeof ApiStreamRoute
+  '/api/stream': typeof ApiStreamRouteWithChildren
   '/api/stream-comments': typeof ApiStreamCommentsRoute
   '/api/stream-replays': typeof ApiStreamReplaysRouteWithChildren
   '/api/stream-status': typeof ApiStreamStatusRoute
@@ -570,6 +587,7 @@ export interface FileRoutesById {
   '/api/flowglad/$': typeof ApiFlowgladSplatRoute
   '/api/spotify/now-playing': typeof ApiSpotifyNowPlayingRoute
   '/api/stream-replays/$replayId': typeof ApiStreamReplaysReplayIdRoute
+  '/api/stream/settings': typeof ApiStreamSettingsRoute
   '/api/streams/$username': typeof ApiStreamsUsernameRouteWithChildren
   '/api/stripe/billing': typeof ApiStripeBillingRoute
   '/api/stripe/checkout': typeof ApiStripeCheckoutRoute
@@ -582,6 +600,7 @@ export interface FileRoutesById {
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
   '/api/canvas/images/$imageId': typeof ApiCanvasImagesImageIdRouteWithChildren
   '/api/creator/$username/access': typeof ApiCreatorUsernameAccessRoute
+  '/api/streams/$username/check-hls': typeof ApiStreamsUsernameCheckHlsRoute
   '/api/streams/$username/replays': typeof ApiStreamsUsernameReplaysRoute
   '/api/streams/$username/viewers': typeof ApiStreamsUsernameViewersRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
@@ -637,6 +656,7 @@ export interface FileRouteTypes {
     | '/api/flowglad/$'
     | '/api/spotify/now-playing'
     | '/api/stream-replays/$replayId'
+    | '/api/stream/settings'
     | '/api/streams/$username'
     | '/api/stripe/billing'
     | '/api/stripe/checkout'
@@ -649,6 +669,7 @@ export interface FileRouteTypes {
     | '/demo/start/server-funcs'
     | '/api/canvas/images/$imageId'
     | '/api/creator/$username/access'
+    | '/api/streams/$username/check-hls'
     | '/api/streams/$username/replays'
     | '/api/streams/$username/viewers'
     | '/demo/start/ssr/data-only'
@@ -701,6 +722,7 @@ export interface FileRouteTypes {
     | '/api/flowglad/$'
     | '/api/spotify/now-playing'
     | '/api/stream-replays/$replayId'
+    | '/api/stream/settings'
     | '/api/streams/$username'
     | '/api/stripe/billing'
     | '/api/stripe/checkout'
@@ -713,6 +735,7 @@ export interface FileRouteTypes {
     | '/demo/start/server-funcs'
     | '/api/canvas/images/$imageId'
     | '/api/creator/$username/access'
+    | '/api/streams/$username/check-hls'
     | '/api/streams/$username/replays'
     | '/api/streams/$username/viewers'
     | '/demo/start/ssr/data-only'
@@ -766,6 +789,7 @@ export interface FileRouteTypes {
     | '/api/flowglad/$'
     | '/api/spotify/now-playing'
     | '/api/stream-replays/$replayId'
+    | '/api/stream/settings'
     | '/api/streams/$username'
     | '/api/stripe/billing'
     | '/api/stripe/checkout'
@@ -778,6 +802,7 @@ export interface FileRouteTypes {
     | '/demo/start/server-funcs'
     | '/api/canvas/images/$imageId'
     | '/api/creator/$username/access'
+    | '/api/streams/$username/check-hls'
     | '/api/streams/$username/replays'
     | '/api/streams/$username/viewers'
     | '/demo/start/ssr/data-only'
@@ -809,7 +834,7 @@ export interface RootRouteChildren {
   ApiCheckHlsRoute: typeof ApiCheckHlsRoute
   ApiContextItemsRoute: typeof ApiContextItemsRoute
   ApiProfileRoute: typeof ApiProfileRoute
-  ApiStreamRoute: typeof ApiStreamRoute
+  ApiStreamRoute: typeof ApiStreamRouteWithChildren
   ApiStreamCommentsRoute: typeof ApiStreamCommentsRoute
   ApiStreamReplaysRoute: typeof ApiStreamReplaysRouteWithChildren
   ApiStreamStatusRoute: typeof ApiStreamStatusRoute
@@ -1128,6 +1153,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiStreamsUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/stream/settings': {
+      id: '/api/stream/settings'
+      path: '/settings'
+      fullPath: '/api/stream/settings'
+      preLoaderRoute: typeof ApiStreamSettingsRouteImport
+      parentRoute: typeof ApiStreamRoute
+    }
     '/api/stream-replays/$replayId': {
       id: '/api/stream-replays/$replayId'
       path: '/$replayId'
@@ -1261,6 +1293,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiStreamsUsernameReplaysRouteImport
       parentRoute: typeof ApiStreamsUsernameRoute
     }
+    '/api/streams/$username/check-hls': {
+      id: '/api/streams/$username/check-hls'
+      path: '/check-hls'
+      fullPath: '/api/streams/$username/check-hls'
+      preLoaderRoute: typeof ApiStreamsUsernameCheckHlsRouteImport
+      parentRoute: typeof ApiStreamsUsernameRoute
+    }
     '/api/creator/$username/access': {
       id: '/api/creator/$username/access'
       path: '/api/creator/$username/access'
@@ -1372,6 +1411,18 @@ const ApiCanvasRouteWithChildren = ApiCanvasRoute._addFileChildren(
   ApiCanvasRouteChildren,
 )
 
+interface ApiStreamRouteChildren {
+  ApiStreamSettingsRoute: typeof ApiStreamSettingsRoute
+}
+
+const ApiStreamRouteChildren: ApiStreamRouteChildren = {
+  ApiStreamSettingsRoute: ApiStreamSettingsRoute,
+}
+
+const ApiStreamRouteWithChildren = ApiStreamRoute._addFileChildren(
+  ApiStreamRouteChildren,
+)
+
 interface ApiStreamReplaysRouteChildren {
   ApiStreamReplaysReplayIdRoute: typeof ApiStreamReplaysReplayIdRoute
 }
@@ -1408,11 +1459,13 @@ const ApiUsersRouteWithChildren = ApiUsersRoute._addFileChildren(
 )
 
 interface ApiStreamsUsernameRouteChildren {
+  ApiStreamsUsernameCheckHlsRoute: typeof ApiStreamsUsernameCheckHlsRoute
   ApiStreamsUsernameReplaysRoute: typeof ApiStreamsUsernameReplaysRoute
   ApiStreamsUsernameViewersRoute: typeof ApiStreamsUsernameViewersRoute
 }
 
 const ApiStreamsUsernameRouteChildren: ApiStreamsUsernameRouteChildren = {
+  ApiStreamsUsernameCheckHlsRoute: ApiStreamsUsernameCheckHlsRoute,
   ApiStreamsUsernameReplaysRoute: ApiStreamsUsernameReplaysRoute,
   ApiStreamsUsernameViewersRoute: ApiStreamsUsernameViewersRoute,
 }
@@ -1442,7 +1495,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCheckHlsRoute: ApiCheckHlsRoute,
   ApiContextItemsRoute: ApiContextItemsRoute,
   ApiProfileRoute: ApiProfileRoute,
-  ApiStreamRoute: ApiStreamRoute,
+  ApiStreamRoute: ApiStreamRouteWithChildren,
   ApiStreamCommentsRoute: ApiStreamCommentsRoute,
   ApiStreamReplaysRoute: ApiStreamReplaysRouteWithChildren,
   ApiStreamStatusRoute: ApiStreamStatusRoute,

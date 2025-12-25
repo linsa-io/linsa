@@ -11,9 +11,12 @@ import {
   Lock,
   MessageCircle,
   HelpCircle,
+  Video,
+  Copy,
+  ExternalLink,
 } from "lucide-react"
 
-type SectionId = "preferences" | "profile" | "billing"
+type SectionId = "preferences" | "profile" | "streaming" | "billing"
 
 const PLAN_CARD_NOISE =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.18'/%3E%3C/svg%3E"
@@ -462,6 +465,214 @@ function ProfileSection({
   )
 }
 
+function StreamingSection({ username }: { username: string | null | undefined }) {
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  // Stream settings
+  const [title, setTitle] = useState("")
+  const [description, setDescription] = useState("")
+  const [liveInputUid, setLiveInputUid] = useState("")
+  const [customerCode, setCustomerCode] = useState("")
+  const [streamKey, setStreamKey] = useState("")
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch("/api/stream/settings", { credentials: "include" })
+        if (res.ok) {
+          const data = await res.json()
+          setTitle(data.title || "")
+          setDescription(data.description || "")
+          setLiveInputUid(data.cloudflare_live_input_uid || "")
+          setCustomerCode(data.cloudflare_customer_code || "")
+          setStreamKey(data.stream_key || "")
+        }
+      } catch {
+        // Ignore errors
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchSettings()
+  }, [])
+
+  const handleSave = async () => {
+    setSaving(true)
+    setError(null)
+    setSaved(false)
+    try {
+      const res = await fetch("/api/stream/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          title,
+          description,
+          cloudflare_live_input_uid: liveInputUid || null,
+          cloudflare_customer_code: customerCode || null,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || "Failed to save")
+      } else {
+        setSaved(true)
+        setTimeout(() => setSaved(false), 2000)
+      }
+    } catch {
+      setError("Network error")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const copyStreamKey = () => {
+    navigator.clipboard.writeText(streamKey)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const streamUrl = username ? `https://linsa.io/${username}` : null
+
+  return (
+    <div id="streaming" className="scroll-mt-24">
+      <SectionHeader
+        title="Streaming"
+        description="Configure your live stream settings."
+      />
+      <div className="space-y-5">
+        {loading ? (
+          <div className="h-32 bg-white/5 rounded-2xl animate-pulse" />
+        ) : (
+          <>
+            <SettingCard title="Stream Info">
+              <div className="space-y-4 py-2">
+                <div className="space-y-2">
+                  <label className="text-sm text-white/70">Stream Title</label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="My Live Stream"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-white/70">Description</label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="What are you streaming?"
+                    rows={2}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
+                  />
+                </div>
+              </div>
+            </SettingCard>
+
+            <SettingCard title="Cloudflare Stream">
+              <div className="space-y-4 py-2">
+                <div className="p-3 bg-teal-500/10 border border-teal-500/20 rounded-lg">
+                  <p className="text-sm text-teal-300">
+                    Enter your Cloudflare Live Input UID to enable automatic stream detection.
+                    Your stream will go live automatically when you start streaming.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-white/70">Live Input UID</label>
+                  <input
+                    type="text"
+                    value={liveInputUid}
+                    onChange={(e) => setLiveInputUid(e.target.value)}
+                    placeholder="e.g., bb7858eafc85de6c92963f3817477b5d"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 font-mono text-sm"
+                  />
+                  <p className="text-xs text-white/50">
+                    Find this in your Cloudflare Stream dashboard under Live Inputs.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-white/70">Customer Code (Optional)</label>
+                  <input
+                    type="text"
+                    value={customerCode}
+                    onChange={(e) => setCustomerCode(e.target.value)}
+                    placeholder="Leave empty to use default"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 font-mono text-sm"
+                  />
+                  <p className="text-xs text-white/50">
+                    Only needed if using your own Cloudflare account.
+                  </p>
+                </div>
+              </div>
+            </SettingCard>
+
+            <SettingCard title="Your Stream">
+              <div className="space-y-4 py-2">
+                {streamUrl && (
+                  <div className="space-y-2">
+                    <label className="text-sm text-white/70">Stream URL</label>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-teal-400 text-sm">
+                        {streamUrl}
+                      </code>
+                      <a
+                        href={streamUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 text-white/70 hover:text-white transition-colors"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    </div>
+                  </div>
+                )}
+                {streamKey && (
+                  <div className="space-y-2">
+                    <label className="text-sm text-white/70">Stream Key</label>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white/70 text-sm font-mono truncate">
+                        {streamKey.slice(0, 8)}...{streamKey.slice(-4)}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={copyStreamKey}
+                        className="p-2 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 text-white/70 hover:text-white transition-colors"
+                      >
+                        {copied ? <Check className="w-4 h-4 text-teal-400" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="text-xs text-white/50">
+                      Use this key to stream to Linsa (coming soon).
+                    </p>
+                  </div>
+                )}
+              </div>
+            </SettingCard>
+
+            {error && <p className="text-sm text-rose-400">{error}</p>}
+            <div className="flex justify-end gap-2">
+              {saved && <span className="text-sm text-teal-400 flex items-center gap-1"><Check className="w-4 h-4" /> Saved</span>}
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {saving ? "Saving..." : "Save Settings"}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function BillingSection() {
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -661,6 +872,8 @@ function SettingsPage() {
                 onChangeEmail={openEmailModal}
                 onChangePassword={openPasswordModal}
               />
+            ) : activeSection === "streaming" ? (
+              <StreamingSection username={session?.user?.username} />
             ) : activeSection === "billing" ? (
               <BillingSection />
             ) : null}

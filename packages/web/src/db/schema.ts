@@ -25,6 +25,10 @@ export const users = pgTable("users", {
     .$defaultFn(() => false)
     .notNull(),
   image: text("image"),
+  // Profile fields
+  bio: text("bio"),
+  website: text("website"),
+  location: text("location"),
   // Access tiers: 'free' | 'creator' | 'dev' - determines feature access
   tier: varchar("tier", { length: 32 }).notNull().default("free"),
   createdAt: timestamp("createdAt")
@@ -247,7 +251,10 @@ export const streams = pgTable("streams", {
   is_live: boolean("is_live").notNull().default(false),
   viewer_count: integer("viewer_count").notNull().default(0),
   stream_key: text("stream_key").notNull().unique(), // secret key for streaming
-  // Stream endpoints (set by Linux server)
+  // Cloudflare Stream integration
+  cloudflare_live_input_uid: text("cloudflare_live_input_uid"), // Cloudflare Live Input UID for automatic stream detection
+  cloudflare_customer_code: text("cloudflare_customer_code"), // Customer subdomain (optional, defaults to linsa's)
+  // Stream endpoints (can be auto-generated from cloudflare_live_input_uid or set manually)
   hls_url: text("hls_url"), // HLS playback URL
   webrtc_url: text("webrtc_url"), // WebRTC playback URL
   thumbnail_url: text("thumbnail_url"),

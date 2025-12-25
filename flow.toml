@@ -1935,3 +1935,226 @@ pnpm exec wrangler secret list 2>&1 | grep '"name"' | sed 's/.*"name": "\([^"]*\
 '''
 dependencies = ["pnpm"]
 shortcuts = ["sec"]
+
+# =============================================================================
+# Stream & Profile Management
+# =============================================================================
+
+[[tasks]]
+name = "update-profile"
+interactive = true
+description = "Update nikiv's profile in production database"
+command = '''
+set -euo pipefail
+
+cd packages/web
+
+# Load env
+if [ -f .env ]; then
+  export $(grep -E "^PROD_DATABASE_URL=" .env | xargs)
+fi
+
+if [ -z "${PROD_DATABASE_URL:-}" ]; then
+  echo "❌ PROD_DATABASE_URL not set in packages/web/.env"
+  exit 1
+fi
+
+echo "=== Update Profile ==="
+echo ""
+read -p "Enter username to update [nikiv]: " USERNAME
+USERNAME="${USERNAME:-nikiv}"
+
+read -p "Enter bio: " BIO
+read -p "Enter website (e.g., nikiv.dev): " WEBSITE
+read -p "Enter location (optional): " LOCATION
+
+DATABASE_URL="$PROD_DATABASE_URL" pnpm tsx -e "
+const { neon } = require('@neondatabase/serverless');
+const sql = neon(process.env.DATABASE_URL);
+
+async function run() {
+  const bio = process.argv[2] || null;
+  const website = process.argv[3] || null;
+  const location = process.argv[4] || null;
+  const username = process.argv[5];
+
+  const result = await sql\`
+    UPDATE users
+    SET bio = \${bio}, website = \${website}, location = \${location}, \"updatedAt\" = NOW()
+    WHERE username = \${username}
+    RETURNING id, name, username, bio, website, location
+  \`;
+
+  if (result.length === 0) {
+    console.log('User not found:', username);
+    return;
+  }
+
+  console.log('✓ Profile updated:');
+  console.log(JSON.stringify(result[0], null, 2));
+}
+
+run().catch(console.error);
+" "$BIO" "$WEBSITE" "$LOCATION" "$USERNAME"
+'''
+dependencies = ["node", "pnpm"]
+shortcuts = ["profile"]
+
+[[tasks]]
+name = "deploy-all"
+description = "Push schema + deploy worker + deploy web"
+command = '''
+set -euo pipefail
+
+echo "=== Full Deploy ==="
+echo ""
+
+cd packages/web
+
+# Load env
+if [ -f .env ]; then
+  export $(grep -E "^PROD_DATABASE_URL=" .env | xargs)
+fi
+
+# 1. Push schema
+if [ -n "${PROD_DATABASE_URL:-}" ]; then
+  echo "1/3 Pushing schema..."
+  DATABASE_URL="$PROD_DATABASE_URL" pnpm drizzle-kit push --force 2>&1 | tail -5
+  echo "✓ Schema pushed"
+else
+  echo "1/3 Skipping schema push (PROD_DATABASE_URL not set)"
+fi
+
+# 2. Deploy worker
+echo ""
+echo "2/3 Deploying worker..."
+cd ../worker
+pnpm deploy 2>&1 | tail -5
+echo "✓ Worker deployed"
+
+# 3. Deploy web
+echo ""
+echo "3/3 Deploying web..."
+cd ../web
+pnpm deploy 2>&1 | tail -10
+echo "✓ Web deployed"
+
+echo ""
+echo "=== Deploy Complete ==="
+'''
+dependencies = ["node", "pnpm"]
+shortcuts = ["da", "full"]
+
+[[tasks]]
+name = "deploy-web"
+description = "Deploy web to Cloudflare"
+command = '''
+cd packages/web
+pnpm deploy
+'''
+dependencies = ["pnpm"]
+shortcuts = ["dw"]
+
+[[tasks]]
+name = "deploy-worker"
+description = "Deploy worker to Cloudflare"
+command = '''
+cd packages/worker
+pnpm deploy
+'''
+dependencies = ["pnpm"]
+shortcuts = ["dwk"]
+
+[[tasks]]
+name = "schema-push"
+description = "Push Drizzle schema to production (quick)"
+command = '''
+set -euo pipefail
+
+cd packages/web
+
+if [ -f .env ]; then
+  export $(grep -E "^PROD_DATABASE_URL=" .env | xargs)
+fi
+
+if [ -z "${PROD_DATABASE_URL:-}" ]; then
+  echo "❌ PROD_DATABASE_URL not set"
+  exit 1
+fi
+
+echo "Pushing schema to production..."
+DATABASE_URL="$PROD_DATABASE_URL" pnpm drizzle-kit push --force 2>&1 | tail -5
+echo "✓ Done"
+'''
+dependencies = ["node", "pnpm"]
+shortcuts = ["sp", "schema"]
+
+[[tasks]]
+name = "stream-secret"
+interactive = true
+description = "Set Cloudflare stream secret (CLOUDFLARE_LIVE_INPUT_UID)"
+command = '''
+set -euo pipefail
+
+cd packages/web
+
+echo "=== Set Stream Secret ==="
+echo ""
+echo "Get your Live Input UID from Cloudflare Stream dashboard:"
+echo "https://dash.cloudflare.com/?to=/:account/stream/inputs"
+echo ""
+read -p "Enter CLOUDFLARE_LIVE_INPUT_UID: " LIVE_INPUT_UID
+
+if [ -n "$LIVE_INPUT_UID" ]; then
+  echo "$LIVE_INPUT_UID" | pnpm exec wrangler secret put CLOUDFLARE_LIVE_INPUT_UID
+  echo "✓ CLOUDFLARE_LIVE_INPUT_UID set"
+else
+  echo "Skipped"
+fi
+'''
+dependencies = ["pnpm"]
+shortcuts = ["stream"]
+
+[[tasks]]
+name = "show-user"
+description = "Show user profile from production database"
+command = '''
+set -euo pipefail
+
+cd packages/web
+
+if [ -f .env ]; then
+  export $(grep -E "^PROD_DATABASE_URL=" .env | xargs)
+fi
+
+if [ -z "${PROD_DATABASE_URL:-}" ]; then
+  echo "❌ PROD_DATABASE_URL not set"
+  exit 1
+fi
+
+USERNAME="${1:-nikiv}"
+
+DATABASE_URL="$PROD_DATABASE_URL" pnpm tsx -e "
+const { neon } = require('@neondatabase/serverless');
+const sql = neon(process.env.DATABASE_URL);
+
+async function run() {
+  const username = process.argv[2] || 'nikiv';
+  const result = await sql\`
+    SELECT id, name, email, username, image, bio, website, location, tier, \"createdAt\"
+    FROM users WHERE username = \${username}
+  \`;
+
+  if (result.length === 0) {
+    console.log('User not found:', username);
+    return;
+  }
+
+  console.log(JSON.stringify(result[0], null, 2));
+}
+
+run().catch(console.error);
+" "$USERNAME"
+'''
+dependencies = ["node", "pnpm"]
+shortcuts = ["user"]

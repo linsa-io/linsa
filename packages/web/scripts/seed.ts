@@ -7,6 +7,7 @@ import {
   chat_messages,
   chat_threads,
   sessions,
+  streams,
   users,
   verifications,
 } from "../src/db/schema"
@@ -116,7 +117,12 @@ async function ensureTables() {
     ALTER TABLE "users"
       ADD COLUMN IF NOT EXISTS "emailVerified" boolean DEFAULT false,
       ADD COLUMN IF NOT EXISTS "createdAt" timestamptz DEFAULT now(),
-      ADD COLUMN IF NOT EXISTS "updatedAt" timestamptz DEFAULT now()
+      ADD COLUMN IF NOT EXISTS "updatedAt" timestamptz DEFAULT now(),
+      ADD COLUMN IF NOT EXISTS "username" text UNIQUE,
+      ADD COLUMN IF NOT EXISTS "bio" text,
+      ADD COLUMN IF NOT EXISTS "website" text,
+      ADD COLUMN IF NOT EXISTS "location" text,
+      ADD COLUMN IF NOT EXISTS "tier" varchar(32) DEFAULT 'free'
   `)
   await authDb.execute(
     sql`UPDATE "users" SET "emailVerified" = COALESCE("emailVerified", "email_verified")`,
@@ -264,6 +270,68 @@ async function ensureTables() {
 async function seed() {
   await ensureTables()
 
+  // Create streams table if it doesn't exist
+  await appDb.execute(sql`
+    CREATE TABLE IF NOT EXISTS "streams" (
+      "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      "user_id" text NOT NULL REFERENCES "users"("id") ON DELETE cascade,
+      "title" text NOT NULL DEFAULT 'Live Stream',
+      "description" text,
+      "is_live" boolean NOT NULL DEFAULT false,
+      "viewer_count" integer NOT NULL DEFAULT 0,
+      "stream_key" text NOT NULL UNIQUE,
+      "cloudflare_live_input_uid" text,
+      "cloudflare_customer_code" text,
+      "hls_url" text,
+      "webrtc_url" text,
+      "thumbnail_url" text,
+      "started_at" timestamptz,
+      "ended_at" timestamptz,
+      "created_at" timestamptz NOT NULL DEFAULT now(),
+      "updated_at" timestamptz NOT NULL DEFAULT now()
+    );
+  `)
+
+  // Add cloudflare columns if they don't exist (for existing tables)
+  await appDb.execute(sql`
+    ALTER TABLE "streams"
+      ADD COLUMN IF NOT EXISTS "cloudflare_live_input_uid" text,
+      ADD COLUMN IF NOT EXISTS "cloudflare_customer_code" text
+  `)
+
+  // ========== Seed nikiv user ==========
+  const nikivUserId = "nikiv"
+  const nikivEmail = "nikita.voloboev@gmail.com"
+
+  await authDb
+    .insert(users)
+    .values({
+      id: nikivUserId,
+      name: "Nikita Voloboev",
+      email: nikivEmail,
+      username: "nikiv",
+      emailVerified: true,
+      image: "https://nikiv.dev/nikiv.jpg",
+      bio: "Building in public. Making tools I want to exist.",
+      website: "nikiv.dev",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .onConflictDoNothing({ target: users.id })
+
+  // Create stream for nikiv (HLS URL will come from env variable fallback)
+  const nikivStreamKey = crypto.randomUUID()
+  await appDb
+    .insert(streams)
+    .values({
+      user_id: nikivUserId,
+      title: "Live Coding",
+      description: "Building in public",
+      stream_key: nikivStreamKey,
+    })
+    .onConflictDoNothing()
+
+  // ========== Seed demo user ==========
   const demoUserId = "demo-user"
   const demoEmail = "demo@ai.chat"
 
@@ -342,7 +410,7 @@ async function seed() {
 
 seed()
   .then(() => {
-    console.log("Seed complete: demo user and chat thread ready.")
+    console.log("Seed complete: nikiv user, stream, demo user, and chat thread ready.")
   })
   .catch((err) => {
     console.error(err)

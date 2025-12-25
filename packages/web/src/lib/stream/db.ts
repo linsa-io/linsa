@@ -6,6 +6,10 @@ export type StreamPageData = {
     name: string
     username: string | null
     image: string | null
+    bio?: string | null
+    website?: string | null
+    location?: string | null
+    joinedAt?: string | null
   }
   stream: {
     id: string

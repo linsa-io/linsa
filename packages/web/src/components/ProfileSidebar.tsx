@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router"
 import { ExternalLink, MapPin, Calendar, Users } from "lucide-react"
 
 interface ProfileSidebarProps {

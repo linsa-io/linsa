@@ -5,9 +5,10 @@ import {
   UserRound,
   type LucideIcon,
   CreditCard,
+  Video,
 } from "lucide-react"
 
-type SettingsSection = "preferences" | "profile" | "billing"
+type SettingsSection = "preferences" | "profile" | "streaming" | "billing"
 
 interface UserProfile {
   name?: string | null
@@ -30,6 +31,7 @@ type NavItem = {
 const navItems: NavItem[] = [
   { id: "preferences", label: "Preferences", icon: SlidersHorizontal },
   { id: "profile", label: "Profile", icon: UserRound },
+  { id: "streaming", label: "Streaming", icon: Video },
   { id: "billing", label: "Manage Billing", icon: CreditCard },
 ]
 

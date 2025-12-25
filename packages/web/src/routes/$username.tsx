@@ -2,14 +2,9 @@ import { useEffect, useRef, useState } from "react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { getStreamByUsername, type StreamPageData } from "@/lib/stream/db"
 import { VideoPlayer } from "@/components/VideoPlayer"
-import { resolveStreamPlayback } from "@/lib/stream/playback"
 import { JazzProvider } from "@/lib/jazz/provider"
 import { CommentBox } from "@/components/CommentBox"
 import { ProfileSidebar } from "@/components/ProfileSidebar"
-import {
-  getSpotifyNowPlaying,
-  type SpotifyNowPlayingResponse,
-} from "@/lib/spotify/now-playing"
 import { authClient } from "@/lib/auth-client"
 import { MessageCircle, LogIn, X, User } from "lucide-react"
 
@@ -19,34 +14,6 @@ export const Route = createFileRoute("/$username")({
 })
 
 const READY_PULSE_MS = 1200
-
-// Hardcoded user for nikiv (hls_url will be updated from API)
-function makeNikivData(hlsUrl: string): StreamPageData {
-  return {
-    user: {
-      id: "nikiv",
-      name: "Nikita Voloboev",
-      username: "nikiv",
-      image: "https://nikiv.dev/nikiv.jpg",
-      bio: "Building in public. Making tools I want to exist.",
-      website: "nikiv.dev",
-      location: null,
-      joinedAt: "2024-01-01",
-    },
-    stream: {
-      id: "nikiv-stream",
-      title: "Live Coding",
-      description: "Building in public",
-      is_live: false,
-      viewer_count: 0,
-      hls_url: hlsUrl,
-      webrtc_url: null,
-      playback: resolveStreamPlayback({ hlsUrl, webrtcUrl: null }),
-      thumbnail_url: null,
-      started_at: null,
-    },
-  }
-}
 
 function StreamPage() {
   const { username } = Route.useParams()
@@ -58,31 +25,19 @@ function StreamPage() {
   const [hlsLive, setHlsLive] = useState<boolean | null>(null)
   const [hlsUrl, setHlsUrl] = useState<string | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
-  const [nowPlaying, setNowPlaying] = useState<SpotifyNowPlayingResponse | null>(
-    null,
-  )
-  const [nowPlayingLoading, setNowPlayingLoading] = useState(false)
-  const [nowPlayingError, setNowPlayingError] = useState(false)
-  const [streamLive, setStreamLive] = useState(false)
   const [showReadyPulse, setShowReadyPulse] = useState(false)
   const readyPulseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hasConnectedOnce = useRef(false)
 
-  // Mobile chat overlay
+  // Mobile overlays
   const [showMobileChat, setShowMobileChat] = useState(false)
+  const [showMobileProfile, setShowMobileProfile] = useState(false)
 
   const isAuthenticated = !!session?.user
 
+  // Fetch user and stream data from API
   useEffect(() => {
     let isActive = true
-
-    // Special handling for nikiv - URL comes from API (secret)
-    // Data and loading state are handled by the HLS check effect
-    if (username === "nikiv") {
-      return () => {
-        isActive = false
-      }
-    }
 
     const loadData = async () => {
       if (!isActive) return
@@ -92,6 +47,9 @@ function StreamPage() {
         const result = await getStreamByUsername(username)
         if (isActive) {
           setData(result)
+          if (result?.stream?.hls_url) {
+            setHlsUrl(result.stream.hls_url)
+          }
         }
       } catch (err) {
         if (isActive) {
@@ -111,34 +69,7 @@ function StreamPage() {
     }
   }, [username])
 
-  // Poll stream status for nikiv from nikiv.dev/api/stream-status
-  useEffect(() => {
-    if (username !== "nikiv") {
-      return
-    }
-
-    let isActive = true
-
-    const fetchStatus = async () => {
-      const status = await getStreamStatus()
-      console.log("[Stream Status] nikiv.dev/api/stream-status:", status)
-      if (isActive) {
-        setStreamLive(status.isLive)
-      }
-    }
-
-    // Fetch immediately
-    fetchStatus()
-
-    // Poll every 10 seconds
-    const interval = setInterval(fetchStatus, 10000)
-
-    return () => {
-      isActive = false
-      clearInterval(interval)
-    }
-  }, [username])
-
+  // Ready pulse animation
   useEffect(() => {
     if (readyPulseTimeoutRef.current) {
       clearTimeout(readyPulseTimeoutRef.current)
@@ -165,218 +96,64 @@ function StreamPage() {
   }, [playerReady])
 
   const stream = data?.stream ?? null
-  // For nikiv, always use HLS directly (no WebRTC) - URL comes from API
-  const activePlayback = username === "nikiv" && hlsUrl
+  const activePlayback = hlsUrl
     ? { type: "hls" as const, url: hlsUrl }
     : stream?.playback ?? null
 
-  const isHlsPlaylistLive = (manifest: string) => {
-    const upper = manifest.toUpperCase()
-    const hasEndlist = upper.includes("#EXT-X-ENDLIST")
-    const isVod = upper.includes("#EXT-X-PLAYLIST-TYPE:VOD")
-    const hasSegments =
-      upper.includes("#EXTINF") || upper.includes("#EXT-X-PART")
-    // Also check for #EXTM3U which is the start of any valid HLS manifest
-    const isValidManifest = upper.includes("#EXTM3U")
-    return isValidManifest && !hasEndlist && !isVod && hasSegments
-  }
-
-  // For nikiv, use server-side API to check HLS (avoids CORS, gets URL from secret)
+  // Poll HLS status via server-side API (avoids CORS issues)
   useEffect(() => {
-    if (username !== "nikiv") return
+    if (!data?.user) return
 
     let isActive = true
-    let isFirstCheck = true
 
-    const checkHlsViaApi = async () => {
+    const checkHls = async () => {
       try {
-        const res = await fetch("/api/check-hls", { cache: "no-store" })
+        const res = await fetch(`/api/streams/${username}/check-hls`, { cache: "no-store" })
         if (!isActive) return
 
         const apiData = await res.json()
 
-        // Update HLS URL from API (comes from server secret)
+        // Update HLS URL if returned from API
         if (apiData.hlsUrl && apiData.hlsUrl !== hlsUrl) {
           setHlsUrl(apiData.hlsUrl)
-          setData(makeNikivData(apiData.hlsUrl))
         }
 
         if (apiData.isLive) {
-          // Stream is live - set connecting state if first time
           if (!hasConnectedOnce.current) {
             setIsConnecting(true)
           }
           setHlsLive(true)
         } else {
-          // Only set offline if we haven't connected yet
-          // This prevents flickering when HLS check temporarily fails
           if (!hasConnectedOnce.current) {
             setHlsLive(false)
           }
         }
       } catch {
-        // Silently ignore errors - don't change state on network issues
-      } finally {
-        // Mark loading as done after first check completes
-        if (isActive && isFirstCheck) {
-          isFirstCheck = false
-          setLoading(false)
-        }
+        // Silently ignore errors
       }
     }
 
-    // Initial check
     setHlsLive(null)
-    checkHlsViaApi()
+    checkHls()
 
-    // Poll every 5 seconds to detect when stream goes live
-    const interval = setInterval(checkHlsViaApi, 5000)
+    // Poll every 5 seconds
+    const interval = setInterval(checkHls, 5000)
 
     return () => {
       isActive = false
       clearInterval(interval)
     }
-  }, [username, hlsUrl])
+  }, [data?.user, username, hlsUrl])
 
-  // For non-nikiv users, use direct HLS check
-  useEffect(() => {
-    if (username === "nikiv" || !activePlayback || activePlayback.type !== "hls") {
-      return
-    }
-
-    let isActive = true
-
-    const checkHlsLive = async () => {
-      try {
-        const res = await fetch(activePlayback.url, {
-          cache: "no-store",
-          mode: "cors",
-        })
-
-        if (!isActive) return
-
-        if (!res.ok) {
-          if (!hasConnectedOnce.current) {
-            setHlsLive(false)
-          }
-          return
-        }
-
-        const manifest = await res.text()
-        if (!isActive) return
-
-        const live = isHlsPlaylistLive(manifest)
-        if (live) {
-          if (!hasConnectedOnce.current) {
-            setIsConnecting(true)
-          }
-          setHlsLive(true)
-        } else if (!hasConnectedOnce.current) {
-          setHlsLive(false)
-        }
-      } catch {
-        // Silently ignore fetch errors
-      }
-    }
-
-    setHlsLive(null)
-    checkHlsLive()
-
-    const interval = setInterval(checkHlsLive, 5000)
-
-    return () => {
-      isActive = false
-      clearInterval(interval)
-    }
-  }, [
-    username,
-    activePlayback?.type,
-    activePlayback?.type === "hls" ? activePlayback.url : null,
-  ])
-
-  useEffect(() => {
-    let isActive = true
-    if (!stream?.hls_url || activePlayback?.type === "hls") {
-      return () => {
-        isActive = false
-      }
-    }
-
-    setHlsLive(null)
-    fetch(stream.hls_url)
-      .then(async (res) => {
-        if (!isActive) return
-        if (!res.ok) {
-          setHlsLive(false)
-          return
-        }
-        const manifest = await res.text()
-        if (!isActive) return
-        setHlsLive(isHlsPlaylistLive(manifest))
-      })
-      .catch(() => {
-        if (isActive) {
-          setHlsLive(false)
-        }
-      })
-
-    return () => {
-      isActive = false
-    }
-  }, [activePlayback?.type, stream?.hls_url])
-
-  // For nikiv, use HLS live check from our API
-  // For other users, use stream?.is_live from the database
-  const isActuallyLive = username === "nikiv"
-    ? hlsLive === true
-    : Boolean(stream?.is_live)
-
-  // Only show Spotify when we know stream is offline (not during initial check)
-  const shouldFetchSpotify = username === "nikiv" && !isActuallyLive && hlsLive === false
-
-  useEffect(() => {
-    if (!shouldFetchSpotify) {
-      setNowPlaying(null)
-      setNowPlayingLoading(false)
-      setNowPlayingError(false)
-      return
-    }
-
-    let isActive = true
-
-    const fetchNowPlaying = async (showLoading: boolean) => {
-      if (showLoading) {
-        setNowPlayingLoading(true)
-      }
-      try {
-        const response = await getSpotifyNowPlaying()
-        if (!isActive) return
-        setNowPlaying(response)
-        setNowPlayingError(false)
-      } catch {
-        if (!isActive) return
-        // Silently handle Spotify errors - it's not critical
-        setNowPlayingError(true)
-      } finally {
-        if (isActive && showLoading) {
-          setNowPlayingLoading(false)
-        }
-      }
-    }
-
-    fetchNowPlaying(true)
-    const interval = setInterval(() => fetchNowPlaying(false), 30000)
-
-    return () => {
-      isActive = false
-      clearInterval(interval)
-    }
-  }, [shouldFetchSpotify])
+  // Determine if stream is actually live
+  const isActuallyLive = hlsLive === true || Boolean(stream?.is_live)
 
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-black text-white">
-        <div className="text-xl">Loading...</div>
+        <div className="relative">
+          <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+        </div>
       </div>
     )
   }
@@ -405,41 +182,31 @@ function StreamPage() {
     )
   }
 
-  const nowPlayingTrack = nowPlaying?.track ?? null
-  const nowPlayingArtists = nowPlayingTrack?.artists.length
-    ? nowPlayingTrack.artists.join(", ")
-    : null
-  const nowPlayingText = nowPlayingTrack
-    ? nowPlayingArtists
-      ? `${nowPlayingArtists} — ${nowPlayingTrack.title}`
-      : nowPlayingTrack.title
-    : null
-
-  // Callback when player is ready
   const handlePlayerReady = () => {
     hasConnectedOnce.current = true
     setIsConnecting(false)
     setPlayerReady(true)
   }
 
-  // Show loading state during initial check
   const isChecking = hlsLive === null
+
+  // Build profile user object
+  const profileUser = {
+    id: data.user.id,
+    name: data.user.name,
+    username: data.user.username ?? username,
+    image: data.user.image,
+    bio: data.user.bio ?? null,
+    website: data.user.website ?? null,
+    location: data.user.location ?? null,
+    joinedAt: data.user.joinedAt ?? null,
+  }
 
   return (
     <JazzProvider>
-      <LiveNowSidebar currentUsername={username} />
       <div className="h-screen w-screen bg-black flex flex-col md:flex-row">
-        {/* Main content area */}
+        {/* Main content area - Stream */}
         <div className="flex-1 relative min-h-0">
-
-          {/* Viewer count overlay - hidden on mobile */}
-          {isActuallyLive && (
-            <div className="hidden md:block absolute top-4 right-4 z-10 rounded-lg bg-black/50 px-3 py-2 backdrop-blur-sm">
-              <ViewerCount username={username} />
-            </div>
-          )}
-
-          {/* Loading state - checking if stream is live */}
           {isChecking ? (
             <div className="flex h-full w-full flex-col items-center justify-center text-white">
               <div className="relative">
@@ -448,14 +215,12 @@ function StreamPage() {
               <p className="mt-6 text-lg text-neutral-400">Checking stream status...</p>
             </div>
           ) : isActuallyLive && activePlayback ? (
-            /* Stream is live - show the player */
             <div className="relative h-full w-full">
               <VideoPlayer
                 src={activePlayback.url}
                 muted={false}
                 onReady={handlePlayerReady}
               />
-              {/* Loading overlay while connecting */}
               {(isConnecting || !playerReady) && (
                 <div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/80">
                   <div className="relative">
@@ -464,7 +229,6 @@ function StreamPage() {
                   <p className="mt-6 text-lg text-white">Connecting to stream...</p>
                 </div>
               )}
-              {/* Ready pulse */}
               {showReadyPulse && (
                 <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
                   <div className="animate-pulse text-4xl">🔴</div>
@@ -472,76 +236,43 @@ function StreamPage() {
               )}
             </div>
           ) : (
-            /* Stream is offline */
             <div className="flex h-full w-full items-center justify-center text-white pb-16 md:pb-0">
-              {shouldFetchSpotify ? (
-                <div className="mx-auto flex w-full max-w-2xl flex-col items-center px-6 text-center">
-                  <div className="flex items-center gap-2 text-xs uppercase tracking-[0.35em] text-neutral-400">
-                    <span className="h-2 w-2 rounded-full bg-neutral-500" />
-                    Offline
-                  </div>
-                  <p className="mt-6 text-2xl md:text-3xl font-semibold">
-                    Not live right now
-                  </p>
-                  <div className="mt-6 text-base md:text-lg text-neutral-300">
-                    {nowPlayingLoading ? (
-                      <span>Checking Spotify...</span>
-                    ) : nowPlaying?.isPlaying && nowPlayingTrack ? (
-                      <span>
-                        Currently playing{" "}
-                        {nowPlayingTrack.url ? (
-                          <a
-                            href={nowPlayingTrack.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-white hover:text-neutral-300 transition-colors"
-                          >
-                            {nowPlayingText ?? "Spotify"}
-                          </a>
-                        ) : (
-                          <span className="text-white">
-                            {nowPlayingText ?? "Spotify"}
-                          </span>
-                        )}
-                      </span>
-                    ) : null}
-                  </div>
-
+              <div className="mx-auto flex w-full max-w-2xl flex-col items-center px-6 text-center">
+                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.35em] text-neutral-400">
+                  <span className="h-2 w-2 rounded-full bg-neutral-500" />
+                  Offline
+                </div>
+                <p className="mt-6 text-2xl md:text-3xl font-semibold">
+                  Not live right now
+                </p>
+                {profileUser.website && (
                   <a
-                    href="https://nikiv.dev"
+                    href={profileUser.website.startsWith("http") ? profileUser.website : `https://${profileUser.website}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-8 text-2xl md:text-3xl font-medium text-white hover:text-neutral-300 transition-colors"
                   >
-                    nikiv.dev
+                    {profileUser.website.replace(/^https?:\/\//, "")}
                   </a>
-                </div>
-              ) : (
-                <div className="text-center">
-                  <p className="text-xl md:text-2xl font-medium text-neutral-400 mb-6">
-                    stream soon
-                  </p>
-                  <a
-                    href={username === "nikiv" ? "https://nikiv.dev" : "#"}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-2xl md:text-4xl font-medium text-white hover:text-neutral-300 transition-colors"
-                  >
-                    {username === "nikiv" ? "nikiv.dev" : `@${username}`}
-                  </a>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
         </div>
 
-        {/* Desktop Chat sidebar */}
-        <div className="hidden md:block w-80 h-full border-l border-white/10 flex-shrink-0">
-          <CommentBox username={username} />
+        {/* Desktop Profile Sidebar with Chat */}
+        <div className="hidden md:flex w-96 h-full flex-shrink-0">
+          <ProfileSidebar
+            user={profileUser}
+            isLive={isActuallyLive}
+            viewerCount={stream?.viewer_count ?? 0}
+          >
+            <CommentBox username={username} />
+          </ProfileSidebar>
         </div>
 
         {/* Mobile bottom bar */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-black/90 backdrop-blur-sm border-t border-white/10 px-4 py-3 flex items-center justify-center gap-6">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-black/90 backdrop-blur-sm border-t border-white/10 px-4 py-3 flex items-center justify-center gap-4">
           {!isAuthenticated && (
             <Link
               to="/auth"
@@ -558,6 +289,14 @@ function StreamPage() {
           >
             <MessageCircle className="w-4 h-4" />
             Chat
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowMobileProfile(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 text-white text-sm font-medium"
+          >
+            <User className="w-4 h-4" />
+            Profile
           </button>
         </div>
 
@@ -576,6 +315,29 @@ function StreamPage() {
             </div>
             <div className="flex-1 min-h-0">
               <CommentBox username={username} />
+            </div>
+          </div>
+        )}
+
+        {/* Mobile profile overlay */}
+        {showMobileProfile && (
+          <div className="md:hidden fixed inset-0 z-40 bg-black flex flex-col">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+              <span className="text-white font-medium">Profile</span>
+              <button
+                type="button"
+                onClick={() => setShowMobileProfile(false)}
+                className="p-2 text-white/70 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 min-h-0 overflow-auto">
+              <ProfileSidebar
+                user={profileUser}
+                isLive={isActuallyLive}
+                viewerCount={stream?.viewer_count ?? 0}
+              />
             </div>
           </div>
         )}

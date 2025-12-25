@@ -82,6 +82,10 @@ const serve = async ({
         name: user.name,
         username: user.username,
         image: user.image,
+        bio: user.bio ?? null,
+        website: user.website ?? null,
+        location: user.location ?? null,
+        joinedAt: user.createdAt?.toISOString() ?? null,
       },
       stream: stream
         ? {

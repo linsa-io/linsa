@@ -1,4 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
+import { eq } from "drizzle-orm"
+import { getDb } from "@/db/connection"
+import { users } from "@/db/schema"
 
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), {
@@ -9,19 +12,50 @@ const json = (data: unknown, status = 200) =>
 // Cloudflare customer subdomain
 const CLOUDFLARE_CUSTOMER_CODE = "xctsztqzu046isdc"
 
-function getHlsUrl(): string {
+function getEnvFromContext(): { hlsUrl: string; databaseUrl: string | null } {
   try {
     const { getServerContext } = require("@tanstack/react-start/server") as {
       getServerContext: () => { cloudflare?: { env?: Record<string, string> } } | null
     }
     const ctx = getServerContext()
     const liveInputUid = ctx?.cloudflare?.env?.CLOUDFLARE_LIVE_INPUT_UID
+    const databaseUrl = ctx?.cloudflare?.env?.DATABASE_URL ?? process.env.DATABASE_URL ?? null
+
     if (liveInputUid) {
-      return `https://customer-${CLOUDFLARE_CUSTOMER_CODE}.cloudflarestream.com/${liveInputUid}/manifest/video.m3u8`
+      return {
+        hlsUrl: `https://customer-${CLOUDFLARE_CUSTOMER_CODE}.cloudflarestream.com/${liveInputUid}/manifest/video.m3u8`,
+        databaseUrl,
+      }
     }
   } catch {}
-  // Fallback - should not happen in production
   throw new Error("CLOUDFLARE_LIVE_INPUT_UID not configured")
+}
+
+async function getNikivProfile(databaseUrl: string | null) {
+  if (!databaseUrl) return null
+
+  try {
+    const database = getDb(databaseUrl)
+    const user = await database.query.users.findFirst({
+      where: eq(users.username, "nikiv"),
+    })
+
+    if (!user) return null
+
+    return {
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      image: user.image,
+      bio: user.bio ?? null,
+      website: user.website ?? null,
+      location: user.location ?? null,
+      joinedAt: user.createdAt?.toISOString() ?? null,
+    }
+  } catch (err) {
+    console.error("[check-hls] Failed to fetch nikiv profile:", err)
+    return null
+  }
 }
 
 function isHlsPlaylistLive(manifest: string): boolean {
@@ -44,23 +78,27 @@ export const Route = createFileRoute("/api/check-hls")({
     handlers: {
       GET: async () => {
         try {
-          const hlsUrl = getHlsUrl()
-          const res = await fetch(hlsUrl, {
-            cache: "no-store",
-          })
+          const { hlsUrl, databaseUrl } = getEnvFromContext()
 
-          console.log("[check-hls] Response status:", res.status)
+          // Fetch profile and HLS status in parallel
+          const [profile, hlsRes] = await Promise.all([
+            getNikivProfile(databaseUrl),
+            fetch(hlsUrl, { cache: "no-store" }),
+          ])
 
-          if (!res.ok) {
+          console.log("[check-hls] Response status:", hlsRes.status)
+
+          if (!hlsRes.ok) {
             return json({
               isLive: false,
               hlsUrl,
-              status: res.status,
+              profile,
+              status: hlsRes.status,
               error: "HLS not available",
             })
           }
 
-          const manifest = await res.text()
+          const manifest = await hlsRes.text()
           const isLive = isHlsPlaylistLive(manifest)
 
           console.log("[check-hls] Manifest check:", {
@@ -72,7 +110,8 @@ export const Route = createFileRoute("/api/check-hls")({
           return json({
             isLive,
             hlsUrl,
-            status: res.status,
+            profile,
+            status: hlsRes.status,
             manifestLength: manifest.length,
           })
         } catch (err) {
@@ -80,7 +119,8 @@ export const Route = createFileRoute("/api/check-hls")({
           console.error("[check-hls] Error:", error.message)
           return json({
             isLive: false,
-            hlsUrl: getHlsUrl(),
+            hlsUrl: null,
+            profile: null,
             error: error.message,
           })
         }
