@@ -73,6 +73,8 @@ const getProfile = async ({ request }: { request: Request }) => {
         email: user.email,
         username: user.username,
         image: user.image,
+        bio: user.bio,
+        website: user.website,
         stream: stream
           ? {
               id: stream.id,
@@ -110,7 +112,13 @@ const updateProfile = async ({ request }: { request: Request }) => {
 
   try {
     const body = await request.json()
-    const { name, username } = body as { name?: string; username?: string }
+    const { name, username, image, bio, website } = body as {
+      name?: string
+      username?: string
+      image?: string | null
+      bio?: string | null
+      website?: string | null
+    }
 
     const database = getDb(resolveDatabaseUrl(request))
 
@@ -142,9 +150,12 @@ const updateProfile = async ({ request }: { request: Request }) => {
     }
 
     // Update user
-    const updates: Record<string, string> = { updatedAt: new Date().toISOString() }
+    const updates: Record<string, string | null> = { updatedAt: new Date().toISOString() }
     if (name !== undefined) updates.name = name
     if (username !== undefined) updates.username = username
+    if (image !== undefined) updates.image = image
+    if (bio !== undefined) updates.bio = bio
+    if (website !== undefined) updates.website = website
 
     await database
       .update(users)

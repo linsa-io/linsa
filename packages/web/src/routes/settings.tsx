@@ -272,21 +272,54 @@ function PreferencesSection() {
 }
 
 function ProfileSection({
-  profile,
+  profile: sessionProfile,
   onLogout,
   onChangeEmail,
   onChangePassword,
 }: {
-  profile: { name?: string | null; email: string; username?: string | null } | null | undefined
+  profile: { name?: string | null; email: string; username?: string | null; image?: string | null; bio?: string | null; website?: string | null } | null | undefined
   onLogout: () => Promise<void>
   onChangeEmail: () => void
   onChangePassword: () => void
 }) {
-  const [username, setUsername] = useState(profile?.username ?? "")
-  const [name, setName] = useState(profile?.name ?? "")
+  const [loading, setLoading] = useState(true)
+  const [profile, setProfile] = useState(sessionProfile)
+  const [username, setUsername] = useState("")
+  const [name, setName] = useState("")
+  const [image, setImage] = useState("")
+  const [bio, setBio] = useState("")
+  const [website, setWebsite] = useState("")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
+
+  // Fetch full profile from API on mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch("/api/profile", { credentials: "include" })
+        if (res.ok) {
+          const data = await res.json()
+          setProfile(data)
+          setUsername(data.username ?? "")
+          setName(data.name ?? "")
+          setImage(data.image ?? "")
+          setBio(data.bio ?? "")
+          setWebsite(data.website ?? "")
+        }
+      } catch {
+        // Fall back to session data
+        setUsername(sessionProfile?.username ?? "")
+        setName(sessionProfile?.name ?? "")
+        setImage(sessionProfile?.image ?? "")
+        setBio(sessionProfile?.bio ?? "")
+        setWebsite(sessionProfile?.website ?? "")
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchProfile()
+  }, [sessionProfile])
 
   const initials = useMemo(() => {
     if (!profile) return "G"
@@ -297,6 +330,8 @@ function ProfileSection({
     )
   }, [profile])
 
+  const avatarUrl = image || `https://api.dicebear.com/7.x/initials/svg?seed=${username || profile?.email || "user"}`
+
   const handleSaveProfile = async () => {
     setSaving(true)
     setError(null)
@@ -306,7 +341,13 @@ function ProfileSection({
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ name, username: username.toLowerCase() }),
+        body: JSON.stringify({
+          name,
+          username: username.toLowerCase(),
+          image: image || null,
+          bio: bio || null,
+          website: website || null,
+        }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -322,7 +363,27 @@ function ProfileSection({
     }
   }
 
-  const hasChanges = username !== (profile?.username ?? "") || name !== (profile?.name ?? "")
+  const hasChanges =
+    username !== (profile?.username ?? "") ||
+    name !== (profile?.name ?? "") ||
+    image !== (profile?.image ?? "") ||
+    bio !== (profile?.bio ?? "") ||
+    website !== (profile?.website ?? "")
+
+  if (loading) {
+    return (
+      <div id="profile" className="scroll-mt-24">
+        <SectionHeader
+          title="Profile"
+          description="Manage your account details and security."
+        />
+        <div className="space-y-5">
+          <div className="h-32 bg-white/5 rounded-2xl animate-pulse" />
+          <div className="h-64 bg-white/5 rounded-2xl animate-pulse" />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div id="profile" className="scroll-mt-24">
@@ -355,6 +416,29 @@ function ProfileSection({
 
         <SettingCard title="Public Profile">
           <div className="space-y-4">
+            {/* Profile Picture */}
+            <div className="space-y-2">
+              <label className="text-sm text-white/70">Profile Picture</label>
+              <div className="flex items-center gap-4">
+                <img
+                  src={avatarUrl}
+                  alt="Profile"
+                  className="w-16 h-16 rounded-full bg-white/10 object-cover"
+                />
+                <div className="flex-1">
+                  <input
+                    type="url"
+                    value={image}
+                    onChange={(e) => setImage(e.target.value)}
+                    placeholder="https://example.com/your-photo.jpg"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
+                  />
+                  <p className="text-xs text-white/50 mt-1">
+                    Enter a URL to your profile picture
+                  </p>
+                </div>
+              </div>
+            </div>
             <div className="space-y-2">
               <label className="text-sm text-white/70">Display Name</label>
               <input
@@ -380,6 +464,26 @@ function ProfileSection({
               <p className="text-xs text-white/50">
                 This is your public stream URL. Only lowercase letters, numbers, hyphens, and underscores.
               </p>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm text-white/70">Bio</label>
+              <textarea
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                placeholder="Tell people about yourself..."
+                rows={3}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm text-white/70">Website</label>
+              <input
+                type="url"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                placeholder="https://yourwebsite.com"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
             </div>
             {error && <p className="text-sm text-rose-400">{error}</p>}
             <div className="flex justify-end gap-2">
