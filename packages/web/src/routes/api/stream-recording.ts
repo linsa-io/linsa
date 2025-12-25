@@ -177,6 +177,43 @@ const endRecording = async ({ request }: { request: Request }) => {
   }
 }
 
+// GET /api/stream-recording/chunk - Get a specific chunk file
+const getChunk = async ({ request }: { request: Request }) => {
+  try {
+    const url = new URL(request.url)
+    const streamId = url.searchParams.get("streamId")
+    const index = url.searchParams.get("index")
+
+    if (!streamId || index === null) {
+      return new Response(
+        JSON.stringify({ error: "Missing streamId or index" }),
+        { status: 400, headers: { "content-type": "application/json" } }
+      )
+    }
+
+    const chunkPath = `${STORAGE_PATH}/${streamId}/chunk-${String(index).padStart(6, "0")}.bin`
+
+    try {
+      const chunkData = await fs.readFile(chunkPath)
+      return new Response(chunkData, {
+        status: 200,
+        headers: { "content-type": "application/octet-stream" }
+      })
+    } catch (err) {
+      return new Response(
+        JSON.stringify({ error: "Chunk not found" }),
+        { status: 404, headers: { "content-type": "application/json" } }
+      )
+    }
+  } catch (error) {
+    console.error("[stream-recording] Get chunk error:", error)
+    return new Response(
+      JSON.stringify({ error: "Internal server error" }),
+      { status: 500, headers: { "content-type": "application/json" } }
+    )
+  }
+}
+
 // GET /api/stream-recording/list - List all recordings
 const listRecordings = async ({ request }: { request: Request }) => {
   try {
@@ -212,7 +249,15 @@ const listRecordings = async ({ request }: { request: Request }) => {
 export const Route = createFileRoute("/api/stream-recording")({
   server: {
     handlers: {
-      GET: listRecordings,
+      GET: (ctx) => {
+        const url = new URL(ctx.request.url)
+        // If streamId and index are provided, return chunk data
+        if (url.searchParams.has("streamId") && url.searchParams.has("index")) {
+          return getChunk(ctx)
+        }
+        // Otherwise list recordings
+        return listRecordings(ctx)
+      },
       POST: (ctx) => {
         const url = new URL(ctx.request.url)
         const action = url.searchParams.get("action")

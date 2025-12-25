@@ -103,9 +103,8 @@ function StreamsPage() {
           // Fetch and push chunks
           for (const chunk of rec.chunks) {
             try {
-              const chunkPath = `/Users/nikiv/fork-i/garden-co/jazz/glide-storage/stream-recordings/${rec.streamId}/chunk-${String(chunk.index).padStart(6, "0")}.bin`
               const chunkData = await fetch(
-                `/api/stream-recording/chunk?path=${encodeURIComponent(chunkPath)}`
+                `/api/stream-recording/chunk?streamId=${encodeURIComponent(rec.streamId)}&index=${chunk.index}`
               ).then((r) => r.arrayBuffer())
 
               fileStream.push(new Uint8Array(chunkData))

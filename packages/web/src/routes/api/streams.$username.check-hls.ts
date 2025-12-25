@@ -47,12 +47,68 @@ const resolveEnvCloudflareHlsUrl = (): string | null => {
 
 function isHlsPlaylistLive(manifest: string): boolean {
   const upper = manifest.toUpperCase()
+
+  // Basic validation
+  const isValidManifest = upper.includes("#EXTM3U")
+  if (!isValidManifest) return false
+
+  // Master playlists are always "live" in the sense they redirect to variants
+  const isMasterPlaylist = upper.includes("#EXT-X-STREAM-INF")
+  if (isMasterPlaylist) return true
+
+  // Check for obvious VOD markers
   const hasEndlist = upper.includes("#EXT-X-ENDLIST")
   const isVod = upper.includes("#EXT-X-PLAYLIST-TYPE:VOD")
+  if (hasEndlist || isVod) return false
+
+  // Must have segments
   const hasSegments = upper.includes("#EXTINF") || upper.includes("#EXT-X-PART")
-  const isValidManifest = upper.includes("#EXTM3U")
-  const isMasterPlaylist = upper.includes("#EXT-X-STREAM-INF")
-  return isValidManifest && (isMasterPlaylist || (!hasEndlist && !isVod && hasSegments))
+  if (!hasSegments) return false
+
+  // CRITICAL: Check for segment freshness
+  // Extract #EXT-X-PROGRAM-DATE-TIME tags which indicate segment timestamps
+  const programDateTimeMatches = manifest.match(/#EXT-X-PROGRAM-DATE-TIME:([^\n]+)/gi)
+
+  if (programDateTimeMatches && programDateTimeMatches.length > 0) {
+    // Get the most recent timestamp
+    const lastTimestamp = programDateTimeMatches[programDateTimeMatches.length - 1]
+      .replace(/#EXT-X-PROGRAM-DATE-TIME:/i, '')
+      .trim()
+
+    try {
+      const segmentDate = new Date(lastTimestamp)
+      const now = new Date()
+      const ageSeconds = (now.getTime() - segmentDate.getTime()) / 1000
+
+      // Only consider live if last segment is less than 60 seconds old
+      // This prevents showing old recordings as "live"
+      if (ageSeconds > 60) {
+        console.log(`[check-hls] Segment too old: ${ageSeconds}s ago - NOT LIVE`)
+        return false
+      }
+
+      console.log(`[check-hls] Fresh segment: ${ageSeconds}s ago - LIVE`)
+      return true
+    } catch (err) {
+      console.error(`[check-hls] Failed to parse timestamp: ${lastTimestamp}`, err)
+    }
+  }
+
+  // If no program-date-time tags, check for media sequence
+  // A live stream should have a non-zero media sequence
+  const mediaSequenceMatch = manifest.match(/#EXT-X-MEDIA-SEQUENCE:(\d+)/i)
+  if (mediaSequenceMatch) {
+    const sequence = parseInt(mediaSequenceMatch[1], 10)
+    // If media sequence is incrementing, it's likely live
+    // But without timestamps, we can't be sure it's not an old recording
+    console.log(`[check-hls] Media sequence: ${sequence}, no timestamps - assuming NOT LIVE (safety)`)
+    return false
+  }
+
+  // If we get here, manifest looks like a live stream but has no timestamps
+  // Be conservative and return false to avoid showing old streams
+  console.log(`[check-hls] No timestamp markers - assuming NOT LIVE (safety)`)
+  return false
 }
 
 export const Route = createFileRoute("/api/streams/$username/check-hls")({
