@@ -134,22 +134,17 @@ function AuthPage() {
               Welcome to Linsa!
             </span>
             <h1 className="text-3xl font-semibold tracking-tight">
-              {step === "email" ? "Any Generation. Instantly." : "Enter your code"}
+              {step === "email" ? "Save anything. Share, sell or collaborate. Privately." : "Enter your code"}
             </h1>
-            <p className="text-sm text-white/70">
-              {step === "email"
-                ? "Text, images/video on canvas. Fancy context management. Just think it and it's there."
-                : `We sent a 6-digit code to ${email}`}
-            </p>
+            {step === "otp" && (
+              <p className="text-sm text-white/70">
+                We sent a 6-digit code to {email}
+              </p>
+            )}
           </header>
 
           {step === "email" ? (
             <form onSubmit={handleSendOTP} className="mt-8 space-y-5">
-              <div className="space-y-2 text-left">
-                <p className="text-sm font-medium text-white">
-                  Enter your email and we'll send you a verification code.
-                </p>
-              </div>
 
               <label className="block text-left text-xs font-semibold uppercase tracking-wide text-white/60">
                 Email

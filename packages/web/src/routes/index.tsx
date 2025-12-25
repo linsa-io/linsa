@@ -12,7 +12,7 @@ function LandingPage() {
           Linsa
         </h1>
         <p className="mt-4 text-xl text-white/80 drop-shadow-lg">
-          Save anything privately. Share it.
+          Save anything. Share, sell or collaborate. Privately.
         </p>
         <Link
           to="/auth"
