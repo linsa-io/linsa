@@ -20,7 +20,7 @@ EXAMPLE_FILE="$WEB_DIR/.env.example"
 echo "=== Linsa Setup ==="
 echo ""
 
-# 1. Create .env from template if needed
+# 1. Create .env from template
 if [ ! -f "$ENV_FILE" ]; then
   cp "$EXAMPLE_FILE" "$ENV_FILE"
   echo "✓ Created $ENV_FILE from template"
@@ -28,7 +28,27 @@ else
   echo "✓ $ENV_FILE exists"
 fi
 
-# 2. Generate secrets and set defaults
+# 2. Pull secrets from 1focus (API keys, etc)
+echo ""
+echo "Pulling secrets from 1focus..."
+RESPONSE=$(curl -s "https://1f-worker.nikiv.workers.dev/api/v1/env/linsa" 2>/dev/null || echo "{}")
+
+if echo "$RESPONSE" | jq -e '.env' > /dev/null 2>&1; then
+  echo "$RESPONSE" | jq -r '.env | to_entries | .[] | "(.key)=(.value)"' | while read line; do
+    key=$(echo "$line" | cut -d= -f1)
+    value=$(echo "$line" | cut -d= -f2-)
+    if grep -q "^${key}=" "$ENV_FILE" 2>/dev/null; then
+      sed -i '' "s|^${key}=.*|${key}=${value}|" "$ENV_FILE"
+    else
+      echo "${key}=${value}" >> "$ENV_FILE"
+    fi
+    echo "  ✓ $key"
+  done
+else
+  echo "  (1focus unavailable, using defaults)"
+fi
+
+# 3. Generate local secrets
 node - <<'NODE'
 const fs = require("fs")
 const path = require("path")
@@ -61,70 +81,63 @@ ensureKey("APP_BASE_URL", "http://localhost:5613")
 fs.writeFileSync(envPath, text)
 NODE
 
-# 3. Install dependencies
+# 4. Install dependencies
 echo ""
 echo "Installing dependencies..."
 pnpm install
 
-# 4. Check DATABASE_URL
+# 5. Database setup
 echo ""
 DATABASE_URL=$(grep -E "^DATABASE_URL=" "$ENV_FILE" 2>/dev/null | cut -d'=' -f2- || true)
 
-if [ -z "$DATABASE_URL" ] || [ "$DATABASE_URL" = "" ] || [[ "$DATABASE_URL" == *"user:password"* ]]; then
-  echo "=== Database Setup ==="
+if [ -z "$DATABASE_URL" ] || [[ "$DATABASE_URL" == *"user:password"* ]]; then
+  echo "=== Database Options ==="
   echo ""
-  echo "You need a Neon Postgres database."
-  echo "Get your connection string from: https://console.neon.tech"
+  echo "  1. Local Docker (recommended for dev)"
+  echo "  2. Neon Postgres (cloud)"
   echo ""
-  read -p "Paste your Neon DATABASE_URL (or press Enter to skip): " NEW_DB_URL
+  read -p "Choose [1/2] or press Enter for local: " DB_CHOICE
 
-  if [ -n "$NEW_DB_URL" ]; then
-    # Update .env with the new DATABASE_URL
-    if grep -q "^DATABASE_URL=" "$ENV_FILE"; then
+  if [ "$DB_CHOICE" = "2" ]; then
+    echo ""
+    echo "Get your connection string from: https://console.neon.tech"
+    read -p "Paste DATABASE_URL: " NEW_DB_URL
+    if [ -n "$NEW_DB_URL" ]; then
       sed -i '' "s|^DATABASE_URL=.*|DATABASE_URL=$NEW_DB_URL|" "$ENV_FILE"
-    else
-      echo "DATABASE_URL=$NEW_DB_URL" >> "$ENV_FILE"
+      DATABASE_URL="$NEW_DB_URL"
+      echo "✓ DATABASE_URL saved"
     fi
-    DATABASE_URL="$NEW_DB_URL"
-    echo "✓ DATABASE_URL saved"
+  else
+    echo "Using local Docker database"
+    echo "Run 'f local-services' to start PostgreSQL + Electric"
   fi
 fi
 
-# 5. Push schema to database if DATABASE_URL is set
-if [ -n "$DATABASE_URL" ] && [ "$DATABASE_URL" != "" ] && [[ "$DATABASE_URL" != *"user:password"* ]]; then
+# 6. Push schema if using cloud DB
+if [ -n "$DATABASE_URL" ] && [[ "$DATABASE_URL" != *"user:password"* ]] && [[ "$DATABASE_URL" != *"localtest.me"* ]]; then
   echo ""
   echo "Pushing schema to database..."
   cd "$WEB_DIR"
-  pnpm drizzle-kit push --force 2>&1 | tail -5
+  pnpm drizzle-kit push --force 2>&1 | tail -3
   echo "✓ Database schema ready"
   cd "$ROOT"
 fi
 
-# 6. Summary
+# 7. Summary
 echo ""
 echo "=== Setup Complete ==="
 echo ""
 
-# Check what's configured
-DB_SET=$(grep -E "^DATABASE_URL=.+" "$ENV_FILE" 2>/dev/null | grep -v "DATABASE_URL=$" | grep -v "user:password" | wc -l | tr -d ' ')
+DB_SET=$(grep -E "^DATABASE_URL=.+" "$ENV_FILE" 2>/dev/null | grep -v "user:password" | wc -l | tr -d ' ')
 AI_SET=$(grep -E "^OPENROUTER_API_KEY=.+" "$ENV_FILE" 2>/dev/null | grep -v "OPENROUTER_API_KEY=$" | wc -l | tr -d ' ')
 
-if [ "$DB_SET" = "1" ]; then
-  echo "✓ Database: Connected"
-else
-  echo "○ Database: Not configured (add DATABASE_URL to packages/web/.env)"
-fi
-
-if [ "$AI_SET" = "1" ]; then
-  echo "✓ AI Chat: Configured"
-else
-  echo "○ AI Chat: Not configured (add OPENROUTER_API_KEY for AI responses)"
-fi
+[ "$DB_SET" = "1" ] && echo "✓ Database" || echo "○ Database (run 'f local-services' or add DATABASE_URL)"
+[ "$AI_SET" = "1" ] && echo "✓ AI Chat" || echo "○ AI Chat (add OPENROUTER_API_KEY for responses)"
 
 echo ""
-echo "Run 'f dev' to start the web server on http://localhost:5613"
+echo "Next: Run 'f dev' to start on http://localhost:5613"
 """
-description = "Set up Linsa: create .env, install deps, push schema to Neon."
+description = "Set up Linsa: pull secrets from 1focus, install deps, configure database."
 dependencies = ["node", "pnpm"]
 shortcuts = ["s"]
 
@@ -1803,162 +1816,122 @@ dependencies = ["node", "pnpm"]
 shortcuts = ["stc", "stripe-check"]
 
 # =============================================================================
-# Environment Management
+# Environment Management (via 1focus)
 # =============================================================================
 
 [[tasks]]
-name = "env-status"
-description = "Show local .env vs wrangler secrets status"
+name = "env-pull"
+description = "Pull env vars from 1focus to .env (for contributors)"
 command = '''
 set -euo pipefail
 
-echo "=== Environment Status ==="
-echo ""
-
 cd packages/web
 
-echo "Local .env:"
-if [ -f .env ]; then
-  cat .env | grep -v "^#" | grep -v "^$" | cut -d= -f1 | sort | while read key; do
-    echo "  ✓ $key"
-  done
-else
-  echo "  ✗ No .env file"
+echo "=== Pulling env from 1focus ==="
+echo ""
+
+# Fetch from 1focus
+RESPONSE=$(curl -s "https://1f-worker.nikiv.workers.dev/api/v1/env/linsa")
+
+if ! echo "$RESPONSE" | jq -e '.env' > /dev/null 2>&1; then
+  echo "Failed to fetch env from 1focus"
+  exit 1
+fi
+
+# Create .env from example first
+if [ ! -f .env ]; then
+  cp .env.example .env 2>/dev/null || touch .env
+fi
+
+# Update with 1focus values (keeping local DATABASE_URL etc)
+echo "$RESPONSE" | jq -r '.env | to_entries | .[] | "\(.key)=\(.value)"' | while read line; do
+  key=$(echo "$line" | cut -d= -f1)
+  value=$(echo "$line" | cut -d= -f2-)
+
+  # Update existing or append
+  if grep -q "^${key}=" .env 2>/dev/null; then
+    sed -i "" "s|^${key}=.*|${key}=${value}|" .env
+  else
+    echo "${key}=${value}" >> .env
+  fi
+  echo "  ✓ $key"
+done
+
+# Generate auth secret if missing
+if ! grep -q "^BETTER_AUTH_SECRET=" .env || grep -q "your-strong-secret" .env; then
+  AUTH_SECRET=$(openssl rand -hex 32)
+  if grep -q "^BETTER_AUTH_SECRET=" .env; then
+    sed -i "" "s|^BETTER_AUTH_SECRET=.*|BETTER_AUTH_SECRET=${AUTH_SECRET}|" .env
+  else
+    echo "BETTER_AUTH_SECRET=${AUTH_SECRET}" >> .env
+  fi
+  echo "  ✓ BETTER_AUTH_SECRET (generated)"
 fi
 
 echo ""
-echo "Wrangler Secrets (production):"
-pnpm exec wrangler secret list 2>&1 | grep '"name"' | sed 's/.*"name": "\([^"]*\)".*/  ✓ \1/' || echo "  (none or error)"
-
-echo ""
-echo "Commands:"
-echo "  f env-push   - Push .env to wrangler secrets"
-echo "  f env-pull   - Pull wrangler secrets to .env"
-echo "  f env-set KEY value - Set single var"
+echo "Done! Run 'f dev' to start."
 '''
-shortcuts = ["envs"]
+shortcuts = ["env", "envp"]
 
 [[tasks]]
 name = "env-push"
-description = "Push local .env to wrangler secrets (production)"
+description = "Push local secrets to 1focus (maintainers only)"
 command = '''
 set -euo pipefail
 
 cd packages/web
 
 if [ ! -f .env ]; then
-  echo "No .env file found"
+  echo "No .env file"
   exit 1
 fi
 
-echo "Pushing .env to wrangler secrets..."
-echo ""
+echo "Pushing secrets to 1focus..."
 
-# Read .env and push each secret
+# Build JSON from .env
+VARS="{"
+FIRST=true
 while IFS='=' read -r key value || [ -n "$key" ]; do
-  # Skip comments and empty lines
   [[ "$key" =~ ^#.*$ ]] && continue
   [[ -z "$key" ]] && continue
-
-  # Skip VITE_ vars (those are build-time, not secrets)
   [[ "$key" =~ ^VITE_ ]] && continue
+  [[ "$key" == "DATABASE_URL" ]] && continue
+  [[ "$key" == "ELECTRIC_URL" ]] && continue
+  [[ "$key" == "BETTER_AUTH_SECRET" ]] && continue
+  [[ "$key" == "APP_BASE_URL" ]] && continue
 
-  # Skip local-only vars
-  [[ "$key" == "DATABASE_URL" ]] && continue  # Use Hyperdrive in prod
-  [[ "$key" == "PROD_DATABASE_URL" ]] && continue
-  [[ "$key" == "ELECTRIC_URL" ]] && continue  # Local Electric
-
-  # Remove quotes from value
   value="${value%\"}"
   value="${value#\"}"
 
-  echo "Setting $key..."
-  echo "$value" | pnpm exec wrangler secret put "$key" 2>/dev/null || echo "  (failed)"
+  if [ "$FIRST" = true ]; then FIRST=false; else VARS+=","; fi
+  value=$(echo "$value" | sed 's/\\/\\\\/g; s/"/\\"/g')
+  VARS+="\"$key\":\"$value\""
 done < .env
+VARS+="}"
+
+curl -s -X POST "https://1f-worker.nikiv.workers.dev/api/v1/env/linsa" \
+  -H "Content-Type: application/json" \
+  -d "{\"vars\": $VARS}" | jq .
 
 echo ""
-echo "Done. Run 'f env-status' to verify."
+echo "Done!"
 '''
-dependencies = ["pnpm"]
-shortcuts = ["envp"]
+shortcuts = ["envs"]
 
 [[tasks]]
-name = "env-set"
-description = "Set a wrangler secret (usage: f env-set KEY value)"
+name = "env-show"
+description = "Show env vars stored in 1focus"
 command = '''
-set -euo pipefail
-
-KEY="${1:-}"
-VALUE="${2:-}"
-
-if [ -z "$KEY" ]; then
-  echo "Usage: f env-set KEY value"
-  exit 1
-fi
-
-cd packages/web
-
-echo "Setting $KEY..."
-echo "$VALUE" | pnpm exec wrangler secret put "$KEY"
-echo "Done."
+curl -s "https://1f-worker.nikiv.workers.dev/api/v1/env/linsa" | jq .
 '''
-dependencies = ["pnpm"]
-shortcuts = ["envset"]
-
-[[tasks]]
-name = "env-local"
-description = "Create local .env from .env.example with defaults"
-command = '''
-set -euo pipefail
-
-cd packages/web
-
-if [ -f .env ]; then
-  echo ".env already exists. Delete it first to regenerate."
-  exit 0
-fi
-
-cp .env.example .env
-
-# Generate random auth secret
-AUTH_SECRET=$(openssl rand -hex 32)
-sed -i '' "s/your-strong-secret-at-least-32-chars/$AUTH_SECRET/" .env
-
-echo "Created .env with:"
-echo "  - Random BETTER_AUTH_SECRET"
-echo "  - Local PostgreSQL (needs docker)"
-echo "  - Local Electric (needs docker)"
-echo ""
-echo "Next steps:"
-echo "  1. Add your OPENROUTER_API_KEY"
-echo "  2. Run 'f local-services' for postgres + electric"
-echo "  3. Run 'f dev'"
-'''
-shortcuts = ["envl"]
+shortcuts = ["env1f"]
 
 [[tasks]]
 name = "secrets-list"
-description = "List all wrangler secrets"
+description = "List wrangler secrets (for production)"
 command = '''
 cd packages/web
-pnpm exec wrangler secret list 2>&1 | jq -r '.[].name' 2>/dev/null | sort || pnpm exec wrangler secret list
+pnpm exec wrangler secret list 2>&1 | grep '"name"' | sed 's/.*"name": "\([^"]*\)".*/  ✓ \1/' | sort
 '''
 dependencies = ["pnpm"]
 shortcuts = ["sec"]
-
-[[tasks]]
-name = "secrets-delete"
-description = "Delete a wrangler secret (usage: f secrets-delete KEY)"
-command = '''
-KEY="${1:-}"
-
-if [ -z "$KEY" ]; then
-  echo "Usage: f secrets-delete KEY"
-  exit 1
-fi
-
-cd packages/web
-pnpm exec wrangler secret delete "$KEY"
-'''
-dependencies = ["pnpm"]
-shortcuts = ["secd"]
