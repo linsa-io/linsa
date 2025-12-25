@@ -1,4 +1,4 @@
-import { ExternalLink, MapPin, Calendar, Users } from "lucide-react"
+import { ExternalLink, MapPin, Calendar } from "lucide-react"
 
 interface ProfileSidebarProps {
   user: {
@@ -12,11 +12,10 @@ interface ProfileSidebarProps {
     joinedAt?: string | null
   }
   isLive?: boolean
-  viewerCount?: number
   children?: React.ReactNode
 }
 
-export function ProfileSidebar({ user, isLive, viewerCount, children }: ProfileSidebarProps) {
+export function ProfileSidebar({ user, isLive, children }: ProfileSidebarProps) {
   const displayName = user.name || user.username
 
   return (
@@ -70,15 +69,6 @@ export function ProfileSidebar({ user, isLive, viewerCount, children }: ProfileS
           )}
         </div>
 
-        {/* Stats */}
-        {isLive && viewerCount !== undefined && (
-          <div className="mt-3 flex items-center gap-2 text-sm">
-            <span className="flex items-center gap-1.5 text-white/70">
-              <Users className="w-4 h-4 text-red-400" />
-              <span className="font-medium text-white">{viewerCount}</span> watching
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Children (Chat, etc.) */}

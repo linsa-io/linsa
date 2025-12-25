@@ -167,6 +167,23 @@ export const CloudflareStreamConfig = co.map({
 export type CloudflareStreamConfig = co.loaded<typeof CloudflareStreamConfig>
 
 /**
+ * Stream filter configuration - dynamically controls what apps are captured
+ */
+export const StreamFilterConfig = co.map({
+  /** Apps allowed to appear in stream (empty = all allowed) */
+  allowedApps: z.array(z.string()),
+  /** Apps blocked from stream (takes precedence over allowed) */
+  blockedApps: z.array(z.string()),
+  /** Apps to capture audio from */
+  audioApps: z.array(z.string()),
+  /** Last updated timestamp */
+  updatedAt: z.number(),
+  /** Version number for change tracking */
+  version: z.number(),
+})
+export type StreamFilterConfig = co.loaded<typeof StreamFilterConfig>
+
+/**
  * Viewer account root - stores any viewer-specific data
  */
 export const ViewerRoot = co.map({
@@ -180,6 +197,8 @@ export const ViewerRoot = co.map({
   streamRecordings: StreamRecordingList,
   /** Cloudflare Stream configuration */
   cloudflareConfig: co.optional(CloudflareStreamConfig),
+  /** Stream filter configuration (allowed/blocked apps) */
+  streamFilter: co.optional(StreamFilterConfig),
 })
 
 /**

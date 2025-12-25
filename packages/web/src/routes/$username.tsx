@@ -265,7 +265,6 @@ function StreamPage() {
           <ProfileSidebar
             user={profileUser}
             isLive={isActuallyLive}
-            viewerCount={stream?.viewer_count ?? 0}
           >
             <CommentBox username={username} />
           </ProfileSidebar>
@@ -336,7 +335,6 @@ function StreamPage() {
               <ProfileSidebar
                 user={profileUser}
                 isLive={isActuallyLive}
-                viewerCount={stream?.viewer_count ?? 0}
               />
             </div>
           </div>
