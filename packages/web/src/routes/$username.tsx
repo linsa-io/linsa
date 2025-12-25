@@ -427,12 +427,6 @@ function StreamPage() {
     }
   }, [shouldFetchSpotify])
 
-  // Format remaining time
-  const remainingMs = Math.max(0, FREE_PREVIEW_MS - watchTime)
-  const remainingMin = Math.floor(remainingMs / 60000)
-  const remainingSec = Math.floor((remainingMs % 60000) / 1000)
-  const remainingFormatted = `${remainingMin}:${remainingSec.toString().padStart(2, "0")}`
-
   // Auth gate - show preview for 5 min, then require login
   if (sessionLoading) {
     return (
@@ -520,24 +514,10 @@ function StreamPage() {
       <div className="h-screen w-screen bg-black flex flex-col md:flex-row">
         {/* Main content area */}
         <div className="flex-1 relative min-h-0">
-          {/* Free preview countdown banner - hidden on mobile */}
-          {!isAuthenticated && !previewExpired && isActuallyLive && (
-            <div className="hidden md:flex absolute top-0 left-0 right-0 z-20 bg-gradient-to-r from-purple-600/90 to-pink-600/90 backdrop-blur-sm px-4 py-2 items-center justify-center gap-4">
-              <span className="text-white text-sm">
-                Free preview: <span className="font-mono font-bold">{remainingFormatted}</span> remaining
-              </span>
-              <Link
-                to="/auth"
-                className="text-xs font-medium bg-white/20 hover:bg-white/30 text-white px-3 py-1 rounded-full transition-colors"
-              >
-                Sign in for unlimited access
-              </Link>
-            </div>
-          )}
 
           {/* Viewer count overlay - hidden on mobile */}
           {isActuallyLive && (
-            <div className="hidden md:block absolute top-4 right-4 z-10 rounded-lg bg-black/50 px-3 py-2 backdrop-blur-sm" style={{ top: !isAuthenticated && !previewExpired ? '3rem' : '1rem' }}>
+            <div className="hidden md:block absolute top-4 right-4 z-10 rounded-lg bg-black/50 px-3 py-2 backdrop-blur-sm">
               <ViewerCount username={username} />
             </div>
           )}
