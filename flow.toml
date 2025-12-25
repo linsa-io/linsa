@@ -1801,3 +1801,164 @@ fi
 description = "Check Stripe configuration status."
 dependencies = ["node", "pnpm"]
 shortcuts = ["stc", "stripe-check"]
+
+# =============================================================================
+# Environment Management
+# =============================================================================
+
+[[tasks]]
+name = "env-status"
+description = "Show local .env vs wrangler secrets status"
+command = '''
+set -euo pipefail
+
+echo "=== Environment Status ==="
+echo ""
+
+cd packages/web
+
+echo "Local .env:"
+if [ -f .env ]; then
+  cat .env | grep -v "^#" | grep -v "^$" | cut -d= -f1 | sort | while read key; do
+    echo "  ✓ $key"
+  done
+else
+  echo "  ✗ No .env file"
+fi
+
+echo ""
+echo "Wrangler Secrets (production):"
+pnpm exec wrangler secret list 2>&1 | grep '"name"' | sed 's/.*"name": "\([^"]*\)".*/  ✓ \1/' || echo "  (none or error)"
+
+echo ""
+echo "Commands:"
+echo "  f env-push   - Push .env to wrangler secrets"
+echo "  f env-pull   - Pull wrangler secrets to .env"
+echo "  f env-set KEY value - Set single var"
+'''
+shortcuts = ["envs"]
+
+[[tasks]]
+name = "env-push"
+description = "Push local .env to wrangler secrets (production)"
+command = '''
+set -euo pipefail
+
+cd packages/web
+
+if [ ! -f .env ]; then
+  echo "No .env file found"
+  exit 1
+fi
+
+echo "Pushing .env to wrangler secrets..."
+echo ""
+
+# Read .env and push each secret
+while IFS='=' read -r key value || [ -n "$key" ]; do
+  # Skip comments and empty lines
+  [[ "$key" =~ ^#.*$ ]] && continue
+  [[ -z "$key" ]] && continue
+
+  # Skip VITE_ vars (those are build-time, not secrets)
+  [[ "$key" =~ ^VITE_ ]] && continue
+
+  # Skip local-only vars
+  [[ "$key" == "DATABASE_URL" ]] && continue  # Use Hyperdrive in prod
+  [[ "$key" == "PROD_DATABASE_URL" ]] && continue
+  [[ "$key" == "ELECTRIC_URL" ]] && continue  # Local Electric
+
+  # Remove quotes from value
+  value="${value%\"}"
+  value="${value#\"}"
+
+  echo "Setting $key..."
+  echo "$value" | pnpm exec wrangler secret put "$key" 2>/dev/null || echo "  (failed)"
+done < .env
+
+echo ""
+echo "Done. Run 'f env-status' to verify."
+'''
+dependencies = ["pnpm"]
+shortcuts = ["envp"]
+
+[[tasks]]
+name = "env-set"
+description = "Set a wrangler secret (usage: f env-set KEY value)"
+command = '''
+set -euo pipefail
+
+KEY="${1:-}"
+VALUE="${2:-}"
+
+if [ -z "$KEY" ]; then
+  echo "Usage: f env-set KEY value"
+  exit 1
+fi
+
+cd packages/web
+
+echo "Setting $KEY..."
+echo "$VALUE" | pnpm exec wrangler secret put "$KEY"
+echo "Done."
+'''
+dependencies = ["pnpm"]
+shortcuts = ["envset"]
+
+[[tasks]]
+name = "env-local"
+description = "Create local .env from .env.example with defaults"
+command = '''
+set -euo pipefail
+
+cd packages/web
+
+if [ -f .env ]; then
+  echo ".env already exists. Delete it first to regenerate."
+  exit 0
+fi
+
+cp .env.example .env
+
+# Generate random auth secret
+AUTH_SECRET=$(openssl rand -hex 32)
+sed -i '' "s/your-strong-secret-at-least-32-chars/$AUTH_SECRET/" .env
+
+echo "Created .env with:"
+echo "  - Random BETTER_AUTH_SECRET"
+echo "  - Local PostgreSQL (needs docker)"
+echo "  - Local Electric (needs docker)"
+echo ""
+echo "Next steps:"
+echo "  1. Add your OPENROUTER_API_KEY"
+echo "  2. Run 'f local-services' for postgres + electric"
+echo "  3. Run 'f dev'"
+'''
+shortcuts = ["envl"]
+
+[[tasks]]
+name = "secrets-list"
+description = "List all wrangler secrets"
+command = '''
+cd packages/web
+pnpm exec wrangler secret list 2>&1 | jq -r '.[].name' 2>/dev/null | sort || pnpm exec wrangler secret list
+'''
+dependencies = ["pnpm"]
+shortcuts = ["sec"]
+
+[[tasks]]
+name = "secrets-delete"
+description = "Delete a wrangler secret (usage: f secrets-delete KEY)"
+command = '''
+KEY="${1:-}"
+
+if [ -z "$KEY" ]; then
+  echo "Usage: f secrets-delete KEY"
+  exit 1
+fi
+
+cd packages/web
+pnpm exec wrangler secret delete "$KEY"
+'''
+dependencies = ["pnpm"]
+shortcuts = ["secd"]
