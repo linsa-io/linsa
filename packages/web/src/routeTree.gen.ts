@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsersRouteImport } from './routes/users'
 import { Route as UrlsRouteImport } from './routes/urls'
+import { Route as StreamsRouteImport } from './routes/streams'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SessionsRouteImport } from './routes/sessions'
 import { Route as MarketplaceRouteImport } from './routes/marketplace'
@@ -31,6 +32,7 @@ import { Route as ApiUsersRouteImport } from './routes/api/users'
 import { Route as ApiUsageEventsRouteImport } from './routes/api/usage-events'
 import { Route as ApiStreamStatusRouteImport } from './routes/api/stream-status'
 import { Route as ApiStreamReplaysRouteImport } from './routes/api/stream-replays'
+import { Route as ApiStreamRecordingRouteImport } from './routes/api/stream-recording'
 import { Route as ApiStreamCommentsRouteImport } from './routes/api/stream-comments'
 import { Route as ApiStreamRouteImport } from './routes/api/stream'
 import { Route as ApiProfileRouteImport } from './routes/api/profile'
@@ -85,6 +87,11 @@ const UsersRoute = UsersRouteImport.update({
 const UrlsRoute = UrlsRouteImport.update({
   id: '/urls',
   path: '/urls',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StreamsRoute = StreamsRouteImport.update({
+  id: '/streams',
+  path: '/streams',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -185,6 +192,11 @@ const ApiStreamStatusRoute = ApiStreamStatusRouteImport.update({
 const ApiStreamReplaysRoute = ApiStreamReplaysRouteImport.update({
   id: '/api/stream-replays',
   path: '/api/stream-replays',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStreamRecordingRoute = ApiStreamRecordingRouteImport.update({
+  id: '/api/stream-recording',
+  path: '/api/stream-recording',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiStreamCommentsRoute = ApiStreamCommentsRouteImport.update({
@@ -433,6 +445,7 @@ export interface FileRoutesByFullPath {
   '/marketplace': typeof MarketplaceRoute
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
+  '/streams': typeof StreamsRoute
   '/urls': typeof UrlsRoute
   '/users': typeof UsersRoute
   '/api/archives': typeof ApiArchivesRouteWithChildren
@@ -446,6 +459,7 @@ export interface FileRoutesByFullPath {
   '/api/profile': typeof ApiProfileRoute
   '/api/stream': typeof ApiStreamRouteWithChildren
   '/api/stream-comments': typeof ApiStreamCommentsRoute
+  '/api/stream-recording': typeof ApiStreamRecordingRoute
   '/api/stream-replays': typeof ApiStreamReplaysRouteWithChildren
   '/api/stream-status': typeof ApiStreamStatusRoute
   '/api/usage-events': typeof ApiUsageEventsRouteWithChildren
@@ -501,6 +515,7 @@ export interface FileRoutesByTo {
   '/marketplace': typeof MarketplaceRoute
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
+  '/streams': typeof StreamsRoute
   '/urls': typeof UrlsRoute
   '/users': typeof UsersRoute
   '/api/archives': typeof ApiArchivesRouteWithChildren
@@ -514,6 +529,7 @@ export interface FileRoutesByTo {
   '/api/profile': typeof ApiProfileRoute
   '/api/stream': typeof ApiStreamRouteWithChildren
   '/api/stream-comments': typeof ApiStreamCommentsRoute
+  '/api/stream-recording': typeof ApiStreamRecordingRoute
   '/api/stream-replays': typeof ApiStreamReplaysRouteWithChildren
   '/api/stream-status': typeof ApiStreamStatusRoute
   '/api/usage-events': typeof ApiUsageEventsRouteWithChildren
@@ -571,6 +587,7 @@ export interface FileRoutesById {
   '/marketplace': typeof MarketplaceRoute
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
+  '/streams': typeof StreamsRoute
   '/urls': typeof UrlsRoute
   '/users': typeof UsersRoute
   '/api/archives': typeof ApiArchivesRouteWithChildren
@@ -584,6 +601,7 @@ export interface FileRoutesById {
   '/api/profile': typeof ApiProfileRoute
   '/api/stream': typeof ApiStreamRouteWithChildren
   '/api/stream-comments': typeof ApiStreamCommentsRoute
+  '/api/stream-recording': typeof ApiStreamRecordingRoute
   '/api/stream-replays': typeof ApiStreamReplaysRouteWithChildren
   '/api/stream-status': typeof ApiStreamStatusRoute
   '/api/usage-events': typeof ApiUsageEventsRouteWithChildren
@@ -642,6 +660,7 @@ export interface FileRouteTypes {
     | '/marketplace'
     | '/sessions'
     | '/settings'
+    | '/streams'
     | '/urls'
     | '/users'
     | '/api/archives'
@@ -655,6 +674,7 @@ export interface FileRouteTypes {
     | '/api/profile'
     | '/api/stream'
     | '/api/stream-comments'
+    | '/api/stream-recording'
     | '/api/stream-replays'
     | '/api/stream-status'
     | '/api/usage-events'
@@ -710,6 +730,7 @@ export interface FileRouteTypes {
     | '/marketplace'
     | '/sessions'
     | '/settings'
+    | '/streams'
     | '/urls'
     | '/users'
     | '/api/archives'
@@ -723,6 +744,7 @@ export interface FileRouteTypes {
     | '/api/profile'
     | '/api/stream'
     | '/api/stream-comments'
+    | '/api/stream-recording'
     | '/api/stream-replays'
     | '/api/stream-status'
     | '/api/usage-events'
@@ -779,6 +801,7 @@ export interface FileRouteTypes {
     | '/marketplace'
     | '/sessions'
     | '/settings'
+    | '/streams'
     | '/urls'
     | '/users'
     | '/api/archives'
@@ -792,6 +815,7 @@ export interface FileRouteTypes {
     | '/api/profile'
     | '/api/stream'
     | '/api/stream-comments'
+    | '/api/stream-recording'
     | '/api/stream-replays'
     | '/api/stream-status'
     | '/api/usage-events'
@@ -849,6 +873,7 @@ export interface RootRouteChildren {
   MarketplaceRoute: typeof MarketplaceRoute
   SessionsRoute: typeof SessionsRoute
   SettingsRoute: typeof SettingsRoute
+  StreamsRoute: typeof StreamsRoute
   UrlsRoute: typeof UrlsRoute
   UsersRoute: typeof UsersRoute
   ApiArchivesRoute: typeof ApiArchivesRouteWithChildren
@@ -862,6 +887,7 @@ export interface RootRouteChildren {
   ApiProfileRoute: typeof ApiProfileRoute
   ApiStreamRoute: typeof ApiStreamRouteWithChildren
   ApiStreamCommentsRoute: typeof ApiStreamCommentsRoute
+  ApiStreamRecordingRoute: typeof ApiStreamRecordingRoute
   ApiStreamReplaysRoute: typeof ApiStreamReplaysRouteWithChildren
   ApiStreamStatusRoute: typeof ApiStreamStatusRoute
   ApiUsageEventsRoute: typeof ApiUsageEventsRouteWithChildren
@@ -904,6 +930,13 @@ declare module '@tanstack/react-router' {
       path: '/urls'
       fullPath: '/urls'
       preLoaderRoute: typeof UrlsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/streams': {
+      id: '/streams'
+      path: '/streams'
+      fullPath: '/streams'
+      preLoaderRoute: typeof StreamsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -1044,6 +1077,13 @@ declare module '@tanstack/react-router' {
       path: '/api/stream-replays'
       fullPath: '/api/stream-replays'
       preLoaderRoute: typeof ApiStreamReplaysRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/stream-recording': {
+      id: '/api/stream-recording'
+      path: '/api/stream-recording'
+      fullPath: '/api/stream-recording'
+      preLoaderRoute: typeof ApiStreamRecordingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/stream-comments': {
@@ -1526,6 +1566,7 @@ const rootRouteChildren: RootRouteChildren = {
   MarketplaceRoute: MarketplaceRoute,
   SessionsRoute: SessionsRoute,
   SettingsRoute: SettingsRoute,
+  StreamsRoute: StreamsRoute,
   UrlsRoute: UrlsRoute,
   UsersRoute: UsersRoute,
   ApiArchivesRoute: ApiArchivesRouteWithChildren,
@@ -1539,6 +1580,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiProfileRoute: ApiProfileRoute,
   ApiStreamRoute: ApiStreamRouteWithChildren,
   ApiStreamCommentsRoute: ApiStreamCommentsRoute,
+  ApiStreamRecordingRoute: ApiStreamRecordingRoute,
   ApiStreamReplaysRoute: ApiStreamReplaysRouteWithChildren,
   ApiStreamStatusRoute: ApiStreamStatusRoute,
   ApiUsageEventsRoute: ApiUsageEventsRouteWithChildren,

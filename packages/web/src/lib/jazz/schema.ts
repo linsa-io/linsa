@@ -34,6 +34,35 @@ export type PaidComment = z.infer<typeof PaidComment>
 export const PaidCommentFeed = co.feed(PaidComment)
 
 /**
+ * Stream comment with optional image attachment using FileStream
+ */
+export const StreamComment = co.map({
+  /** Comment text content */
+  content: z.string(),
+  /** User display name */
+  userName: z.string(),
+  /** User ID (from auth) */
+  userId: z.string().nullable(),
+  /** Optional image attachment */
+  image: co.optional(co.fileStream()),
+  /** Timestamp */
+  createdAt: z.number(),
+})
+export type StreamComment = co.loaded<typeof StreamComment>
+
+/**
+ * List of stream comments - real-time chat
+ */
+export const StreamCommentList = co.list(StreamComment)
+
+/**
+ * Container for a stream's comments - enables upsertUnique per stream
+ */
+export const StreamCommentsContainer = co.map({
+  comments: StreamCommentList,
+})
+
+/**
  * Container for a stream's presence feed - enables upsertUnique
  */
 export const StreamPresenceContainer = co.map({
@@ -84,7 +113,7 @@ export const GlideCanvasItem = z.object({
   imageData: z.string().nullable(), // Base64 encoded image
   position: z.object({ x: z.number(), y: z.number() }).nullable(),
   createdAt: z.number(),
-  metadata: z.record(z.unknown()).nullable(),
+  metadata: z.record(z.string(), z.string()).nullable(),
 })
 export type GlideCanvasItem = z.infer<typeof GlideCanvasItem>
 
@@ -92,6 +121,35 @@ export type GlideCanvasItem = z.infer<typeof GlideCanvasItem>
  * List of Glide canvas items
  */
 export const GlideCanvasList = co.list(GlideCanvasItem)
+
+/**
+ * Live stream recording - stores video chunks as they're streamed
+ */
+export const StreamRecording = co.map({
+  title: z.string(),
+  startedAt: z.number(),
+  endedAt: z.number().nullable(),
+  durationMs: z.number(),
+  streamKey: z.string(),
+  isLive: z.boolean(),
+  /** Video file being recorded in real-time */
+  videoFile: co.fileStream(),
+  /** Preview thumbnail */
+  thumbnailData: z.string().nullable(),
+  /** Metadata about the recording */
+  metadata: z.object({
+    width: z.number().nullable(),
+    height: z.number().nullable(),
+    fps: z.number().nullable(),
+    bitrate: z.number().nullable(),
+  }).nullable(),
+})
+export type StreamRecording = z.infer<typeof StreamRecording>
+
+/**
+ * List of stream recordings
+ */
+export const StreamRecordingList = co.list(StreamRecording)
 
 /**
  * Viewer account root - stores any viewer-specific data
@@ -103,6 +161,8 @@ export const ViewerRoot = co.map({
   savedUrls: SavedUrlList,
   /** Glide browser canvas items */
   glideCanvas: GlideCanvasList,
+  /** Live stream recordings */
+  streamRecordings: StreamRecordingList,
 })
 
 /**
@@ -124,6 +184,7 @@ export const ViewerAccount = co
         version: 1,
         savedUrls: SavedUrlList.create([]),
         glideCanvas: GlideCanvasList.create([]),
+        streamRecordings: StreamRecordingList.create([]),
       })
     }
   })

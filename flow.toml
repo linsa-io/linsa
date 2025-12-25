@@ -2158,3 +2158,40 @@ run().catch(console.error);
 '''
 dependencies = ["node", "pnpm"]
 shortcuts = ["user"]
+
+[[tasks]]
+name = "test-jazz-stream"
+description = "Test Jazz live stream recording flow (API → Jazz FileStream → Timeline)"
+command = '''
+set -euo pipefail
+
+echo "=== Jazz Live Stream Recording Test ==="
+echo ""
+echo "This test will:"
+echo "  1. Simulate stream-guard uploading video chunks"
+echo "  2. Verify API endpoint (/api/stream-recording)"
+echo "  3. Check chunk storage in Jazz directory"
+echo "  4. Show how to view the timeline"
+echo ""
+echo "Prerequisites:"
+echo "  ✓ Linsa dev server running on http://localhost:3000"
+echo "  ✓ Jazz storage directory exists"
+echo ""
+
+# Check if dev server is running
+if ! curl -s http://localhost:3000/api/auth/ok >/dev/null 2>&1; then
+  echo "❌ Linsa dev server not running!"
+  echo ""
+  echo "Start it in another terminal with: f dev"
+  echo "Then run this test again."
+  exit 1
+fi
+
+echo "✓ Dev server is running"
+echo ""
+
+# Run the test
+pnpm tsx tests/jazz-stream-test.ts
+'''
+dependencies = ["node", "pnpm"]
+shortcuts = ["test", "tjs"]
