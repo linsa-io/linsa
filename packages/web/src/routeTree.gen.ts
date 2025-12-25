@@ -33,6 +33,7 @@ import { Route as ApiUsageEventsRouteImport } from './routes/api/usage-events'
 import { Route as ApiStreamStatusRouteImport } from './routes/api/stream-status'
 import { Route as ApiStreamReplaysRouteImport } from './routes/api/stream-replays'
 import { Route as ApiStreamRecordingRouteImport } from './routes/api/stream-recording'
+import { Route as ApiStreamFilterRouteImport } from './routes/api/stream-filter'
 import { Route as ApiStreamCommentsRouteImport } from './routes/api/stream-comments'
 import { Route as ApiStreamRouteImport } from './routes/api/stream'
 import { Route as ApiProfileRouteImport } from './routes/api/profile'
@@ -197,6 +198,11 @@ const ApiStreamReplaysRoute = ApiStreamReplaysRouteImport.update({
 const ApiStreamRecordingRoute = ApiStreamRecordingRouteImport.update({
   id: '/api/stream-recording',
   path: '/api/stream-recording',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStreamFilterRoute = ApiStreamFilterRouteImport.update({
+  id: '/api/stream-filter',
+  path: '/api/stream-filter',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiStreamCommentsRoute = ApiStreamCommentsRouteImport.update({
@@ -459,6 +465,7 @@ export interface FileRoutesByFullPath {
   '/api/profile': typeof ApiProfileRoute
   '/api/stream': typeof ApiStreamRouteWithChildren
   '/api/stream-comments': typeof ApiStreamCommentsRoute
+  '/api/stream-filter': typeof ApiStreamFilterRoute
   '/api/stream-recording': typeof ApiStreamRecordingRoute
   '/api/stream-replays': typeof ApiStreamReplaysRouteWithChildren
   '/api/stream-status': typeof ApiStreamStatusRoute
@@ -529,6 +536,7 @@ export interface FileRoutesByTo {
   '/api/profile': typeof ApiProfileRoute
   '/api/stream': typeof ApiStreamRouteWithChildren
   '/api/stream-comments': typeof ApiStreamCommentsRoute
+  '/api/stream-filter': typeof ApiStreamFilterRoute
   '/api/stream-recording': typeof ApiStreamRecordingRoute
   '/api/stream-replays': typeof ApiStreamReplaysRouteWithChildren
   '/api/stream-status': typeof ApiStreamStatusRoute
@@ -601,6 +609,7 @@ export interface FileRoutesById {
   '/api/profile': typeof ApiProfileRoute
   '/api/stream': typeof ApiStreamRouteWithChildren
   '/api/stream-comments': typeof ApiStreamCommentsRoute
+  '/api/stream-filter': typeof ApiStreamFilterRoute
   '/api/stream-recording': typeof ApiStreamRecordingRoute
   '/api/stream-replays': typeof ApiStreamReplaysRouteWithChildren
   '/api/stream-status': typeof ApiStreamStatusRoute
@@ -674,6 +683,7 @@ export interface FileRouteTypes {
     | '/api/profile'
     | '/api/stream'
     | '/api/stream-comments'
+    | '/api/stream-filter'
     | '/api/stream-recording'
     | '/api/stream-replays'
     | '/api/stream-status'
@@ -744,6 +754,7 @@ export interface FileRouteTypes {
     | '/api/profile'
     | '/api/stream'
     | '/api/stream-comments'
+    | '/api/stream-filter'
     | '/api/stream-recording'
     | '/api/stream-replays'
     | '/api/stream-status'
@@ -815,6 +826,7 @@ export interface FileRouteTypes {
     | '/api/profile'
     | '/api/stream'
     | '/api/stream-comments'
+    | '/api/stream-filter'
     | '/api/stream-recording'
     | '/api/stream-replays'
     | '/api/stream-status'
@@ -887,6 +899,7 @@ export interface RootRouteChildren {
   ApiProfileRoute: typeof ApiProfileRoute
   ApiStreamRoute: typeof ApiStreamRouteWithChildren
   ApiStreamCommentsRoute: typeof ApiStreamCommentsRoute
+  ApiStreamFilterRoute: typeof ApiStreamFilterRoute
   ApiStreamRecordingRoute: typeof ApiStreamRecordingRoute
   ApiStreamReplaysRoute: typeof ApiStreamReplaysRouteWithChildren
   ApiStreamStatusRoute: typeof ApiStreamStatusRoute
@@ -1084,6 +1097,13 @@ declare module '@tanstack/react-router' {
       path: '/api/stream-recording'
       fullPath: '/api/stream-recording'
       preLoaderRoute: typeof ApiStreamRecordingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/stream-filter': {
+      id: '/api/stream-filter'
+      path: '/api/stream-filter'
+      fullPath: '/api/stream-filter'
+      preLoaderRoute: typeof ApiStreamFilterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/stream-comments': {
@@ -1580,6 +1600,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiProfileRoute: ApiProfileRoute,
   ApiStreamRoute: ApiStreamRouteWithChildren,
   ApiStreamCommentsRoute: ApiStreamCommentsRoute,
+  ApiStreamFilterRoute: ApiStreamFilterRoute,
   ApiStreamRecordingRoute: ApiStreamRecordingRoute,
   ApiStreamReplaysRoute: ApiStreamReplaysRouteWithChildren,
   ApiStreamStatusRoute: ApiStreamStatusRoute,

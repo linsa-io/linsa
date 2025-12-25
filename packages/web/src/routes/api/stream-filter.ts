@@ -1,47 +1,60 @@
-import { json } from "@tanstack/react-start"
-import type { APIContext } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
+
+const json = (data: unknown, status = 200) =>
+  new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "content-type": "application/json",
+      "access-control-allow-origin": "*",
+      "cache-control": "no-store",
+    },
+  })
 
 /**
- * Get or update stream filter configuration (allowed/blocked apps)
- * 
- * GET: Returns current filter config from Jazz (or hardcoded default)
- * PUT: Updates filter config in Jazz
+ * Stream filter configuration for nikiv
+ * Stores in-memory (will connect to Jazz later)
  */
 
-// Hardcoded default for nikiv (will be in Jazz later)
-const DEFAULT_FILTER = {
+// In-memory store (will be replaced with Jazz)
+let currentFilter = {
   allowedApps: ["zed", "cursor", "xcode", "safari", "warp", "warpPreview"],
-  blockedApps: ["1password", "keychain", "telegram"],
+  blockedApps: ["1password", "keychain"],
   audioApps: ["spotify", "arc"],
   version: 1,
   updatedAt: Date.now(),
 }
 
-export async function GET({ request }: APIContext) {
-  try {
-    // TODO: Read from Jazz when worker is set up
-    return json(DEFAULT_FILTER)
-  } catch (error) {
-    return json({ error: "Failed to fetch filter config" }, { status: 500 })
-  }
-}
+export const Route = createFileRoute("/api/stream-filter")({
+  server: {
+    handlers: {
+      GET: async () => {
+        return json(currentFilter)
+      },
+      POST: async ({ request }) => {
+        try {
+          const body = await request.json()
+          const { allowedApps, blockedApps, audioApps } = body
 
-export async function PUT({ request }: APIContext) {
-  try {
-    const body = await request.json()
-    const { allowedApps, blockedApps, audioApps } = body
+          // Update the filter
+          currentFilter = {
+            allowedApps: allowedApps || [],
+            blockedApps: blockedApps || [],
+            audioApps: audioApps || [],
+            version: currentFilter.version + 1,
+            updatedAt: Date.now(),
+          }
 
-    // TODO: Write to Jazz when worker is set up
-    // For now, return the updated config
-    return json({
-      success: true,
-      allowedApps: allowedApps || [],
-      blockedApps: blockedApps || [],
-      audioApps: audioApps || [],
-      version: DEFAULT_FILTER.version + 1,
-      updatedAt: Date.now(),
-    })
-  } catch (error) {
-    return json({ error: "Failed to update filter config" }, { status: 500 })
-  }
-}
+          console.log(`[stream-filter] Updated config v${currentFilter.version}:`, currentFilter)
+
+          return json({
+            success: true,
+            ...currentFilter,
+          })
+        } catch (error) {
+          console.error("[stream-filter] Update failed:", error)
+          return json({ error: "Failed to update filter config" }, 500)
+        }
+      },
+    },
+  },
+})

@@ -525,6 +525,14 @@ function StreamingSection({ username }: { username: string | null | undefined })
   const [customerCode, setCustomerCode] = useState("")
   const [streamKey, setStreamKey] = useState("")
 
+  // Filter settings
+  const [allowedApps, setAllowedApps] = useState<string[]>([])
+  const [blockedApps, setBlockedApps] = useState<string[]>([])
+  const [audioApps, setAudioApps] = useState<string[]>([])
+  const [filterVersion, setFilterVersion] = useState(0)
+  const [filterSaving, setFilterSaving] = useState(false)
+  const [filterSaved, setFilterSaved] = useState(false)
+
   useEffect(() => {
     const fetchSettings = async () => {
       try {
@@ -543,7 +551,24 @@ function StreamingSection({ username }: { username: string | null | undefined })
         setLoading(false)
       }
     }
+
+    const fetchFilterConfig = async () => {
+      try {
+        const res = await fetch("/api/stream-filter")
+        if (res.ok) {
+          const data = await res.json()
+          setAllowedApps(data.allowedApps || [])
+          setBlockedApps(data.blockedApps || [])
+          setAudioApps(data.audioApps || [])
+          setFilterVersion(data.version || 0)
+        }
+      } catch {
+        // Ignore errors
+      }
+    }
+
     fetchSettings()
+    fetchFilterConfig()
   }, [])
 
   const handleSave = async () => {
@@ -580,6 +605,32 @@ function StreamingSection({ username }: { username: string | null | undefined })
     navigator.clipboard.writeText(streamKey)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleFilterSave = async () => {
+    setFilterSaving(true)
+    setFilterSaved(false)
+    try {
+      const res = await fetch("/api/stream-filter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          allowedApps,
+          blockedApps,
+          audioApps,
+        }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setFilterVersion(data.version)
+        setFilterSaved(true)
+        setTimeout(() => setFilterSaved(false), 2000)
+      }
+    } catch {
+      // Ignore errors
+    } finally {
+      setFilterSaving(false)
+    }
   }
 
   const streamUrl = username ? `https://linsa.io/${username}` : null
@@ -653,6 +704,69 @@ function StreamingSection({ username }: { username: string | null | undefined })
                   <p className="text-xs text-white/50">
                     Only needed if using your own Cloudflare account.
                   </p>
+                </div>
+              </div>
+            </SettingCard>
+
+            <SettingCard title="Stream Filters">
+              <div className="space-y-4 py-2">
+                <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                  <p className="text-sm text-yellow-300">
+                    Control which apps appear in your stream. Changes apply live without restart.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-white/70">Allowed Apps (comma-separated)</label>
+                  <input
+                    type="text"
+                    value={allowedApps.join(", ")}
+                    onChange={(e) => setAllowedApps(e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
+                    placeholder="e.g., zed, cursor, safari, warp"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                  <p className="text-xs text-white/50">
+                    Only these apps will be visible in the stream. Leave empty to allow all.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-white/70">Blocked Apps (comma-separated)</label>
+                  <input
+                    type="text"
+                    value={blockedApps.join(", ")}
+                    onChange={(e) => setBlockedApps(e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
+                    placeholder="e.g., 1password, telegram, keychain"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                  <p className="text-xs text-white/50">
+                    These apps will be hidden from the stream even if allowed.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-white/70">Audio Apps (comma-separated)</label>
+                  <input
+                    type="text"
+                    value={audioApps.join(", ")}
+                    onChange={(e) => setAudioApps(e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
+                    placeholder="e.g., spotify, arc"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                  <p className="text-xs text-white/50">
+                    Apps to capture audio from.
+                  </p>
+                </div>
+                <div className="flex justify-between items-center pt-2">
+                  <span className="text-xs text-white/50">Config version: {filterVersion}</span>
+                  <div className="flex items-center gap-2">
+                    {filterSaved && <span className="text-sm text-teal-400 flex items-center gap-1"><Check className="w-4 h-4" /> Saved</span>}
+                    <button
+                      type="button"
+                      onClick={handleFilterSave}
+                      disabled={filterSaving}
+                      className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {filterSaving ? "Saving..." : "Save Filters"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </SettingCard>
