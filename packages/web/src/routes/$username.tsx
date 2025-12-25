@@ -22,9 +22,6 @@ export const Route = createFileRoute("/$username")({
   component: StreamPage,
 })
 
-// Cloudflare Live Input UID (constant - automatically shows current live stream)
-const LIVE_INPUT_UID = "bb7858eafc85de6c92963f3817477b5d"
-const HLS_URL = `https://customer-xctsztqzu046isdc.cloudflarestream.com/${LIVE_INPUT_UID}/manifest/video.m3u8`
 const READY_PULSE_MS = 1200
 
 // Hardcoded user for nikiv (hls_url will be updated from API)
@@ -59,6 +56,7 @@ function StreamPage() {
   const [error, setError] = useState<string | null>(null)
   const [playerReady, setPlayerReady] = useState(false)
   const [hlsLive, setHlsLive] = useState<boolean | null>(null)
+  const [hlsUrl, setHlsUrl] = useState<string | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
   const [nowPlaying, setNowPlaying] = useState<SpotifyNowPlayingResponse | null>(
     null,
@@ -78,9 +76,12 @@ function StreamPage() {
   useEffect(() => {
     let isActive = true
 
-    // Special handling for nikiv - hardcoded stream with constant Live Input URL
+    // Special handling for nikiv - URL comes from API (secret)
     if (username === "nikiv") {
-      setData(makeNikivData(HLS_URL))
+      // Data will be set when we get the HLS URL from the API
+      if (hlsUrl) {
+        setData(makeNikivData(hlsUrl))
+      }
       setLoading(false)
       return () => {
         isActive = false
@@ -168,9 +169,9 @@ function StreamPage() {
   }, [playerReady])
 
   const stream = data?.stream ?? null
-  // For nikiv, always use HLS directly (no WebRTC)
-  const activePlayback = username === "nikiv"
-    ? { type: "hls" as const, url: HLS_URL }
+  // For nikiv, always use HLS directly (no WebRTC) - URL comes from API
+  const activePlayback = username === "nikiv" && hlsUrl
+    ? { type: "hls" as const, url: hlsUrl }
     : stream?.playback ?? null
 
   const isHlsPlaylistLive = (manifest: string) => {
@@ -184,7 +185,7 @@ function StreamPage() {
     return isValidManifest && !hasEndlist && !isVod && hasSegments
   }
 
-  // For nikiv, use server-side API to check HLS (avoids CORS)
+  // For nikiv, use server-side API to check HLS (avoids CORS, gets URL from secret)
   useEffect(() => {
     if (username !== "nikiv") return
 
@@ -196,6 +197,12 @@ function StreamPage() {
         if (!isActive) return
 
         const apiData = await res.json()
+
+        // Update HLS URL from API (comes from server secret)
+        if (apiData.hlsUrl && apiData.hlsUrl !== hlsUrl) {
+          setHlsUrl(apiData.hlsUrl)
+          setData(makeNikivData(apiData.hlsUrl))
+        }
 
         if (apiData.isLive) {
           // Stream is live - set connecting state if first time
@@ -226,7 +233,7 @@ function StreamPage() {
       isActive = false
       clearInterval(interval)
     }
-  }, [username])
+  }, [username, hlsUrl])
 
   // For non-nikiv users, use direct HLS check
   useEffect(() => {

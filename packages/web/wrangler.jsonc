@@ -29,8 +29,7 @@
 	 * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
 	 */
 	"vars": {
-		"APP_BASE_URL": "https://linsa.io",
-		"CLOUDFLARE_LIVE_INPUT_UID": "bb7858eafc85de6c92963f3817477b5d"
+		"APP_BASE_URL": "https://linsa.io"
 	},
 	/**
 	 * Note: Use secrets to store sensitive data.

@@ -6,12 +6,22 @@ const json = (data: unknown, status = 200) =>
     headers: { "content-type": "application/json" },
   })
 
-// Cloudflare Live Input UID (constant - automatically shows current live stream)
-const LIVE_INPUT_UID = "bb7858eafc85de6c92963f3817477b5d"
-const HLS_URL = `https://customer-xctsztqzu046isdc.cloudflarestream.com/${LIVE_INPUT_UID}/manifest/video.m3u8`
+// Cloudflare customer subdomain
+const CLOUDFLARE_CUSTOMER_CODE = "xctsztqzu046isdc"
 
 function getHlsUrl(): string {
-  return HLS_URL
+  try {
+    const { getServerContext } = require("@tanstack/react-start/server") as {
+      getServerContext: () => { cloudflare?: { env?: Record<string, string> } } | null
+    }
+    const ctx = getServerContext()
+    const liveInputUid = ctx?.cloudflare?.env?.CLOUDFLARE_LIVE_INPUT_UID
+    if (liveInputUid) {
+      return `https://customer-${CLOUDFLARE_CUSTOMER_CODE}.cloudflarestream.com/${liveInputUid}/manifest/video.m3u8`
+    }
+  } catch {}
+  // Fallback - should not happen in production
+  throw new Error("CLOUDFLARE_LIVE_INPUT_UID not configured")
 }
 
 function isHlsPlaylistLive(manifest: string): boolean {
