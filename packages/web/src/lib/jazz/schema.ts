@@ -184,6 +184,40 @@ export const StreamFilterConfig = co.map({
 export type StreamFilterConfig = co.loaded<typeof StreamFilterConfig>
 
 /**
+ * Individual browser tab within a session
+ */
+export const BrowserTab = z.object({
+  title: z.string(),
+  url: z.string(),
+  favicon: z.string().nullable(),
+})
+export type BrowserTab = z.infer<typeof BrowserTab>
+
+/**
+ * A saved browser session - collection of tabs at a point in time
+ */
+export const BrowserSession = co.map({
+  /** User-provided name for the session */
+  name: z.string(),
+  /** Optional description */
+  description: z.string().nullable(),
+  /** All tabs in this session */
+  tabs: z.array(BrowserTab),
+  /** Browser type */
+  browserType: z.enum(["safari", "chrome", "firefox", "arc", "other"]),
+  /** When session was saved */
+  createdAt: z.number(),
+  /** Tags for organization */
+  tags: z.array(z.string()),
+})
+export type BrowserSession = co.loaded<typeof BrowserSession>
+
+/**
+ * List of browser sessions
+ */
+export const BrowserSessionList = co.list(BrowserSession)
+
+/**
  * Viewer account root - stores any viewer-specific data
  */
 export const ViewerRoot = co.map({
@@ -199,6 +233,8 @@ export const ViewerRoot = co.map({
   cloudflareConfig: co.optional(CloudflareStreamConfig),
   /** Stream filter configuration (allowed/blocked apps) */
   streamFilter: co.optional(StreamFilterConfig),
+  /** Saved browser sessions */
+  browserSessions: BrowserSessionList,
 })
 
 /**
@@ -221,6 +257,7 @@ export const ViewerAccount = co
         savedUrls: SavedUrlList.create([]),
         glideCanvas: GlideCanvasList.create([]),
         streamRecordings: StreamRecordingList.create([]),
+        browserSessions: BrowserSessionList.create([]),
       })
     }
   })

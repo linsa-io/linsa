@@ -15,6 +15,9 @@ export const Route = createFileRoute("/$username")({
   component: StreamPage,
 })
 
+// Feature flag: enable paywall for premium content
+const PAYWALL_ENABLED = false
+
 const READY_PULSE_MS = 1200
 
 function StreamPage() {
@@ -28,7 +31,9 @@ function StreamPage() {
   const [hlsUrl, setHlsUrl] = useState<string | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
   const [showReadyPulse, setShowReadyPulse] = useState(false)
-  const readyPulseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const readyPulseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  )
   const hasConnectedOnce = useRef(false)
 
   // Mobile overlays
@@ -105,7 +110,7 @@ function StreamPage() {
   const stream = data?.stream ?? null
   const activePlayback = hlsUrl
     ? { type: "hls" as const, url: hlsUrl }
-    : stream?.playback ?? null
+    : (stream?.playback ?? null)
 
   // Poll HLS status via server-side API (avoids CORS issues)
   useEffect(() => {
@@ -115,7 +120,9 @@ function StreamPage() {
 
     const checkHls = async () => {
       try {
-        const res = await fetch(`/api/streams/${username}/check-hls`, { cache: "no-store" })
+        const res = await fetch(`/api/streams/${username}/check-hls`, {
+          cache: "no-store",
+        })
         if (!isActive) return
 
         const apiData = await res.json()
@@ -268,7 +275,9 @@ function StreamPage() {
               <div className="relative">
                 <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin" />
               </div>
-              <p className="mt-6 text-lg text-neutral-400">Checking stream status...</p>
+              <p className="mt-6 text-lg text-neutral-400">
+                Checking stream status...
+              </p>
             </div>
           ) : isActuallyLive && activePlayback ? (
             <div className="relative h-full w-full">
@@ -282,7 +291,9 @@ function StreamPage() {
                   <div className="relative">
                     <div className="w-16 h-16 border-4 border-white/20 border-t-red-500 rounded-full animate-spin" />
                   </div>
-                  <p className="mt-6 text-lg text-white">Connecting to stream...</p>
+                  <p className="mt-6 text-lg text-white">
+                    Connecting to stream...
+                  </p>
                 </div>
               )}
               {showReadyPulse && (
@@ -305,7 +316,11 @@ function StreamPage() {
                   </p>
                   {profileUser.website && (
                     <a
-                      href={profileUser.website.startsWith("http") ? profileUser.website : `https://${profileUser.website}`}
+                      href={
+                        profileUser.website.startsWith("http")
+                          ? profileUser.website
+                          : `https://${profileUser.website}`
+                      }
                       target="_blank"
                       rel="noopener noreferrer"
                       className="mt-8 text-2xl md:text-3xl font-medium text-white hover:text-neutral-300 transition-colors"
@@ -320,15 +335,19 @@ function StreamPage() {
               <div className="flex-shrink-0 border-t border-white/10">
                 <div className="max-w-7xl mx-auto">
                   <div className="px-6 py-6 border-b border-white/10">
-                    <h2 className="text-xl font-bold text-white">Past Streams</h2>
-                    <p className="text-sm text-white/60 mt-1">Watch previous recordings</p>
+                    <h2 className="text-xl font-bold text-white">
+                      Past Streams
+                    </h2>
+                    <p className="text-sm text-white/60 mt-1">
+                      Watch previous recordings
+                    </p>
                   </div>
 
                   {replaysLoading ? (
                     <div className="flex items-center justify-center py-16">
                       <div className="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin" />
                     </div>
-                  ) : showPaywall ? (
+                  ) : PAYWALL_ENABLED && showPaywall ? (
                     <PaywallBanner
                       creatorName={profileUser.name || profileUser.username}
                       creatorUsername={profileUser.username}
@@ -345,10 +364,7 @@ function StreamPage() {
 
         {/* Desktop Profile Sidebar with Chat */}
         <div className="hidden md:flex w-96 h-full flex-shrink-0">
-          <ProfileSidebar
-            user={profileUser}
-            isLive={isActuallyLive}
-          >
+          <ProfileSidebar user={profileUser} isLive={isActuallyLive}>
             <CommentBox username={username} />
           </ProfileSidebar>
         </div>
@@ -415,10 +431,7 @@ function StreamPage() {
               </button>
             </div>
             <div className="flex-1 min-h-0 overflow-auto">
-              <ProfileSidebar
-                user={profileUser}
-                isLive={isActuallyLive}
-              />
+              <ProfileSidebar user={profileUser} isLive={isActuallyLive} />
             </div>
           </div>
         )}

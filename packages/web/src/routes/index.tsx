@@ -6,7 +6,7 @@ import { authClient } from "@/lib/auth-client"
 import { useAccount } from "jazz-tools/react"
 import { ViewerAccount, type SavedUrl } from "@/lib/jazz/schema"
 import { JazzProvider } from "@/lib/jazz/provider"
-import { Link2, Plus, Trash2, ExternalLink, Video, Settings, LogOut } from "lucide-react"
+import { Link2, Plus, Trash2, ExternalLink, Video, Settings, LogOut, Layers } from "lucide-react"
 
 // Feature flag: only this email can access stream features
 const STREAM_ENABLED_EMAIL = "nikita@nikiv.dev"
@@ -153,6 +153,23 @@ function Dashboard() {
             </div>
           </div>
         )}
+
+        {/* Browser Sessions */}
+        <div className="mb-8 p-6 bg-gradient-to-r from-teal-500/10 to-cyan-500/10 border border-teal-500/20 rounded-2xl">
+          <div className="flex items-center gap-3 mb-4">
+            <Layers className="w-6 h-6 text-teal-400" />
+            <h2 className="text-xl font-semibold">Browser Sessions</h2>
+          </div>
+          <p className="text-neutral-400 mb-4">
+            Save your browser tabs to access them anywhere. Synced across all devices.
+          </p>
+          <Link
+            to="/sessions"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-teal-600 hover:bg-teal-500 transition-colors"
+          >
+            Open Sessions
+          </Link>
+        </div>
 
         {/* Saved Links */}
         <div className="bg-neutral-900/50 border border-white/5 rounded-2xl p-6">
