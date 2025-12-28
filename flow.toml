@@ -252,6 +252,118 @@ dependencies = ["node", "pnpm"]
 shortcuts = ["swa"]
 
 [[tasks]]
+name = "logs-setup"
+interactive = true
+command = """
+set -euo pipefail
+
+ROOT="$(pwd)"
+WORKER_DIR="$ROOT/packages/worker"
+VARS_FILE="$WORKER_DIR/.dev.vars"
+SDK_ROOT="${FOCUS_SDK_ROOT:-/Users/nikiv/lang/ts/lib/1focus}"
+LOGS_SERVER_DEFAULT="linsa"
+LOGS_ENDPOINT_DEFAULT="https://1focus.app/api/logs"
+
+echo "=== 1focus Logs Setup (Linsa) ==="
+echo ""
+
+if [ ! -d "$SDK_ROOT" ]; then
+  read -p "1focus SDK root (path to lib/1focus): " SDK_ROOT
+fi
+
+if [ ! -d "$SDK_ROOT/packages/logs" ]; then
+  echo "Missing @1focus/logs at $SDK_ROOT/packages/logs"
+  exit 1
+fi
+
+if [ ! -f "$SDK_ROOT/packages/logs/dist/index.js" ]; then
+  if ! command -v bun >/dev/null 2>&1; then
+    echo "bun not found. Install bun or build @1focus/logs manually."
+    exit 1
+  fi
+  echo "Building @1focus/logs..."
+  (cd "$SDK_ROOT" && bun install && bun run build)
+else
+  echo "✓ @1focus/logs already built"
+fi
+
+echo ""
+echo "Installing worker deps..."
+pnpm --filter @linsa/worker install --silent --ignore-scripts
+
+if [ ! -f "$VARS_FILE" ]; then
+  touch "$VARS_FILE"
+  echo "Created $VARS_FILE"
+fi
+
+CURRENT_KEY=$(grep -E "^FOCUS_LOGS_API_KEY=" "$VARS_FILE" 2>/dev/null | tail -1 | cut -d'=' -f2- || true)
+if [ -n "$CURRENT_KEY" ]; then
+  echo "FOCUS_LOGS_API_KEY already set in .dev.vars"
+else
+  read -s -p "Enter 1focus API key for logs: " FOCUS_LOGS_API_KEY
+  echo ""
+fi
+
+read -p "Server name [${LOGS_SERVER_DEFAULT}]: " FOCUS_LOGS_SERVER
+FOCUS_LOGS_SERVER="${FOCUS_LOGS_SERVER:-$LOGS_SERVER_DEFAULT}"
+
+read -p "Logs endpoint [${LOGS_ENDPOINT_DEFAULT}]: " FOCUS_LOGS_ENDPOINT
+FOCUS_LOGS_ENDPOINT="${FOCUS_LOGS_ENDPOINT:-$LOGS_ENDPOINT_DEFAULT}"
+
+FOCUS_LOGS_API_KEY="${FOCUS_LOGS_API_KEY:-$CURRENT_KEY}" \
+FOCUS_LOGS_SERVER="$FOCUS_LOGS_SERVER" \
+FOCUS_LOGS_ENDPOINT="$FOCUS_LOGS_ENDPOINT" \
+node - <<'NODE'
+const fs = require("fs")
+const path = require("path")
+
+const varsPath = path.join("packages", "worker", ".dev.vars")
+let text = ""
+if (fs.existsSync(varsPath)) {
+  text = fs.readFileSync(varsPath, "utf8")
+}
+
+const ensureKey = (key, value) => {
+  if (!value) return
+  const pattern = new RegExp(`^${key}=.*$`, "m")
+  if (pattern.test(text)) {
+    text = text.replace(pattern, `${key}=${value}`)
+  } else {
+    if (text.length > 0 && !text.endsWith("\\n")) {
+      text += "\\n"
+    }
+    text += `${key}=${value}\\n`
+  }
+  console.log(`  Set ${key}`)
+}
+
+ensureKey("FOCUS_LOGS_API_KEY", process.env.FOCUS_LOGS_API_KEY || "")
+ensureKey("FOCUS_LOGS_SERVER", process.env.FOCUS_LOGS_SERVER || "")
+ensureKey("FOCUS_LOGS_ENDPOINT", process.env.FOCUS_LOGS_ENDPOINT || "")
+
+fs.writeFileSync(varsPath, text)
+NODE
+
+echo ""
+read -p "Send test log to 1focus now? (Y/n): " SEND_TEST
+if [ -z "$SEND_TEST" ] || [ "$SEND_TEST" = "y" ] || [ "$SEND_TEST" = "Y" ]; then
+  echo "Sending test log..."
+  STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$FOCUS_LOGS_ENDPOINT" \
+    -H "Authorization: Bearer $FOCUS_LOGS_API_KEY" \
+    -H "Content-Type: application/json" \
+    -d "{\"server\":\"$FOCUS_LOGS_SERVER\",\"message\":\"Linsa log test\",\"level\":\"info\"}" || echo "000")
+  echo "Log write status: $STATUS"
+fi
+
+echo ""
+echo "Logs setup complete."
+echo "Run 'pnpm --filter @linsa/worker dev' and hit /api/v1/hello to stream logs."
+"""
+description = "Set up 1focus Logs for Linsa (SDK build, worker env, test log)."
+dependencies = ["node", "pnpm"]
+shortcuts = ["logs", "logsetup"]
+
+[[tasks]]
 name = "seed"
 command = """
 set -euo pipefail
