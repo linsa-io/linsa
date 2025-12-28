@@ -1,6 +1,7 @@
 import { Hono, type Context, type MiddlewareHandler } from "hono"
 import { cors } from "hono/cors"
 import { eq } from "drizzle-orm"
+import { createLogsClient, type LogPayload, type LogsWriteResult } from "@1focus/logs"
 import {
   browser_session_tabs,
   browser_sessions,
@@ -17,6 +18,9 @@ type Env = {
   ADMIN_API_KEY?: string
   DATABASE_URL?: string
   HYPERDRIVE?: Hyperdrive
+  FOCUS_LOGS_API_KEY?: string
+  FOCUS_LOGS_ENDPOINT?: string
+  FOCUS_LOGS_SERVER?: string
 }
 
 // Create a new Hono app
@@ -60,6 +64,40 @@ app.use("/api/v1/admin/*", requireAdmin)
 
 const parseBody = async (c: Context<AppEnv>) => {
   return (await c.req.json().catch(() => ({}))) as Record<string, unknown>
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === "object" && !Array.isArray(value)
+
+const getLogsClient = (env: Env) => {
+  const apiKey = env.FOCUS_LOGS_API_KEY?.trim()
+  if (!apiKey) return null
+  const endpoint = env.FOCUS_LOGS_ENDPOINT?.trim() || undefined
+  const server = env.FOCUS_LOGS_SERVER?.trim() || "linsa"
+  return createLogsClient({
+    apiKey,
+    server,
+    endpoint,
+    defaultSource: "linsa-worker",
+    timeoutMs: 3000,
+  })
+}
+
+const logTo1Focus = async (
+  c: Context<AppEnv>,
+  payload: LogPayload,
+  awaitResult = false,
+): Promise<LogsWriteResult | null> => {
+  const client = getLogsClient(c.env)
+  if (!client) return null
+
+  const promise = client.log(payload)
+  if (!awaitResult && c.executionCtx) {
+    c.executionCtx.waitUntil(promise)
+    return null
+  }
+
+  return promise
 }
 
 const parseInteger = (value: unknown) => {
@@ -127,7 +165,53 @@ app.get("/", (c) => {
 // Example API endpoint
 app.get("/api/v1/hello", (c) => {
   const name = c.req.query("name") || "World"
+  void logTo1Focus(c, {
+    message: "hello endpoint called",
+    level: "info",
+    meta: { name },
+  })
   return c.json({ message: `Hello, ${name}!` })
+})
+
+// Manual log write (admin-only)
+app.post("/api/v1/admin/logs", async (c) => {
+  const body = await parseBody(c)
+  const message = typeof body.message === "string" ? body.message.trim() : ""
+  if (!message) {
+    return c.json({ error: "message is required" }, 400)
+  }
+
+  const metaInput = isRecord(body.meta) ? body.meta : {}
+  const meta = {
+    ...metaInput,
+    path: c.req.path,
+    method: c.req.method,
+  }
+
+  const payload: LogPayload = {
+    message,
+    level: typeof body.level === "string" ? (body.level as LogPayload["level"]) : "info",
+    source: typeof body.source === "string" ? body.source : undefined,
+    timestamp:
+      typeof body.timestamp === "number" || typeof body.timestamp === "string"
+        ? body.timestamp
+        : undefined,
+    meta,
+    attributes: isRecord(body.attributes) ? body.attributes : undefined,
+    resource: isRecord(body.resource) ? body.resource : undefined,
+    scope: isRecord(body.scope) ? body.scope : undefined,
+    traceId: typeof body.traceId === "string" ? body.traceId : undefined,
+    spanId: typeof body.spanId === "string" ? body.spanId : undefined,
+    parentSpanId: typeof body.parentSpanId === "string" ? body.parentSpanId : undefined,
+    traceFlags: typeof body.traceFlags === "number" ? body.traceFlags : undefined,
+  }
+
+  const result = await logTo1Focus(c, payload, true)
+  if (!result) {
+    return c.json({ error: "Logging not configured" }, 503)
+  }
+
+  return c.json({ result }, result.ok ? 200 : 502)
 })
 
 // Canvas endpoints

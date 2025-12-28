@@ -365,9 +365,75 @@ shortcuts = ["d"]
 [[tasks]]
 name = "desktop"
 command = """
-pnpm --filter @linsa/desktop dev
+set -euo pipefail
+
+LINS_WEB_PORT=5625
+ONEFOCUS_WEB_PORT=5615
+ONEFOCUS_ROOT="${ONEFOCUS_ROOT:-/Users/nikiv/org/1f/1f}"
+
+if [ ! -d "$ONEFOCUS_ROOT" ]; then
+  echo "1focus repo not found at $ONEFOCUS_ROOT"
+  echo "Set ONEFOCUS_ROOT to the 1focus repo root."
+  exit 1
+fi
+
+kill_port() {
+  local port="$1"
+  if lsof -iTCP:"$port" -sTCP:LISTEN -P -n >/dev/null 2>&1; then
+    lsof -tiTCP:"$port" -sTCP:LISTEN | xargs kill -9 2>/dev/null || true
+    sleep 0.5
+  fi
+}
+
+wait_for_port() {
+  local port="$1"
+  for i in $(seq 1 40); do
+    if nc -z 127.0.0.1 "$port" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 0.25
+  done
+}
+
+kill_port "$LINS_WEB_PORT"
+kill_port "$ONEFOCUS_WEB_PORT"
+
+LINS_WEB_PID=""
+ONE_WEB_PID=""
+LINS_DESK_PID=""
+ONE_DESK_PID=""
+
+echo "Starting Linsa web dev server on :$LINS_WEB_PORT..."
+(cd packages/web && pnpm dev 2>&1 | while IFS= read -r line; do echo "[linsa:web] $line"; done) &
+LINS_WEB_PID=$!
+
+echo "Starting 1focus web dev server on :$ONEFOCUS_WEB_PORT..."
+(cd "$ONEFOCUS_ROOT/packages/web" && pnpm dev 2>&1 | while IFS= read -r line; do echo "[1f:web] $line"; done) &
+ONE_WEB_PID=$!
+
+cleanup() {
+  for pid in "$LINS_WEB_PID" "$ONE_WEB_PID" "$LINS_DESK_PID" "$ONE_DESK_PID"; do
+    if [ -n "$pid" ]; then
+      kill "$pid" 2>/dev/null || true
+    fi
+  done
+}
+trap cleanup EXIT INT TERM
+
+wait_for_port "$LINS_WEB_PORT"
+wait_for_port "$ONEFOCUS_WEB_PORT"
+
+echo "Starting Linsa Electron..."
+(pnpm --filter @linsa/desktop dev 2>&1 | while IFS= read -r line; do echo "[linsa:desktop] $line"; done) &
+LINS_DESK_PID=$!
+
+echo "Starting 1focus Electron..."
+(cd "$ONEFOCUS_ROOT" && pnpm dev:desktop 2>&1 | while IFS= read -r line; do echo "[1f:desktop] $line"; done) &
+ONE_DESK_PID=$!
+
+wait "$LINS_DESK_PID" "$ONE_DESK_PID"
 """
-description = "Start the Electron desktop app (electron-vite dev)."
+description = "Run Linsa + 1focus desktop apps with their web dev servers."
 dependencies = ["node", "pnpm"]
 shortcuts = ["desk"]
 

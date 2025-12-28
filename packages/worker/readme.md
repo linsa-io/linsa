@@ -116,6 +116,23 @@ Authentication:
 - `PATCH /api/v1/admin/browser-sessions/:sessionId`
 - `DELETE /api/v1/admin/browser-sessions/:sessionId`
 
+### External Logs
+
+To forward logs into 1focus Logs for the `linsa` server, set these secrets/vars in the worker:
+
+- `FOCUS_LOGS_API_KEY` (required)
+- `FOCUS_LOGS_SERVER` (optional, default: `linsa`)
+- `FOCUS_LOGS_ENDPOINT` (optional, default: `https://1focus.app/api/logs`)
+
+Then send a log:
+
+```bash
+curl -X POST "http://localhost:8787/api/v1/admin/logs" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ADMIN_API_KEY" \
+  -d '{"message":"Hello from linsa","level":"info"}'
+```
+
 ### Example (create chat thread)
 
 ```bash
