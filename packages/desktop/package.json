@@ -1,0 +1,35 @@
+{
+  "name": "@linsa/desktop",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@reatom/core": "^1000.1.0",
+    "@reatom/react": "^1000.0.0",
+    "electron": "^31.7.0",
+    "jazz-tools": "^0.19.13",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "electron-vite": "^2.3.0",
+    "eslint": "^9.39.1",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

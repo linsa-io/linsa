@@ -84,7 +84,7 @@ export const getAuth = () => {
       usePlural: true,
       schema,
     }),
-    trustedOrigins: [env.APP_BASE_URL ?? "http://localhost:3000"],
+    trustedOrigins: [env.APP_BASE_URL ?? "http://localhost:5625"],
     plugins: [
       tanstackStartCookies(),
       emailOTP({

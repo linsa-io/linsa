@@ -20,6 +20,7 @@ interface SettingsPanelProps {
   activeSection: SettingsSection
   onSelect: (section: SettingsSection) => void
   profile?: UserProfile | null | undefined
+  showBilling?: boolean
 }
 
 type NavItem = {
@@ -66,7 +67,12 @@ export default function SettingsPanel({
   activeSection,
   onSelect,
   profile,
+  showBilling = false,
 }: SettingsPanelProps) {
+  const filteredNavItems = showBilling
+    ? navItems
+    : navItems.filter((item) => item.id !== "billing")
+
   return (
     <aside className="shrink-0 bg-transparent border border-white/5 rounded-2xl h-[calc(100vh-6em)] sticky top-6 px-2 py-4 items-start flex flex-col gap-6">
       <div className="flex flex-col gap-2 items-start w-full">
@@ -78,7 +84,7 @@ export default function SettingsPanel({
             <ArrowLeft className="w-4 h-4" />
             <span>Back to app</span>
           </a>
-          {navItems.map(({ id, label, icon: Icon }) => {
+          {filteredNavItems.map(({ id, label, icon: Icon }) => {
             const isActive = activeSection === id
             return (
               <button

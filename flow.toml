@@ -363,6 +363,15 @@ dependencies = ["node", "pnpm"]
 shortcuts = ["d"]
 
 [[tasks]]
+name = "desktop"
+command = """
+pnpm --filter @linsa/desktop dev
+"""
+description = "Start the Electron desktop app (electron-vite dev)."
+dependencies = ["node", "pnpm"]
+shortcuts = ["desk"]
+
+[[tasks]]
 name = "deploy"
 command = """
 set -euo pipefail

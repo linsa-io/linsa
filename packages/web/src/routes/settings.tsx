@@ -24,6 +24,9 @@ export const Route = createFileRoute("/settings")({
   ssr: false,
 })
 
+// Feature flag: enable billing section
+const BILLING_ENABLED = false
+
 type Option = { value: string; label: string }
 
 function InlineSelect({
@@ -641,6 +644,12 @@ function StreamingSection({ username }: { username: string | null | undefined })
         title="Streaming"
         description="Configure your live stream settings."
       />
+      <div className="mb-5 p-4 bg-purple-500/10 border border-purple-500/20 rounded-xl flex items-center gap-3">
+        <span className="px-2 py-0.5 text-xs font-bold uppercase bg-purple-500 text-white rounded">Beta</span>
+        <p className="text-sm text-purple-200">
+          Streaming is currently in beta. Features may change and some functionality is still being developed.
+        </p>
+      </div>
       <div className="space-y-5">
         {loading ? (
           <div className="h-32 bg-white/5 rounded-2xl animate-pulse" />
@@ -953,7 +962,11 @@ function BillingSection() {
               disabled={subscribing}
               className="w-full py-3 rounded-xl text-sm font-semibold bg-teal-500 hover:bg-teal-400 text-white transition-colors disabled:opacity-50"
             >
-              {subscribing ? "Loading..." : "Subscribe Now"}
+              {subscribing ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
+              ) : (
+                "Subscribe Now"
+              )}
             </button>
           )}
         </div>
@@ -992,7 +1005,7 @@ function SettingsPage() {
   if (isPending) {
     return (
       <div className="min-h-screen text-white grid place-items-center">
-        <p className="text-slate-400">Loading settings…</p>
+        <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
       </div>
     )
   }
@@ -1005,6 +1018,7 @@ function SettingsPage() {
             activeSection={activeSection}
             onSelect={setActiveSection}
             profile={session?.user}
+            showBilling={BILLING_ENABLED}
           />
           <div className="flex-1 space-y-12 overflow-auto pr-1 pb-12">
             {activeSection === "preferences" ? (
@@ -1017,7 +1031,7 @@ function SettingsPage() {
               />
             ) : activeSection === "streaming" ? (
               <StreamingSection username={session?.user?.username} />
-            ) : activeSection === "billing" ? (
+            ) : activeSection === "billing" && BILLING_ENABLED ? (
               <BillingSection />
             ) : null}
           </div>

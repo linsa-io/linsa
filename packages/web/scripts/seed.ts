@@ -299,6 +299,31 @@ async function seed() {
       ADD COLUMN IF NOT EXISTS "cloudflare_customer_code" text
   `)
 
+  // Create API keys table
+  await appDb.execute(sql`
+    CREATE TABLE IF NOT EXISTS "api_keys" (
+      "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      "user_id" text NOT NULL REFERENCES "users"("id") ON DELETE cascade,
+      "key_hash" text NOT NULL UNIQUE,
+      "name" text NOT NULL DEFAULT 'Default',
+      "last_used_at" timestamptz,
+      "created_at" timestamptz NOT NULL DEFAULT now()
+    );
+  `)
+
+  // Create bookmarks table
+  await appDb.execute(sql`
+    CREATE TABLE IF NOT EXISTS "bookmarks" (
+      "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      "user_id" text NOT NULL REFERENCES "users"("id") ON DELETE cascade,
+      "url" text NOT NULL,
+      "title" text,
+      "description" text,
+      "tags" text,
+      "created_at" timestamptz NOT NULL DEFAULT now()
+    );
+  `)
+
   // ========== Seed nikiv user ==========
   const nikivUserId = "nikiv"
   const nikivEmail = "nikita.voloboev@gmail.com"

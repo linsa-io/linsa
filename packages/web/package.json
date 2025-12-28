@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite dev --port 5613 --strictPort",
+    "dev": "vite dev --port 5625 --strictPort",
     "build": "vite build",
     "serve": "vite preview",
     "test": "vitest run",

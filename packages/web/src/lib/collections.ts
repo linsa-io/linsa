@@ -14,7 +14,7 @@ export const usersCollection = createCollection(
         "/api/users",
         typeof window !== "undefined"
           ? window.location.origin
-          : "http://localhost:3000",
+          : "http://localhost:5625",
       ).toString(),
       parser: {
         timestamptz: (date: string) => new Date(date),
@@ -28,7 +28,7 @@ export const usersCollection = createCollection(
 const baseUrl =
   typeof window !== "undefined"
     ? window.location.origin
-    : "http://localhost:3000"
+    : "http://localhost:5625"
 
 // Create collections lazily to avoid fetching before authentication
 // Using a factory pattern so each call gets the same collection instance

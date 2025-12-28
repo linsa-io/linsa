@@ -6,11 +6,13 @@
   "packageManager": "pnpm@10.11.1",
   "scripts": {
     "dev:worker": "pnpm --filter @linsa/worker run dev",
+    "dev:desktop": "pnpm --filter @linsa/desktop run dev",
     "deploy:worker": "pnpm --filter @linsa/worker run deploy",
     "test:worker": "pnpm --filter @linsa/worker run test",
     "dev:web": "pnpm --filter @linsa/web run dev",
     "deploy:web": "pnpm --filter @linsa/web run deploy",
     "test:web": "pnpm --filter @linsa/web run test",
+    "build:desktop": "pnpm --filter @linsa/desktop run build",
     "dev": "pnpm dev:worker",
     "test": "pnpm -r test",
     "lint": "pnpm -r lint && pnpm format:check",

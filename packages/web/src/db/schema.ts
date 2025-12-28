@@ -572,3 +572,44 @@ export type CreatorTier = z.infer<typeof selectCreatorTierSchema>
 export type CreatorSubscription = z.infer<typeof selectCreatorSubscriptionSchema>
 export type CreatorProduct = z.infer<typeof selectCreatorProductSchema>
 export type CreatorPurchase = z.infer<typeof selectCreatorPurchaseSchema>
+
+// =============================================================================
+// API Keys
+// =============================================================================
+
+export const api_keys = pgTable("api_keys", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  user_id: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  key_hash: text("key_hash").notNull().unique(), // SHA-256 hash of the key
+  name: text("name").notNull().default("Default"), // User-friendly name
+  last_used_at: timestamp("last_used_at", { withTimezone: true }),
+  created_at: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+})
+
+export const selectApiKeySchema = createSelectSchema(api_keys)
+export type ApiKey = z.infer<typeof selectApiKeySchema>
+
+// =============================================================================
+// Bookmarks
+// =============================================================================
+
+export const bookmarks = pgTable("bookmarks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  user_id: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  url: text("url").notNull(),
+  title: text("title"),
+  description: text("description"),
+  tags: text("tags"), // Comma-separated tags
+  created_at: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+})
+
+export const selectBookmarkSchema = createSelectSchema(bookmarks)
+export type Bookmark = z.infer<typeof selectBookmarkSchema>

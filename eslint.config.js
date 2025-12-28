@@ -41,6 +41,7 @@ export default [
       "**/node_modules/**",
       "**/dist/**",
       "**/.wrangler/**",
+      "**/out/**",
       "**/build/**",
     ],
   },
