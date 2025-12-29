@@ -12,9 +12,14 @@ import {
   HelpCircle,
   Copy,
   ExternalLink,
+  Key,
+  Trash2,
+  Plus,
+  Eye,
+  EyeOff,
 } from "lucide-react"
 
-type SectionId = "preferences" | "profile" | "streaming" | "billing"
+type SectionId = "preferences" | "profile" | "streaming" | "api" | "billing"
 
 const PLAN_CARD_NOISE =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.18'/%3E%3C/svg%3E"
@@ -842,6 +847,232 @@ function StreamingSection({ username }: { username: string | null | undefined })
   )
 }
 
+interface ApiKeyData {
+  id: string
+  name: string
+  last_used_at: string | null
+  created_at: string
+}
+
+function ApiKeysSection() {
+  const [keys, setKeys] = useState<ApiKeyData[]>([])
+  const [loading, setLoading] = useState(true)
+  const [creating, setCreating] = useState(false)
+  const [newKeyName, setNewKeyName] = useState("")
+  const [newKey, setNewKey] = useState<string | null>(null)
+  const [showNewKey, setShowNewKey] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchKeys = async () => {
+    try {
+      const res = await fetch("/api/api-keys", { credentials: "include" })
+      if (res.ok) {
+        const data = await res.json()
+        setKeys(data.keys || [])
+      }
+    } catch {
+      // Ignore errors
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchKeys()
+  }, [])
+
+  const handleCreateKey = async () => {
+    setCreating(true)
+    setError(null)
+    try {
+      const res = await fetch("/api/api-keys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ name: newKeyName || "Default" }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || "Failed to create key")
+      } else {
+        setNewKey(data.key)
+        setShowNewKey(true)
+        setNewKeyName("")
+        fetchKeys()
+      }
+    } catch {
+      setError("Network error")
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const handleDeleteKey = async (id: string) => {
+    try {
+      const res = await fetch(`/api/api-keys?id=${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      })
+      if (res.ok) {
+        setKeys(keys.filter((k) => k.id !== id))
+      }
+    } catch {
+      // Ignore errors
+    }
+  }
+
+  const copyKey = () => {
+    if (newKey) {
+      navigator.clipboard.writeText(newKey)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return "Never"
+    const date = new Date(dateStr)
+    return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  }
+
+  return (
+    <div id="api" className="scroll-mt-24">
+      <SectionHeader
+        title="API Keys"
+        description="Manage your API keys for programmatic access."
+      />
+      <div className="space-y-5">
+        {/* Create new key */}
+        <SettingCard title="Create API Key">
+          <div className="space-y-4 py-2">
+            <div className="p-3 bg-teal-500/10 border border-teal-500/20 rounded-lg">
+              <p className="text-sm text-teal-300">
+                API keys allow you to access Linsa programmatically. Use them to save bookmarks, sync data, and integrate with other tools.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <input
+                type="text"
+                value={newKeyName}
+                onChange={(e) => setNewKeyName(e.target.value)}
+                placeholder="Key name (optional)"
+                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+              <button
+                type="button"
+                onClick={handleCreateKey}
+                disabled={creating}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                {creating ? "Creating..." : "Create Key"}
+              </button>
+            </div>
+            {error && <p className="text-sm text-rose-400">{error}</p>}
+          </div>
+        </SettingCard>
+
+        {/* New key display */}
+        {newKey && (
+          <SettingCard title="New API Key">
+            <div className="space-y-4 py-2">
+              <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                <p className="text-sm text-yellow-300">
+                  Copy this key now. You won't be able to see it again!
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-teal-400 text-sm font-mono overflow-x-auto">
+                  {showNewKey ? newKey : "•".repeat(40)}
+                </code>
+                <button
+                  type="button"
+                  onClick={() => setShowNewKey(!showNewKey)}
+                  className="p-2 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 text-white/70 hover:text-white transition-colors"
+                >
+                  {showNewKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={copyKey}
+                  className="p-2 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 text-white/70 hover:text-white transition-colors"
+                >
+                  {copied ? <Check className="w-4 h-4 text-teal-400" /> : <Copy className="w-4 h-4" />}
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => setNewKey(null)}
+                className="text-sm text-white/50 hover:text-white"
+              >
+                Dismiss
+              </button>
+            </div>
+          </SettingCard>
+        )}
+
+        {/* Existing keys */}
+        <SettingCard title="Your API Keys">
+          <div className="py-2">
+            {loading ? (
+              <div className="h-20 bg-white/5 rounded-lg animate-pulse" />
+            ) : keys.length === 0 ? (
+              <p className="text-sm text-white/50 py-4 text-center">
+                No API keys yet. Create one above.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {keys.map((key) => (
+                  <div
+                    key={key.id}
+                    className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Key className="w-4 h-4 text-white/50" />
+                      <div>
+                        <p className="text-sm font-medium text-white">{key.name}</p>
+                        <p className="text-xs text-white/50">
+                          Created {formatDate(key.created_at)} • Last used {formatDate(key.last_used_at)}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteKey(key.id)}
+                      className="p-2 text-rose-400 hover:bg-rose-400/10 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </SettingCard>
+
+        {/* Usage example */}
+        <SettingCard title="Usage">
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-white/70">
+              Use your API key to save bookmarks:
+            </p>
+            <pre className="bg-white/5 border border-white/10 rounded-lg p-3 text-sm text-white/80 overflow-x-auto">
+{`curl -X POST https://linsa.io/api/bookmarks \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "url": "https://example.com",
+    "title": "Example",
+    "api_key": "lk_your_key_here"
+  }'`}
+            </pre>
+          </div>
+        </SettingCard>
+      </div>
+    </div>
+  )
+}
+
 function BillingSection() {
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -1031,6 +1262,8 @@ function SettingsPage() {
               />
             ) : activeSection === "streaming" ? (
               <StreamingSection username={session?.user?.username} />
+            ) : activeSection === "api" ? (
+              <ApiKeysSection />
             ) : activeSection === "billing" && BILLING_ENABLED ? (
               <BillingSection />
             ) : null}

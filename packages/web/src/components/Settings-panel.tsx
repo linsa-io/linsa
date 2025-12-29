@@ -1,4 +1,3 @@
-import { useMemo } from "react"
 import {
   ArrowLeft,
   SlidersHorizontal,
@@ -6,9 +5,10 @@ import {
   type LucideIcon,
   CreditCard,
   Video,
+  Key,
 } from "lucide-react"
 
-type SettingsSection = "preferences" | "profile" | "streaming" | "billing"
+type SettingsSection = "preferences" | "profile" | "streaming" | "api" | "billing"
 
 interface UserProfile {
   name?: string | null
@@ -33,35 +33,10 @@ const navItems: NavItem[] = [
   { id: "preferences", label: "Preferences", icon: SlidersHorizontal },
   { id: "profile", label: "Profile", icon: UserRound },
   { id: "streaming", label: "Streaming", icon: Video },
+  { id: "api", label: "API Keys", icon: Key },
   { id: "billing", label: "Manage Billing", icon: CreditCard },
 ]
 
-function Avatar({ profile }: { profile?: UserProfile | null }) {
-  const initial = useMemo(() => {
-    if (!profile) return "G"
-    return (
-      profile.name?.slice(0, 1) ??
-      profile.email?.slice(0, 1)?.toUpperCase() ??
-      "G"
-    )
-  }, [profile])
-
-  if (profile?.image) {
-    return (
-      <img
-        src={profile.image}
-        alt={profile.name ?? profile.email}
-        className="w-9 h-9 rounded-full object-cover"
-      />
-    )
-  }
-
-  return (
-    <div className="w-9 h-9 rounded-full bg-teal-600 text-white text-sm font-semibold grid place-items-center">
-      {initial}
-    </div>
-  )
-}
 
 export default function SettingsPanel({
   activeSection,

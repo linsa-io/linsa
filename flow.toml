@@ -2347,6 +2347,68 @@ dependencies = ["node", "pnpm"]
 shortcuts = ["user"]
 
 [[tasks]]
+name = "save-tabs"
+description = "Save all Safari tabs to Linsa as bookmarks"
+command = '''
+set -euo pipefail
+
+cd packages/web
+
+# Load env
+if [ -f .env ]; then
+  set -a
+  . .env
+  set +a
+fi
+
+if [ -z "${LINSA_API_KEY:-}" ]; then
+  echo "❌ LINSA_API_KEY not set"
+  echo ""
+  echo "Generate one with: f gen-api-key"
+  exit 1
+fi
+
+echo "Saving Safari tabs to Linsa..."
+echo ""
+
+LINSA_API_KEY="$LINSA_API_KEY" LINSA_API_URL="${LINSA_API_URL:-http://localhost:5613}" pnpm tsx tests/bookmarks-save.ts
+'''
+dependencies = ["node", "pnpm"]
+shortcuts = ["tabs", "safari"]
+
+[[tasks]]
+name = "gen-api-key"
+interactive = true
+description = "Generate a Linsa API key for current user"
+command = '''
+set -euo pipefail
+
+cd packages/web
+
+# Load env
+if [ -f .env ]; then
+  set -a
+  . .env
+  set +a
+fi
+
+if [ -z "${PROD_DATABASE_URL:-}" ] && [ -z "${DATABASE_URL:-}" ]; then
+  echo "❌ No database URL found"
+  echo "Set DATABASE_URL or PROD_DATABASE_URL in packages/web/.env"
+  exit 1
+fi
+
+DB_URL="${PROD_DATABASE_URL:-$DATABASE_URL}"
+
+read -p "Enter user ID to generate key for [nikiv]: " USER_ID
+USER_ID="${USER_ID:-nikiv}"
+
+DATABASE_URL="$DB_URL" pnpm tsx tests/generate-api-key.ts "$USER_ID"
+'''
+dependencies = ["node", "pnpm"]
+shortcuts = ["apikey", "genkey"]
+
+[[tasks]]
 name = "test-jazz-stream"
 description = "Test Jazz live stream recording flow (API → Jazz FileStream → Timeline)"
 command = '''

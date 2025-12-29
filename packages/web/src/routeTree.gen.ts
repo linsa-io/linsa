@@ -45,6 +45,7 @@ import { Route as ApiChatMessagesRouteImport } from './routes/api/chat-messages'
 import { Route as ApiCanvasRouteImport } from './routes/api/canvas'
 import { Route as ApiBrowserSessionsRouteImport } from './routes/api/browser-sessions'
 import { Route as ApiArchivesRouteImport } from './routes/api/archives'
+import { Route as ApiApiKeysRouteImport } from './routes/api/api-keys'
 import { Route as DemoStartServerFuncsRouteImport } from './routes/demo/start.server-funcs'
 import { Route as DemoStartApiRequestRouteImport } from './routes/demo/start.api-request'
 import { Route as DemoApiNamesRouteImport } from './routes/demo/api.names'
@@ -260,6 +261,11 @@ const ApiArchivesRoute = ApiArchivesRouteImport.update({
   path: '/api/archives',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiApiKeysRoute = ApiApiKeysRouteImport.update({
+  id: '/api/api-keys',
+  path: '/api/api-keys',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DemoStartServerFuncsRoute = DemoStartServerFuncsRouteImport.update({
   id: '/demo/start/server-funcs',
   path: '/demo/start/server-funcs',
@@ -454,6 +460,7 @@ export interface FileRoutesByFullPath {
   '/streams': typeof StreamsRoute
   '/urls': typeof UrlsRoute
   '/users': typeof UsersRoute
+  '/api/api-keys': typeof ApiApiKeysRoute
   '/api/archives': typeof ApiArchivesRouteWithChildren
   '/api/browser-sessions': typeof ApiBrowserSessionsRouteWithChildren
   '/api/canvas': typeof ApiCanvasRouteWithChildren
@@ -525,6 +532,7 @@ export interface FileRoutesByTo {
   '/streams': typeof StreamsRoute
   '/urls': typeof UrlsRoute
   '/users': typeof UsersRoute
+  '/api/api-keys': typeof ApiApiKeysRoute
   '/api/archives': typeof ApiArchivesRouteWithChildren
   '/api/browser-sessions': typeof ApiBrowserSessionsRouteWithChildren
   '/api/canvas': typeof ApiCanvasRouteWithChildren
@@ -598,6 +606,7 @@ export interface FileRoutesById {
   '/streams': typeof StreamsRoute
   '/urls': typeof UrlsRoute
   '/users': typeof UsersRoute
+  '/api/api-keys': typeof ApiApiKeysRoute
   '/api/archives': typeof ApiArchivesRouteWithChildren
   '/api/browser-sessions': typeof ApiBrowserSessionsRouteWithChildren
   '/api/canvas': typeof ApiCanvasRouteWithChildren
@@ -672,6 +681,7 @@ export interface FileRouteTypes {
     | '/streams'
     | '/urls'
     | '/users'
+    | '/api/api-keys'
     | '/api/archives'
     | '/api/browser-sessions'
     | '/api/canvas'
@@ -743,6 +753,7 @@ export interface FileRouteTypes {
     | '/streams'
     | '/urls'
     | '/users'
+    | '/api/api-keys'
     | '/api/archives'
     | '/api/browser-sessions'
     | '/api/canvas'
@@ -815,6 +826,7 @@ export interface FileRouteTypes {
     | '/streams'
     | '/urls'
     | '/users'
+    | '/api/api-keys'
     | '/api/archives'
     | '/api/browser-sessions'
     | '/api/canvas'
@@ -888,6 +900,7 @@ export interface RootRouteChildren {
   StreamsRoute: typeof StreamsRoute
   UrlsRoute: typeof UrlsRoute
   UsersRoute: typeof UsersRoute
+  ApiApiKeysRoute: typeof ApiApiKeysRoute
   ApiArchivesRoute: typeof ApiArchivesRouteWithChildren
   ApiBrowserSessionsRoute: typeof ApiBrowserSessionsRouteWithChildren
   ApiCanvasRoute: typeof ApiCanvasRouteWithChildren
@@ -1181,6 +1194,13 @@ declare module '@tanstack/react-router' {
       path: '/api/archives'
       fullPath: '/api/archives'
       preLoaderRoute: typeof ApiArchivesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/api-keys': {
+      id: '/api/api-keys'
+      path: '/api/api-keys'
+      fullPath: '/api/api-keys'
+      preLoaderRoute: typeof ApiApiKeysRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/demo/start/server-funcs': {
@@ -1589,6 +1609,7 @@ const rootRouteChildren: RootRouteChildren = {
   StreamsRoute: StreamsRoute,
   UrlsRoute: UrlsRoute,
   UsersRoute: UsersRoute,
+  ApiApiKeysRoute: ApiApiKeysRoute,
   ApiArchivesRoute: ApiArchivesRouteWithChildren,
   ApiBrowserSessionsRoute: ApiBrowserSessionsRouteWithChildren,
   ApiCanvasRoute: ApiCanvasRouteWithChildren,
