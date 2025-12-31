@@ -233,7 +233,7 @@ export function CommentBox({ username }: CommentBoxProps) {
       {/* Comments list */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
         {!comments ? (
-          <div className="text-center text-white/40 text-sm py-4">Loading...</div>
+          <div className="py-4" />
         ) : comments.length === 0 ? (
           <div className="text-center text-white/40 text-sm py-4">
             No messages yet. Be the first to say hi!
@@ -275,7 +275,7 @@ export function CommentBox({ username }: CommentBoxProps) {
       {/* Input area */}
       <div className="border-t border-white/10 p-3">
         {sessionLoading ? (
-          <div className="text-center text-white/40 text-sm py-2">Loading...</div>
+          <div className="py-2" />
         ) : isAuthenticated ? (
           <div className="space-y-2">
             {/* Image preview */}
@@ -442,11 +442,7 @@ function CommentImage({ image }: { image: FileStream }) {
   }, [image])
 
   if (!url) {
-    return (
-      <div className="mt-2 w-32 h-24 bg-white/5 rounded-lg animate-pulse flex items-center justify-center">
-        <span className="text-xs text-white/30">Loading...</span>
-      </div>
-    )
+    return <div className="mt-2 w-32 h-24 bg-white/5 rounded-lg animate-pulse" />
   }
 
   return (

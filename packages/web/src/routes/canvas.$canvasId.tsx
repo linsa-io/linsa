@@ -48,17 +48,7 @@ function CanvasDetailPage() {
   }, [canvasId])
 
   if (loading) {
-    return (
-      <div className="flex h-screen w-screen flex-col items-center justify-center gap-4 bg-[#03050a] text-white/70">
-        <p className="text-xs uppercase tracking-[0.4em]">Loading canvas…</p>
-        <Link
-          to="/canvas"
-          className="text-[11px] uppercase tracking-[0.3em] text-white/40 hover:text-white"
-        >
-          Back to projects
-        </Link>
-      </div>
-    )
+    return <div className="h-screen w-screen bg-[#03050a]" />
   }
 
   if (error || !snapshot) {

@@ -57,11 +57,7 @@ function SessionsPage() {
   const [importJson, setImportJson] = useState("")
 
   if (authPending) {
-    return (
-      <div className="min-h-screen text-white grid place-items-center">
-        <p className="text-slate-400">Loading...</p>
-      </div>
-    )
+    return <div className="min-h-screen" />
   }
 
   if (!session?.user) {
@@ -83,11 +79,7 @@ function SessionsPage() {
   const root = me.$isLoaded ? me.root : null
 
   if (!me.$isLoaded || !root?.$isLoaded) {
-    return (
-      <div className="min-h-screen text-white grid place-items-center">
-        <p className="text-slate-400">Loading Jazz...</p>
-      </div>
-    )
+    return <div className="min-h-screen" />
   }
 
   // Initialize browserSessions if not present

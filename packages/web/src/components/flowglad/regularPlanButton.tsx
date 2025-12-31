@@ -4,11 +4,7 @@ export function RegularPlanButton() {
   const { createCheckoutSession, loaded, errors } = useBilling()
 
   if (!loaded || !createCheckoutSession) {
-    return (
-      <button type="button" disabled>
-        Loading checkout…
-      </button>
-    )
+    return <button type="button" disabled className="opacity-50" />
   }
 
   if (errors) {

@@ -95,11 +95,7 @@ function Dashboard() {
   }
 
   if (!me.$isLoaded || !root?.$isLoaded) {
-    return (
-      <div className="min-h-screen bg-black text-white grid place-items-center">
-        <p className="text-neutral-400">Loading...</p>
-      </div>
-    )
+    return <div className="min-h-screen bg-black" />
   }
 
   return (
@@ -290,11 +286,7 @@ function HomePage() {
   const { data: session, isPending } = authClient.useSession()
 
   if (isPending) {
-    return (
-      <div className="min-h-screen bg-black text-white grid place-items-center">
-        <p className="text-neutral-400">Loading...</p>
-      </div>
-    )
+    return <div className="min-h-screen bg-black" />
   }
 
   if (session?.user) {

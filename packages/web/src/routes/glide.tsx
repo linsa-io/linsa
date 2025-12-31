@@ -86,11 +86,7 @@ function GlidePage() {
   }
 
   if (!me.$isLoaded || !root?.$isLoaded) {
-    return (
-      <div className="min-h-screen text-white grid place-items-center">
-        <p className="text-slate-400">Loading Jazz...</p>
-      </div>
-    )
+    return <div className="min-h-screen" />
   }
 
   const canvasItems: GlideCanvasItem[] = canvasList?.$isLoaded ? [...canvasList] : []
