@@ -6,10 +6,7 @@ import { authClient } from "@/lib/auth-client"
 import { useAccount } from "jazz-tools/react"
 import { ViewerAccount, type SavedUrl } from "@/lib/jazz/schema"
 import { JazzProvider } from "@/lib/jazz/provider"
-import { Link2, Plus, Trash2, ExternalLink, Video, Settings, LogOut, Layers } from "lucide-react"
-
-// Feature flag: only this email can access stream features
-const STREAM_ENABLED_EMAIL = "nikita@nikiv.dev"
+import { Link2, Plus, Trash2, ExternalLink, Settings, LogOut, Layers } from "lucide-react"
 
 function LandingPage() {
   return (
@@ -62,8 +59,6 @@ function Dashboard() {
   const [newUrl, setNewUrl] = useState("")
   const [newTitle, setNewTitle] = useState("")
   const [isAdding, setIsAdding] = useState(false)
-
-  const canAccessStreams = session?.user?.email === STREAM_ENABLED_EMAIL
 
   const root = me.$isLoaded ? me.root : null
   const urlList = root?.$isLoaded ? root.savedUrls : null
@@ -123,33 +118,6 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Stream Setup - Only for nikita@nikiv.dev */}
-        {canAccessStreams && (
-          <div className="mb-8 p-6 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-2xl">
-            <div className="flex items-center gap-3 mb-4">
-              <Video className="w-6 h-6 text-purple-400" />
-              <h2 className="text-xl font-semibold">Stream Setup</h2>
-            </div>
-            <p className="text-neutral-400 mb-4">
-              Manage your live stream and archive settings.
-            </p>
-            <div className="flex gap-3">
-              <Link
-                to="/nikiv"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-purple-600 hover:bg-purple-500 transition-colors"
-              >
-                View Stream
-              </Link>
-              <Link
-                to="/settings"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white/10 hover:bg-white/20 transition-colors"
-              >
-                Stream Settings
-              </Link>
-            </div>
-          </div>
-        )}
-
         {/* Browser Sessions */}
         <div className="mb-8 p-6 bg-gradient-to-r from-teal-500/10 to-cyan-500/10 border border-teal-500/20 rounded-2xl">
           <div className="flex items-center gap-3 mb-4">
@@ -174,14 +142,13 @@ function Dashboard() {
               <Link2 className="w-5 h-5 text-teal-400" />
               <h2 className="text-xl font-semibold">Saved Links</h2>
             </div>
-            <button
-              type="button"
-              onClick={() => setIsAdding(true)}
+            <a
+              href="/bookmarks"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-teal-600 hover:bg-teal-500 transition-colors"
             >
               <Plus className="w-4 h-4" />
               Add Link
-            </button>
+            </a>
           </div>
 
           {isAdding && (
