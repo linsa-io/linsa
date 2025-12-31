@@ -19,6 +19,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as GlideRouteImport } from './routes/glide'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as CanvasRouteImport } from './routes/canvas'
+import { Route as BookmarksRouteImport } from './routes/bookmarks'
 import { Route as BlocksRouteImport } from './routes/blocks'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ArchiveRouteImport } from './routes/archive'
@@ -44,6 +45,9 @@ import { Route as ApiChatThreadsRouteImport } from './routes/api/chat-threads'
 import { Route as ApiChatMessagesRouteImport } from './routes/api/chat-messages'
 import { Route as ApiCanvasRouteImport } from './routes/api/canvas'
 import { Route as ApiBrowserSessionsRouteImport } from './routes/api/browser-sessions'
+import { Route as ApiBookmarksListRouteImport } from './routes/api/bookmarks-list'
+import { Route as ApiBookmarksDeleteRouteImport } from './routes/api/bookmarks-delete'
+import { Route as ApiBookmarksAddRouteImport } from './routes/api/bookmarks-add'
 import { Route as ApiBookmarksRouteImport } from './routes/api/bookmarks'
 import { Route as ApiArchivesRouteImport } from './routes/api/archives'
 import { Route as ApiApiKeysRouteImport } from './routes/api/api-keys'
@@ -131,6 +135,11 @@ const ChatRoute = ChatRouteImport.update({
 const CanvasRoute = CanvasRouteImport.update({
   id: '/canvas',
   path: '/canvas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BookmarksRoute = BookmarksRouteImport.update({
+  id: '/bookmarks',
+  path: '/bookmarks',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BlocksRoute = BlocksRouteImport.update({
@@ -256,6 +265,21 @@ const ApiCanvasRoute = ApiCanvasRouteImport.update({
 const ApiBrowserSessionsRoute = ApiBrowserSessionsRouteImport.update({
   id: '/api/browser-sessions',
   path: '/api/browser-sessions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiBookmarksListRoute = ApiBookmarksListRouteImport.update({
+  id: '/api/bookmarks-list',
+  path: '/api/bookmarks-list',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiBookmarksDeleteRoute = ApiBookmarksDeleteRouteImport.update({
+  id: '/api/bookmarks-delete',
+  path: '/api/bookmarks-delete',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiBookmarksAddRoute = ApiBookmarksAddRouteImport.update({
+  id: '/api/bookmarks-add',
+  path: '/api/bookmarks-add',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiBookmarksRoute = ApiBookmarksRouteImport.update({
@@ -462,6 +486,7 @@ export interface FileRoutesByFullPath {
   '/archive': typeof ArchiveRouteWithChildren
   '/auth': typeof AuthRoute
   '/blocks': typeof BlocksRoute
+  '/bookmarks': typeof BookmarksRoute
   '/canvas': typeof CanvasRouteWithChildren
   '/chat': typeof ChatRoute
   '/glide': typeof GlideRoute
@@ -475,6 +500,9 @@ export interface FileRoutesByFullPath {
   '/api/api-keys': typeof ApiApiKeysRoute
   '/api/archives': typeof ApiArchivesRouteWithChildren
   '/api/bookmarks': typeof ApiBookmarksRoute
+  '/api/bookmarks-add': typeof ApiBookmarksAddRoute
+  '/api/bookmarks-delete': typeof ApiBookmarksDeleteRoute
+  '/api/bookmarks-list': typeof ApiBookmarksListRoute
   '/api/browser-sessions': typeof ApiBrowserSessionsRouteWithChildren
   '/api/canvas': typeof ApiCanvasRouteWithChildren
   '/api/chat-messages': typeof ApiChatMessagesRoute
@@ -537,6 +565,7 @@ export interface FileRoutesByTo {
   '/archive': typeof ArchiveRouteWithChildren
   '/auth': typeof AuthRoute
   '/blocks': typeof BlocksRoute
+  '/bookmarks': typeof BookmarksRoute
   '/chat': typeof ChatRoute
   '/glide': typeof GlideRoute
   '/login': typeof LoginRoute
@@ -549,6 +578,9 @@ export interface FileRoutesByTo {
   '/api/api-keys': typeof ApiApiKeysRoute
   '/api/archives': typeof ApiArchivesRouteWithChildren
   '/api/bookmarks': typeof ApiBookmarksRoute
+  '/api/bookmarks-add': typeof ApiBookmarksAddRoute
+  '/api/bookmarks-delete': typeof ApiBookmarksDeleteRoute
+  '/api/bookmarks-list': typeof ApiBookmarksListRoute
   '/api/browser-sessions': typeof ApiBrowserSessionsRouteWithChildren
   '/api/canvas': typeof ApiCanvasRouteWithChildren
   '/api/chat-messages': typeof ApiChatMessagesRoute
@@ -612,6 +644,7 @@ export interface FileRoutesById {
   '/archive': typeof ArchiveRouteWithChildren
   '/auth': typeof AuthRoute
   '/blocks': typeof BlocksRoute
+  '/bookmarks': typeof BookmarksRoute
   '/canvas': typeof CanvasRouteWithChildren
   '/chat': typeof ChatRoute
   '/glide': typeof GlideRoute
@@ -625,6 +658,9 @@ export interface FileRoutesById {
   '/api/api-keys': typeof ApiApiKeysRoute
   '/api/archives': typeof ApiArchivesRouteWithChildren
   '/api/bookmarks': typeof ApiBookmarksRoute
+  '/api/bookmarks-add': typeof ApiBookmarksAddRoute
+  '/api/bookmarks-delete': typeof ApiBookmarksDeleteRoute
+  '/api/bookmarks-list': typeof ApiBookmarksListRoute
   '/api/browser-sessions': typeof ApiBrowserSessionsRouteWithChildren
   '/api/canvas': typeof ApiCanvasRouteWithChildren
   '/api/chat-messages': typeof ApiChatMessagesRoute
@@ -689,6 +725,7 @@ export interface FileRouteTypes {
     | '/archive'
     | '/auth'
     | '/blocks'
+    | '/bookmarks'
     | '/canvas'
     | '/chat'
     | '/glide'
@@ -702,6 +739,9 @@ export interface FileRouteTypes {
     | '/api/api-keys'
     | '/api/archives'
     | '/api/bookmarks'
+    | '/api/bookmarks-add'
+    | '/api/bookmarks-delete'
+    | '/api/bookmarks-list'
     | '/api/browser-sessions'
     | '/api/canvas'
     | '/api/chat-messages'
@@ -764,6 +804,7 @@ export interface FileRouteTypes {
     | '/archive'
     | '/auth'
     | '/blocks'
+    | '/bookmarks'
     | '/chat'
     | '/glide'
     | '/login'
@@ -776,6 +817,9 @@ export interface FileRouteTypes {
     | '/api/api-keys'
     | '/api/archives'
     | '/api/bookmarks'
+    | '/api/bookmarks-add'
+    | '/api/bookmarks-delete'
+    | '/api/bookmarks-list'
     | '/api/browser-sessions'
     | '/api/canvas'
     | '/api/chat-messages'
@@ -838,6 +882,7 @@ export interface FileRouteTypes {
     | '/archive'
     | '/auth'
     | '/blocks'
+    | '/bookmarks'
     | '/canvas'
     | '/chat'
     | '/glide'
@@ -851,6 +896,9 @@ export interface FileRouteTypes {
     | '/api/api-keys'
     | '/api/archives'
     | '/api/bookmarks'
+    | '/api/bookmarks-add'
+    | '/api/bookmarks-delete'
+    | '/api/bookmarks-list'
     | '/api/browser-sessions'
     | '/api/canvas'
     | '/api/chat-messages'
@@ -914,6 +962,7 @@ export interface RootRouteChildren {
   ArchiveRoute: typeof ArchiveRouteWithChildren
   AuthRoute: typeof AuthRoute
   BlocksRoute: typeof BlocksRoute
+  BookmarksRoute: typeof BookmarksRoute
   CanvasRoute: typeof CanvasRouteWithChildren
   ChatRoute: typeof ChatRoute
   GlideRoute: typeof GlideRoute
@@ -927,6 +976,9 @@ export interface RootRouteChildren {
   ApiApiKeysRoute: typeof ApiApiKeysRoute
   ApiArchivesRoute: typeof ApiArchivesRouteWithChildren
   ApiBookmarksRoute: typeof ApiBookmarksRoute
+  ApiBookmarksAddRoute: typeof ApiBookmarksAddRoute
+  ApiBookmarksDeleteRoute: typeof ApiBookmarksDeleteRoute
+  ApiBookmarksListRoute: typeof ApiBookmarksListRoute
   ApiBrowserSessionsRoute: typeof ApiBrowserSessionsRouteWithChildren
   ApiCanvasRoute: typeof ApiCanvasRouteWithChildren
   ApiChatMessagesRoute: typeof ApiChatMessagesRoute
@@ -1038,6 +1090,13 @@ declare module '@tanstack/react-router' {
       path: '/canvas'
       fullPath: '/canvas'
       preLoaderRoute: typeof CanvasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bookmarks': {
+      id: '/bookmarks'
+      path: '/bookmarks'
+      fullPath: '/bookmarks'
+      preLoaderRoute: typeof BookmarksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/blocks': {
@@ -1213,6 +1272,27 @@ declare module '@tanstack/react-router' {
       path: '/api/browser-sessions'
       fullPath: '/api/browser-sessions'
       preLoaderRoute: typeof ApiBrowserSessionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/bookmarks-list': {
+      id: '/api/bookmarks-list'
+      path: '/api/bookmarks-list'
+      fullPath: '/api/bookmarks-list'
+      preLoaderRoute: typeof ApiBookmarksListRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/bookmarks-delete': {
+      id: '/api/bookmarks-delete'
+      path: '/api/bookmarks-delete'
+      fullPath: '/api/bookmarks-delete'
+      preLoaderRoute: typeof ApiBookmarksDeleteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/bookmarks-add': {
+      id: '/api/bookmarks-add'
+      path: '/api/bookmarks-add'
+      fullPath: '/api/bookmarks-add'
+      preLoaderRoute: typeof ApiBookmarksAddRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/bookmarks': {
@@ -1639,6 +1719,7 @@ const rootRouteChildren: RootRouteChildren = {
   ArchiveRoute: ArchiveRouteWithChildren,
   AuthRoute: AuthRoute,
   BlocksRoute: BlocksRoute,
+  BookmarksRoute: BookmarksRoute,
   CanvasRoute: CanvasRouteWithChildren,
   ChatRoute: ChatRoute,
   GlideRoute: GlideRoute,
@@ -1652,6 +1733,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiApiKeysRoute: ApiApiKeysRoute,
   ApiArchivesRoute: ApiArchivesRouteWithChildren,
   ApiBookmarksRoute: ApiBookmarksRoute,
+  ApiBookmarksAddRoute: ApiBookmarksAddRoute,
+  ApiBookmarksDeleteRoute: ApiBookmarksDeleteRoute,
+  ApiBookmarksListRoute: ApiBookmarksListRoute,
   ApiBrowserSessionsRoute: ApiBrowserSessionsRouteWithChildren,
   ApiCanvasRoute: ApiCanvasRouteWithChildren,
   ApiChatMessagesRoute: ApiChatMessagesRoute,
