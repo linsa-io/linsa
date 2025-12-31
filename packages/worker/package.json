@@ -13,7 +13,7 @@
     "wrangler": "^4.53.0"
   },
   "dependencies": {
-    "@1focus/logs": "file:/Users/nikiv/lang/ts/lib/1focus/packages/logs",
+    "@1focus/logs": "^0.0.1",
     "drizzle-orm": "^0.45.0",
     "drizzle-zod": "^0.8.3",
     "hono": "^4.10.4",
