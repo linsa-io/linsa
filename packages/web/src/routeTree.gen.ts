@@ -44,6 +44,7 @@ import { Route as ApiChatThreadsRouteImport } from './routes/api/chat-threads'
 import { Route as ApiChatMessagesRouteImport } from './routes/api/chat-messages'
 import { Route as ApiCanvasRouteImport } from './routes/api/canvas'
 import { Route as ApiBrowserSessionsRouteImport } from './routes/api/browser-sessions'
+import { Route as ApiBookmarksRouteImport } from './routes/api/bookmarks'
 import { Route as ApiArchivesRouteImport } from './routes/api/archives'
 import { Route as ApiApiKeysRouteImport } from './routes/api/api-keys'
 import { Route as DemoStartServerFuncsRouteImport } from './routes/demo/start.server-funcs'
@@ -59,6 +60,7 @@ import { Route as ApiStreamsUsernameRouteImport } from './routes/api/streams.$us
 import { Route as ApiStreamSettingsRouteImport } from './routes/api/stream.settings'
 import { Route as ApiStreamReplaysReplayIdRouteImport } from './routes/api/stream-replays.$replayId'
 import { Route as ApiSpotifyNowPlayingRouteImport } from './routes/api/spotify.now-playing'
+import { Route as ApiJazzCloudflareConfigRouteImport } from './routes/api/jazz.cloudflare-config'
 import { Route as ApiFlowgladSplatRouteImport } from './routes/api/flowglad/$'
 import { Route as ApiCreatorTiersRouteImport } from './routes/api/creator/tiers'
 import { Route as ApiCreatorSubscribeRouteImport } from './routes/api/creator/subscribe'
@@ -256,6 +258,11 @@ const ApiBrowserSessionsRoute = ApiBrowserSessionsRouteImport.update({
   path: '/api/browser-sessions',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiBookmarksRoute = ApiBookmarksRouteImport.update({
+  id: '/api/bookmarks',
+  path: '/api/bookmarks',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiArchivesRoute = ApiArchivesRouteImport.update({
   id: '/api/archives',
   path: '/api/archives',
@@ -330,6 +337,11 @@ const ApiStreamReplaysReplayIdRoute =
 const ApiSpotifyNowPlayingRoute = ApiSpotifyNowPlayingRouteImport.update({
   id: '/api/spotify/now-playing',
   path: '/api/spotify/now-playing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiJazzCloudflareConfigRoute = ApiJazzCloudflareConfigRouteImport.update({
+  id: '/api/jazz/cloudflare-config',
+  path: '/api/jazz/cloudflare-config',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiFlowgladSplatRoute = ApiFlowgladSplatRouteImport.update({
@@ -462,6 +474,7 @@ export interface FileRoutesByFullPath {
   '/users': typeof UsersRoute
   '/api/api-keys': typeof ApiApiKeysRoute
   '/api/archives': typeof ApiArchivesRouteWithChildren
+  '/api/bookmarks': typeof ApiBookmarksRoute
   '/api/browser-sessions': typeof ApiBrowserSessionsRouteWithChildren
   '/api/canvas': typeof ApiCanvasRouteWithChildren
   '/api/chat-messages': typeof ApiChatMessagesRoute
@@ -493,6 +506,7 @@ export interface FileRoutesByFullPath {
   '/api/creator/subscribe': typeof ApiCreatorSubscribeRoute
   '/api/creator/tiers': typeof ApiCreatorTiersRoute
   '/api/flowglad/$': typeof ApiFlowgladSplatRoute
+  '/api/jazz/cloudflare-config': typeof ApiJazzCloudflareConfigRoute
   '/api/spotify/now-playing': typeof ApiSpotifyNowPlayingRoute
   '/api/stream-replays/$replayId': typeof ApiStreamReplaysReplayIdRoute
   '/api/stream/settings': typeof ApiStreamSettingsRoute
@@ -534,6 +548,7 @@ export interface FileRoutesByTo {
   '/users': typeof UsersRoute
   '/api/api-keys': typeof ApiApiKeysRoute
   '/api/archives': typeof ApiArchivesRouteWithChildren
+  '/api/bookmarks': typeof ApiBookmarksRoute
   '/api/browser-sessions': typeof ApiBrowserSessionsRouteWithChildren
   '/api/canvas': typeof ApiCanvasRouteWithChildren
   '/api/chat-messages': typeof ApiChatMessagesRoute
@@ -565,6 +580,7 @@ export interface FileRoutesByTo {
   '/api/creator/subscribe': typeof ApiCreatorSubscribeRoute
   '/api/creator/tiers': typeof ApiCreatorTiersRoute
   '/api/flowglad/$': typeof ApiFlowgladSplatRoute
+  '/api/jazz/cloudflare-config': typeof ApiJazzCloudflareConfigRoute
   '/api/spotify/now-playing': typeof ApiSpotifyNowPlayingRoute
   '/api/stream-replays/$replayId': typeof ApiStreamReplaysReplayIdRoute
   '/api/stream/settings': typeof ApiStreamSettingsRoute
@@ -608,6 +624,7 @@ export interface FileRoutesById {
   '/users': typeof UsersRoute
   '/api/api-keys': typeof ApiApiKeysRoute
   '/api/archives': typeof ApiArchivesRouteWithChildren
+  '/api/bookmarks': typeof ApiBookmarksRoute
   '/api/browser-sessions': typeof ApiBrowserSessionsRouteWithChildren
   '/api/canvas': typeof ApiCanvasRouteWithChildren
   '/api/chat-messages': typeof ApiChatMessagesRoute
@@ -639,6 +656,7 @@ export interface FileRoutesById {
   '/api/creator/subscribe': typeof ApiCreatorSubscribeRoute
   '/api/creator/tiers': typeof ApiCreatorTiersRoute
   '/api/flowglad/$': typeof ApiFlowgladSplatRoute
+  '/api/jazz/cloudflare-config': typeof ApiJazzCloudflareConfigRoute
   '/api/spotify/now-playing': typeof ApiSpotifyNowPlayingRoute
   '/api/stream-replays/$replayId': typeof ApiStreamReplaysReplayIdRoute
   '/api/stream/settings': typeof ApiStreamSettingsRoute
@@ -683,6 +701,7 @@ export interface FileRouteTypes {
     | '/users'
     | '/api/api-keys'
     | '/api/archives'
+    | '/api/bookmarks'
     | '/api/browser-sessions'
     | '/api/canvas'
     | '/api/chat-messages'
@@ -714,6 +733,7 @@ export interface FileRouteTypes {
     | '/api/creator/subscribe'
     | '/api/creator/tiers'
     | '/api/flowglad/$'
+    | '/api/jazz/cloudflare-config'
     | '/api/spotify/now-playing'
     | '/api/stream-replays/$replayId'
     | '/api/stream/settings'
@@ -755,6 +775,7 @@ export interface FileRouteTypes {
     | '/users'
     | '/api/api-keys'
     | '/api/archives'
+    | '/api/bookmarks'
     | '/api/browser-sessions'
     | '/api/canvas'
     | '/api/chat-messages'
@@ -786,6 +807,7 @@ export interface FileRouteTypes {
     | '/api/creator/subscribe'
     | '/api/creator/tiers'
     | '/api/flowglad/$'
+    | '/api/jazz/cloudflare-config'
     | '/api/spotify/now-playing'
     | '/api/stream-replays/$replayId'
     | '/api/stream/settings'
@@ -828,6 +850,7 @@ export interface FileRouteTypes {
     | '/users'
     | '/api/api-keys'
     | '/api/archives'
+    | '/api/bookmarks'
     | '/api/browser-sessions'
     | '/api/canvas'
     | '/api/chat-messages'
@@ -859,6 +882,7 @@ export interface FileRouteTypes {
     | '/api/creator/subscribe'
     | '/api/creator/tiers'
     | '/api/flowglad/$'
+    | '/api/jazz/cloudflare-config'
     | '/api/spotify/now-playing'
     | '/api/stream-replays/$replayId'
     | '/api/stream/settings'
@@ -902,6 +926,7 @@ export interface RootRouteChildren {
   UsersRoute: typeof UsersRoute
   ApiApiKeysRoute: typeof ApiApiKeysRoute
   ApiArchivesRoute: typeof ApiArchivesRouteWithChildren
+  ApiBookmarksRoute: typeof ApiBookmarksRoute
   ApiBrowserSessionsRoute: typeof ApiBrowserSessionsRouteWithChildren
   ApiCanvasRoute: typeof ApiCanvasRouteWithChildren
   ApiChatMessagesRoute: typeof ApiChatMessagesRoute
@@ -926,6 +951,7 @@ export interface RootRouteChildren {
   ApiCreatorSubscribeRoute: typeof ApiCreatorSubscribeRoute
   ApiCreatorTiersRoute: typeof ApiCreatorTiersRoute
   ApiFlowgladSplatRoute: typeof ApiFlowgladSplatRoute
+  ApiJazzCloudflareConfigRoute: typeof ApiJazzCloudflareConfigRoute
   ApiSpotifyNowPlayingRoute: typeof ApiSpotifyNowPlayingRoute
   ApiStreamsUsernameRoute: typeof ApiStreamsUsernameRouteWithChildren
   ApiStripeBillingRoute: typeof ApiStripeBillingRoute
@@ -1189,6 +1215,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiBrowserSessionsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/bookmarks': {
+      id: '/api/bookmarks'
+      path: '/api/bookmarks'
+      fullPath: '/api/bookmarks'
+      preLoaderRoute: typeof ApiBookmarksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/archives': {
       id: '/api/archives'
       path: '/api/archives'
@@ -1292,6 +1325,13 @@ declare module '@tanstack/react-router' {
       path: '/api/spotify/now-playing'
       fullPath: '/api/spotify/now-playing'
       preLoaderRoute: typeof ApiSpotifyNowPlayingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/jazz/cloudflare-config': {
+      id: '/api/jazz/cloudflare-config'
+      path: '/api/jazz/cloudflare-config'
+      fullPath: '/api/jazz/cloudflare-config'
+      preLoaderRoute: typeof ApiJazzCloudflareConfigRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/flowglad/$': {
@@ -1611,6 +1651,7 @@ const rootRouteChildren: RootRouteChildren = {
   UsersRoute: UsersRoute,
   ApiApiKeysRoute: ApiApiKeysRoute,
   ApiArchivesRoute: ApiArchivesRouteWithChildren,
+  ApiBookmarksRoute: ApiBookmarksRoute,
   ApiBrowserSessionsRoute: ApiBrowserSessionsRouteWithChildren,
   ApiCanvasRoute: ApiCanvasRouteWithChildren,
   ApiChatMessagesRoute: ApiChatMessagesRoute,
@@ -1635,6 +1676,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCreatorSubscribeRoute: ApiCreatorSubscribeRoute,
   ApiCreatorTiersRoute: ApiCreatorTiersRoute,
   ApiFlowgladSplatRoute: ApiFlowgladSplatRoute,
+  ApiJazzCloudflareConfigRoute: ApiJazzCloudflareConfigRoute,
   ApiSpotifyNowPlayingRoute: ApiSpotifyNowPlayingRoute,
   ApiStreamsUsernameRoute: ApiStreamsUsernameRouteWithChildren,
   ApiStripeBillingRoute: ApiStripeBillingRoute,
